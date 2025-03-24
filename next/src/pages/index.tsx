@@ -54,6 +54,16 @@ export default function Home() {
             >
               企業註冊
             </Button>
+
+            <Button
+              variant="contained"
+              color="secondary"
+              component={Link}
+              href="/PlatformLanding"
+              size="large"
+            >
+              主頁
+            </Button>
           </Box>
         </Box>
       </Paper>
