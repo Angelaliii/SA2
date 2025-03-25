@@ -64,6 +64,16 @@ export default function Home() {
             >
               主頁
             </Button>
+
+            <Button
+              variant="contained"
+              color="secondary"
+              component={Link}
+              href="/Artical"
+              size="large"
+            >
+              文章發布
+            </Button>
           </Box>
         </Box>
       </Paper>
