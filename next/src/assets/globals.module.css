@@ -20,3 +20,17 @@
   gap: 1.5rem;
   width: 100%;
 }
+
+/* 為 formRow class 加入樣式 */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* 為 fullWidth class 加入樣式 */
+.fullWidth {
+  grid-column: 1 / -1;
+  width: 100%;
+}
