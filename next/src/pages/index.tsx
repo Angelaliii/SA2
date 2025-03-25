@@ -59,6 +59,16 @@ export default function Home() {
               variant="contained"
               color="secondary"
               component={Link}
+              href="/ClubRegister"
+              size="large"
+            >
+              社團註冊
+            </Button>
+
+            <Button
+              variant="contained"
+              color="secondary"
+              component={Link}
               href="/PlatformLanding"
               size="large"
             >
