@@ -104,7 +104,6 @@ export default function ClubRegister() {
     }
   };
 
-  // Handle select change for club type
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -112,8 +111,7 @@ export default function ClubRegister() {
       [name]: value,
     }));
 
-    // Clear error
-    if (errors[name as keyof FormErrors]) {
+    if (name in errors && errors[name as keyof FormErrors]) {
       setErrors((prev) => ({
         ...prev,
         [name]: "",
@@ -121,7 +119,6 @@ export default function ClubRegister() {
     }
   };
 
-  // Handle file upload for logo
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
@@ -243,7 +240,7 @@ export default function ClubRegister() {
             <Typography variant="h4" align="center" gutterBottom>
               註冊成功！
             </Typography>
-            <Typography align="center" paragraph>
+            <Typography align="center" sx={{ mb: 2 }}>
               感謝您完成社團註冊，您的帳號已成功建立
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
@@ -265,7 +262,7 @@ export default function ClubRegister() {
             <Typography variant="h4" align="center" gutterBottom>
               社團帳號註冊
             </Typography>
-            <Typography color="textSecondary" align="center" paragraph>
+            <Typography color="textSecondary" align="center" sx={{ mb: 2 }}>
               請填寫以下資料以註冊社團帳號
             </Typography>
 
@@ -391,7 +388,7 @@ export default function ClubRegister() {
                     社團標誌
                   </Typography>
                   <Button variant="outlined" component="label" fullWidth>
-                    選擇檔案
+                    選擇檔案{" "}
                     <input
                       type="file"
                       hidden
@@ -428,7 +425,7 @@ export default function ClubRegister() {
                     fullWidth
                     color={errors.clubCertificate ? "error" : "primary"}
                   >
-                    上傳社團證明文件
+                    上傳社團證明文件{" "}
                     <input
                       type="file"
                       hidden
