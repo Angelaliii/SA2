@@ -25,7 +25,7 @@ export default function PublishPage() {
   const [imageFile, setImageFile] = React.useState<File | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setImageFile(e.target.files[0]);
     }
   };
@@ -49,8 +49,8 @@ export default function PublishPage() {
               <MenuItem value="" disabled hidden>
                 請選擇發文位置
               </MenuItem>
-              {postLocations.map((loc, idx) => (
-                <MenuItem key={idx} value={loc}>
+              {postLocations.map((loc) => (
+                <MenuItem key={loc} value={loc}>
                   {loc}
                 </MenuItem>
               ))}
@@ -78,7 +78,7 @@ export default function PublishPage() {
               variant="outlined"
               startIcon={<ImageIcon />}
             >
-              上傳圖片
+              <Typography component="span">上傳圖片</Typography>
               <input type="file" hidden onChange={handleImageUpload} />
             </Button>
             {imageFile && (
