@@ -13,7 +13,13 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
+    "@types/formidable": "^3.4.5",
+    "axios": "^1.8.4",
+    "firebase": "^11.5.0",
+    "form-data": "^4.0.2",
+    "formidable": "^3.5.2",
     "next": "15.2.1",
+    "node-fetch": "^2.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

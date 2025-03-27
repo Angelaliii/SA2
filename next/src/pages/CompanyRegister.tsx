@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 import styles from "../assets/globals.module.css";
+import { companyServices } from "../firebase/services";
 
 // Define types for formData and errors
 interface FormData {
@@ -242,7 +243,7 @@ export default function CompanyRegister() {
   };
 
   // Handle form submission
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // Validate form
@@ -252,14 +253,59 @@ export default function CompanyRegister() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitSuccess(true);
+    try {
+      // 使用 Firebase 服務直接註冊公司
+      const result = await companyServices.registerCompany(
+        {
+          companyName: formData.companyName,
+          businessId: formData.businessId,
+          industryType: formData.industryType,
+          contactName: formData.contactName,
+          contactPhone: formData.contactPhone,
+          email: formData.email,
+          companyDescription: formData.companyDescription,
+          cooperationFields: formData.cooperationFields,
+        },
+        formData.logo,
+        formData.businessCertificate
+      );
 
-      // Reset form or redirect after success
-      // Can be replaced with actual API call
-    }, 1500);
+      if (result.success) {
+        setIsSubmitting(false);
+        setSubmitSuccess(true);
+        // 重置表單
+        setFormData({
+          companyName: "",
+          businessId: "",
+          industryType: "",
+          contactName: "",
+          contactPhone: "",
+          email: "",
+          companyDescription: "",
+          cooperationFields: [],
+          logo: null,
+          businessCertificate: null,
+        });
+        setErrors({
+          companyName: "",
+          businessId: "",
+          industryType: "",
+          contactName: "",
+          contactPhone: "",
+          email: "",
+          businessCertificate: "",
+        });
+      } else {
+        // 處理錯誤
+        console.error("註冊失敗:", result.error);
+        alert(`註冊失敗: ${result.error}`);
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error("註冊過程發生錯誤:", error);
+      alert("註冊過程中發生錯誤，請稍後再試");
+      setIsSubmitting(false);
+    }
   };
 
   return (
