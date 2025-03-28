@@ -4,9 +4,8 @@ import uuid
 from datetime import datetime
 
 # 導入 Firebase 初始化模組
-from api.firebase_init import bucket, db, firebase_admin, firebase_initialized
+from firebase_init import bucket, db, firebase_admin, firebase_initialized
 from flask import Blueprint, jsonify, request
-from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 # 使用 Blueprint 替代直接創建 Flask 應用
@@ -50,27 +49,46 @@ def validate_company_data(data):
 def upload_to_firebase(file, folder, file_id):
     """上傳檔案到 Firebase Storage"""
     if not firebase_initialized:
+        print("Firebase 未初始化，無法上傳檔案")
         return None
 
+    file_path = None
     try:
+        # 確保上傳資料夾存在
+        if not os.path.exists(UPLOAD_FOLDER):
+            print(f"正在創建上傳資料夾: {UPLOAD_FOLDER}")
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        print(f"正在保存檔案到: {file_path}")
         file.save(file_path)
 
         destination_blob_name = f"{folder}/{file_id}_{secure_filename(file.filename)}"
+        print(f"正在上傳檔案至 Firebase Storage: {destination_blob_name}")
         blob = bucket.blob(destination_blob_name)
         blob.upload_from_filename(file_path)
 
         # 設定檔案為公開可訪問
         blob.make_public()
+        
+        file_url = blob.public_url
+        print(f"檔案上傳成功，公開URL: {file_url}")
 
         # 刪除本地暫存檔案
-        os.remove(file_path)
-
-        return blob.public_url
-    except Exception as e:
-        print(f"上傳檔案到 Firebase Storage 失敗: {e}")
         if os.path.exists(file_path):
             os.remove(file_path)
+            print(f"已刪除本地暫存檔案: {file_path}")
+
+        return file_url
+    except (IOError, firebase_admin.exceptions.FirebaseError) as e:
+        print(f"上傳檔案到 Firebase Storage 失敗: {e}")
+        # 清理文件
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"已刪除失敗的本地暫存檔案: {file_path}")
+            except IOError as cleanup_error:
+                print(f"清理暫存檔案失敗: {cleanup_error}")
         return None
 
 def process_company_files(company_id, request_files):
@@ -98,6 +116,7 @@ def process_company_files(company_id, request_files):
 @app.route('/api/register/company', methods=['POST'])
 def register_company():
     """企業註冊 API 端點"""
+    print("Firebase 初始化狀態:", firebase_initialized)
     if not firebase_initialized:
         return jsonify({
             'success': False,
@@ -157,7 +176,7 @@ def register_company():
                 }
             }), 200
 
-        except Exception as firebase_error:
+        except firebase_admin.exceptions.FirebaseError as firebase_error:
             print(f"Firestore 操作失敗: {firebase_error}")
             return jsonify({
                 'success': False,
@@ -173,7 +192,7 @@ def register_company():
             'error': str(e)
         }), 400
 
-    except (firebase_admin.exceptions.FirebaseError) as e:
+    except firebase_admin.exceptions.FirebaseError as e:
         print(f"Firebase 操作錯誤: {e}")
         return jsonify({
             'success': False,
@@ -189,11 +208,11 @@ def register_company():
             'error': str(e)
         }), 500
 
-    except Exception as e:
-        print(f"未預期的錯誤: {e}")
+    except (TypeError, AttributeError) as e:
+        print(f"資料類型或屬性錯誤: {e}")
         return jsonify({
             'success': False,
-            'message': '伺服器內部錯誤',
+            'message': '資料處理錯誤',
             'error': str(e)
         }), 500
 
@@ -232,7 +251,7 @@ def get_company_status():
                 'message': '找不到此公司資料'
             }), 404
 
-    except Exception as e:
+    except (firebase_admin.exceptions.FirebaseError, ValueError) as e:
         print(f"獲取公司狀態失敗: {e}")
         return jsonify({
             'success': False,

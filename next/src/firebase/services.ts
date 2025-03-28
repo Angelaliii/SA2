@@ -20,7 +20,7 @@ import { auth, db } from "./config";
 
 // 公司註冊相關功能
 export const companyServices = {
-  // 公司註冊 - 使用 Python 後端 API
+  // 公司註冊 - 直接使用 Python 後端 API
   async registerCompany(
     companyData: any,
     logoFile: File | null,
@@ -57,14 +57,11 @@ export const companyServices = {
         formData.append("businessCertificate", certificateFile);
       }
 
-      // 發送請求到 Python API
+      // 直接發送請求到 Python 後端 API，不再經過 Next.js API 路由
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
-        const endpoint = backendUrl
-          ? `${backendUrl}/api/register/company`
-          : "/api/register/company";
-
-        const response = await fetch(endpoint, {
+        const backendUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+        const response = await fetch(`${backendUrl}/api/register/company`, {
           method: "POST",
           body: formData,
         });
@@ -239,6 +236,87 @@ export const companyServices = {
       return {
         success: false,
         error: "搜尋時發生錯誤",
+      };
+    }
+  },
+};
+
+// 新增社團服務
+export const clubServices = {
+  // 社團註冊 - 直接使用 Python 後端 API
+  async registerClub(
+    clubData: any,
+    logoFile: File | null,
+    certificateFile: File | null
+  ) {
+    try {
+      const formData = new FormData();
+
+      // 添加社團基本資料
+      formData.append("clubName", clubData.clubName);
+      formData.append("schoolName", clubData.schoolName);
+      formData.append("clubType", clubData.clubType);
+      formData.append("contactName", clubData.contactName);
+      formData.append("contactPhone", clubData.contactPhone);
+      formData.append("email", clubData.email);
+
+      if (clubData.clubDescription) {
+        formData.append("clubDescription", clubData.clubDescription);
+      }
+
+      // 添加合作領域，如果是陣列
+      if (Array.isArray(clubData.cooperationFields)) {
+        clubData.cooperationFields.forEach((field: string) => {
+          formData.append("cooperationFields", field);
+        });
+      }
+
+      // 添加檔案
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      if (certificateFile) {
+        formData.append("clubCertificate", certificateFile);
+      }
+
+      // 直接發送請求到 Python 後端 API，不再經過 Next.js API 路由
+      try {
+        const backendUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+        const response = await fetch(`${backendUrl}/api/register/club`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `後端回應錯誤: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || "註冊失敗");
+        }
+
+        return {
+          success: true,
+          data: result.data,
+        };
+      } catch (error) {
+        console.error("API請求失敗:", error);
+        return {
+          success: false,
+          error: "後端API連接失敗，請確認後端服務是否正常運行",
+        };
+      }
+    } catch (error) {
+      console.error("社團註冊失敗:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "註冊過程中發生錯誤",
       };
     }
   },

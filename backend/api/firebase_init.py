@@ -7,8 +7,8 @@ from firebase_admin import credentials, firestore, storage
 FIREBASE_PROJECT_ID = "fjusa-75609"
 FIREBASE_STORAGE_BUCKET = "fjusa-75609.firebasestorage.app"
 
-# 憑證檔案路徑
-cred_path = os.path.join(os.path.dirname(__file__), 'fjusa-75609-firebase-adminsdk-fbsvc-63b4b63d7c.json')
+# 憑證檔案路徑 - 修正檔案名稱
+cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
 
 # Firebase 初始化標誌
 firebase_initialized = False
@@ -18,6 +18,7 @@ bucket = None
 try:
     # 嘗試使用服務帳號憑證初始化
     if os.path.exists(cred_path):
+        print(f"找到憑證檔案: {cred_path}")
         cred = credentials.Certificate(cred_path)
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
@@ -25,11 +26,13 @@ try:
             })
     else:
         # 如果找不到憑證檔案，則使用預設憑證
+        print(f"找不到憑證檔案: {cred_path}，嘗試使用預設憑證")
         if not firebase_admin._apps:
             firebase_admin.initialize_app(options={
                 'projectId': FIREBASE_PROJECT_ID,
                 'storageBucket': FIREBASE_STORAGE_BUCKET
             })
+    
     db = firestore.client()
     bucket = storage.bucket()
     firebase_initialized = True

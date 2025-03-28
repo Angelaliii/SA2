@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 import styles from "../assets/globals.module.css";
+import { clubServices } from "../firebase/services";
 
 // Define types for formData and errors
 interface FormData {
@@ -242,38 +243,21 @@ export default function ClubRegister() {
     setIsSubmitting(true);
 
     try {
-      // 建立 FormData 以發送檔案
-      const formDataToSend = new FormData();
-      formDataToSend.append("clubName", formData.clubName);
-      formDataToSend.append("schoolName", formData.schoolName);
-      formDataToSend.append("clubType", formData.clubType);
-      formDataToSend.append("contactName", formData.contactName);
-      formDataToSend.append("contactPhone", formData.contactPhone);
-      formDataToSend.append("email", formData.email);
-
-      if (formData.clubDescription) {
-        formDataToSend.append("clubDescription", formData.clubDescription);
-      }
-
-      formData.cooperationFields.forEach((field) => {
-        formDataToSend.append("cooperationFields", field);
-      });
-
-      if (formData.logo) {
-        formDataToSend.append("logo", formData.logo);
-      }
-
-      if (formData.clubCertificate) {
-        formDataToSend.append("clubCertificate", formData.clubCertificate);
-      }
-
-      // 發送請求到 Next.js API 路由
-      const response = await fetch("/api/register/club", {
-        method: "POST",
-        body: formDataToSend,
-      });
-
-      const result = await response.json();
+      // 使用 clubServices 直接向後端發送請求
+      const result = await clubServices.registerClub(
+        {
+          clubName: formData.clubName,
+          schoolName: formData.schoolName,
+          clubType: formData.clubType,
+          contactName: formData.contactName,
+          contactPhone: formData.contactPhone,
+          email: formData.email,
+          clubDescription: formData.clubDescription,
+          cooperationFields: formData.cooperationFields,
+        },
+        formData.logo,
+        formData.clubCertificate
+      );
 
       if (result.success) {
         setIsSubmitting(false);

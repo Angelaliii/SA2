@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 # 導入 Firebase 初始化模組
-from api.firebase_init import bucket, db, firebase_admin, firebase_initialized
+from firebase_init import bucket, db, firebase_admin, firebase_initialized
 from flask import Blueprint, jsonify, request
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
