@@ -13,7 +13,6 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
-<<<<<<< HEAD
     "@types/formidable": "^3.4.5",
     "axios": "^1.8.4",
     "firebase": "^11.5.0",
@@ -21,9 +20,6 @@
     "formidable": "^3.5.2",
     "next": "15.2.1",
     "node-fetch": "^2.7.0",
-=======
-    "next": "15.2.1",
->>>>>>> c8172a978bdcee4898fcbf8f3ec38260fc4e0878
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

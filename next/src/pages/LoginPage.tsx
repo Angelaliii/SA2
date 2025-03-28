@@ -1,5 +1,5 @@
-<<<<<<< HEAD
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Button, Container, Typography } from "@mui/material";
+import Link from "next/link";
 import styles from "../assets/globals.module.css";
 import Login from "../components/Login";
 
@@ -16,40 +16,20 @@ export default function LoginPage() {
           </Typography>
 
           <Login />
+
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+            <Button
+              component={Link}
+              href="/"
+              variant="outlined"
+              color="primary"
+              sx={{ textDecoration: "none" }}
+            >
+              返回首頁
+            </Button>
+          </Box>
         </Box>
       </Container>
     </div>
-=======
-import { Box, Button, Container } from "@mui/material";
-import Link from "next/link";
-import LoginComponent from "../components/Login";
-
-export default function LoginPage() {
-  return (
-    <Container
-      maxWidth="md"
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        py: 4,
-      }}
-    >
-      <Box sx={{ flexGrow: 1 }}>
-        <LoginComponent />
-      </Box>
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-        <Button
-          component={Link}
-          href="/"
-          variant="outlined"
-          color="primary"
-          sx={{ textDecoration: "none" }}
-        >
-          返回首頁
-        </Button>
-      </Box>
-    </Container>
->>>>>>> c8172a978bdcee4898fcbf8f3ec38260fc4e0878
   );
 }

@@ -2,12 +2,16 @@ import json
 import os
 
 import firebase_admin
+# 導入 dotenv 來載入環境變數
+from dotenv import load_dotenv
 from firebase_admin import credentials, firestore, storage
+
+# 載入環境變數
+load_dotenv()
 
 # Firebase 專案 ID 和 Storage Bucket
 FIREBASE_PROJECT_ID = "fjusa-75609"
 FIREBASE_STORAGE_BUCKET = "fjusa-75609.firebasestorage.app"
-
 # Firebase 初始化標誌
 firebase_initialized = False
 db = None
