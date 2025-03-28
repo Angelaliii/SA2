@@ -6,10 +6,14 @@ from datetime import datetime
 # 導入 Firebase 初始化模組
 from firebase_init import bucket, db, firebase_admin, firebase_initialized
 from flask import Blueprint, jsonify, request
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 # 使用 Blueprint 替代直接創建 Flask 應用
 app = Blueprint('company_register', __name__)
+
+# 為 Blueprint 啟用 CORS
+CORS(app)
 
 # 設定上傳資料夾
 UPLOAD_FOLDER = 'uploads'

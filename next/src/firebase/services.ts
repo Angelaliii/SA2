@@ -59,11 +59,16 @@ export const companyServices = {
 
       // 直接發送請求到 Python 後端 API，不再經過 Next.js API 路由
       try {
-        const backendUrl =
-          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
-        const response = await fetch(`${backendUrl}/api/register/company`, {
+        // 使用固定的後端URL，確保可以正確連接
+        const backendUrl = "http://localhost:5000";
+        console.log("發送請求到:", `${backendUrl}/api/register/club`);
+
+        const response = await fetch(`${backendUrl}/api/register/club`, {
           method: "POST",
           body: formData,
+          // 添加 CORS 相關設定
+          mode: "cors",
+          credentials: "same-origin",
         });
 
         if (!response.ok) {
@@ -282,11 +287,16 @@ export const clubServices = {
 
       // 直接發送請求到 Python 後端 API，不再經過 Next.js API 路由
       try {
-        const backendUrl =
-          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+        // 使用固定的後端URL，確保可以正確連接
+        const backendUrl = "http://localhost:5000";
+        console.log("發送請求到:", `${backendUrl}/api/register/club`);
+
         const response = await fetch(`${backendUrl}/api/register/club`, {
           method: "POST",
           body: formData,
+          // 添加 CORS 相關設定
+          mode: "cors",
+          credentials: "same-origin",
         });
 
         if (!response.ok) {

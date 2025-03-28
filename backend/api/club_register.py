@@ -11,6 +11,8 @@ from werkzeug.utils import secure_filename
 
 # 使用 Blueprint 替代直接創建 Flask 應用
 app = Blueprint('club_register', __name__)
+# 為 Blueprint 啟用 CORS
+CORS(app)
 
 # 設定上傳資料夾
 UPLOAD_FOLDER = 'uploads'
