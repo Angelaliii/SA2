@@ -1,27 +1,24 @@
 "use client";
 
 import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  Container,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  FormHelperText,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  SelectChangeEvent,
-  TextField,
-  Typography,
+    Alert,
+    Box,
+    Button,
+    Container,
+    Divider,
+    FormControl,
+    FormHelperText,
+    InputLabel,
+    MenuItem,
+    Paper,
+    Select,
+    SelectChangeEvent,
+    TextField,
+    Typography
 } from "@mui/material";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 import styles from "../assets/globals.module.css";
-import { clubServices } from "../firebase/services";
 
 // Define types for formData and errors
 interface FormData {
@@ -130,7 +127,7 @@ export default function ClubRegister() {
     }));
 
     // Clear error
-    if (errors[name as keyof FormErrors]) {
+    if (name in errors && errors[name as keyof FormErrors]) {
       setErrors((prev) => ({
         ...prev,
         [name]: "",
@@ -177,6 +174,12 @@ export default function ClubRegister() {
     }
   };
 
+  // Validate phone number format
+  const validatePhoneNumber = (phone: string) => {
+    const regex = /^09\d{8}$|^0[1-8]\d{7,8}$/;
+    return regex.test(phone);
+  };
+
   // Validate email format
   const validateEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -212,6 +215,9 @@ export default function ClubRegister() {
     if (!formData.contactPhone.trim()) {
       newErrors.contactPhone = "此欄位為必填";
       valid = false;
+    } else if (!validatePhoneNumber(formData.contactPhone)) {
+      newErrors.contactPhone = "請輸入有效的電話號碼";
+      valid = false;
     }
 
     if (!formData.email.trim()) {
@@ -232,7 +238,7 @@ export default function ClubRegister() {
   };
 
   // Handle form submission
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // Validate form
@@ -242,59 +248,14 @@ export default function ClubRegister() {
 
     setIsSubmitting(true);
 
-    try {
-      // 使用 clubServices 直接向後端發送請求
-      const result = await clubServices.registerClub(
-        {
-          clubName: formData.clubName,
-          schoolName: formData.schoolName,
-          clubType: formData.clubType,
-          contactName: formData.contactName,
-          contactPhone: formData.contactPhone,
-          email: formData.email,
-          clubDescription: formData.clubDescription,
-          cooperationFields: formData.cooperationFields,
-        },
-        formData.logo,
-        formData.clubCertificate
-      );
-
-      if (result.success) {
-        setIsSubmitting(false);
-        setSubmitSuccess(true);
-        // 重置表單
-        setFormData({
-          clubName: "",
-          schoolName: "",
-          clubType: "",
-          contactName: "",
-          contactPhone: "",
-          email: "",
-          clubDescription: "",
-          cooperationFields: [],
-          logo: null,
-          clubCertificate: null,
-        });
-        setErrors({
-          clubName: "",
-          schoolName: "",
-          clubType: "",
-          contactName: "",
-          contactPhone: "",
-          email: "",
-          clubCertificate: "",
-        });
-      } else {
-        // 處理錯誤
-        console.error("註冊失敗:", result.error);
-        alert(`註冊失敗: ${result.error}`);
-        setIsSubmitting(false);
-      }
-    } catch (error) {
-      console.error("註冊過程發生錯誤:", error);
-      alert("註冊過程中發生錯誤，請稍後再試");
+    // Simulate API call
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      setSubmitSuccess(true);
+
+      // Reset form or redirect after success
+      // Can be replaced with actual API call
+    }, 1500);
   };
 
   return (
@@ -305,8 +266,8 @@ export default function ClubRegister() {
             <Typography variant="h4" align="center" gutterBottom>
               註冊成功！
             </Typography>
-            <Typography align="center" paragraph>
-              感謝您完成社團註冊，您的申請已成功提交
+            <Typography align="center" sx={{ mb: 2 }}>
+              感謝您完成社團註冊，您的帳號已成功建立
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
               <Button
@@ -325,10 +286,10 @@ export default function ClubRegister() {
         ) : (
           <Paper elevation={3} sx={{ p: 4, mt: 4, mb: 4 }}>
             <Typography variant="h4" align="center" gutterBottom>
-              學生社團註冊
+              社團帳號註冊
             </Typography>
-            <Typography color="textSecondary" align="center" paragraph>
-              請填寫以下資料以註冊學生社團
+            <Typography color="textSecondary" align="center" sx={{ mb: 2 }}>
+              請填寫以下資料以註冊社團帳號
             </Typography>
 
             <Divider sx={{ my: 3 }}>
@@ -447,58 +408,28 @@ export default function ClubRegister() {
                   />
                 </div>
 
-                {/* 社團標誌 和 合作意向領域 */}
-                <div className={styles.formRow}>
-                  <div>
-                    <Typography variant="subtitle2" gutterBottom>
-                      社團標誌
-                    </Typography>
-                    <Button variant="outlined" component="label" fullWidth>
-                      選擇檔案
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                      />
-                    </Button>
-                    {formData.logo && (
-                      <Typography
-                        variant="caption"
-                        sx={{ display: "block", mt: 1 }}
-                      >
-                        已選擇: {formData.logo.name}
-                      </Typography>
-                    )}
-                  </div>
-
-                  <FormControl fullWidth>
-                    <InputLabel>合作意向領域</InputLabel>
-                    <Select
-                      multiple
-                      name="cooperationFields"
-                      value={formData.cooperationFields}
-                      onChange={handleCooperationFieldChange}
-                      label="合作意向領域"
-                      renderValue={(selected) => selected.join(", ")}
+                {/* 社團標誌 */}
+                <div className={styles.fullWidth}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    社團標誌
+                  </Typography>
+                  <Button variant="outlined" component="label" fullWidth>
+                    選擇檔案{" "}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                    />
+                  </Button>
+                  {formData.logo && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: "block", mt: 1 }}
                     >
-                      {cooperationFields.map((field) => (
-                        <MenuItem key={field} value={field}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={
-                                  formData.cooperationFields.indexOf(field) > -1
-                                }
-                              />
-                            }
-                            label={field}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      已選擇: {formData.logo.name}
+                    </Typography>
+                  )}
                 </div>
 
                 <div className={styles.fullWidth}>
@@ -520,7 +451,7 @@ export default function ClubRegister() {
                     fullWidth
                     color={errors.clubCertificate ? "error" : "primary"}
                   >
-                    上傳社團證明文件
+                    上傳社團證明文件{" "}
                     <input
                       type="file"
                       hidden

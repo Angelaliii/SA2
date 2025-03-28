@@ -1,3 +1,4 @@
+import json
 import os
 
 import firebase_admin
@@ -7,17 +8,27 @@ from firebase_admin import credentials, firestore, storage
 FIREBASE_PROJECT_ID = "fjusa-75609"
 FIREBASE_STORAGE_BUCKET = "fjusa-75609.firebasestorage.app"
 
-# 憑證檔案路徑 - 修正檔案名稱
-cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
-
 # Firebase 初始化標誌
 firebase_initialized = False
 db = None
 bucket = None
 
 try:
+    # 嘗試從環境變數獲取憑證
+    firebase_creds_json = os.environ.get('FIREBASE_CREDENTIALS')
+    cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+    
+    if firebase_creds_json:
+        # 使用環境變數中的憑證
+        print("從環境變數獲取憑證")
+        cred_dict = json.loads(firebase_creds_json)
+        cred = credentials.Certificate(cred_dict)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': FIREBASE_STORAGE_BUCKET
+            })
     # 嘗試使用服務帳號憑證初始化
-    if os.path.exists(cred_path):
+    elif os.path.exists(cred_path):
         print(f"找到憑證檔案: {cred_path}")
         cred = credentials.Certificate(cred_path)
         if not firebase_admin._apps:
@@ -26,7 +37,7 @@ try:
             })
     else:
         # 如果找不到憑證檔案，則使用預設憑證
-        print(f"找不到憑證檔案: {cred_path}，嘗試使用預設憑證")
+        print(f"找不到憑證，嘗試使用預設憑證")
         if not firebase_admin._apps:
             firebase_admin.initialize_app(options={
                 'projectId': FIREBASE_PROJECT_ID,
