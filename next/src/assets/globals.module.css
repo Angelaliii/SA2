@@ -1,0 +1,36 @@
+/* 使用一個具體的 class 或 ID 來代替全局 * */
+.page * {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+/* 針對根頁面結構做修改 */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 0;
+  background-color: #f5f5f5;
+}
+
+/* Grid 佈局樣式 */
+.page .gridContainer {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* 為 formRow class 加入樣式 */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* 為 fullWidth class 加入樣式 */
+.fullWidth {
+  grid-column: 1 / -1;
+  width: 100%;
+}
