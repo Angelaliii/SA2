@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -17,98 +18,87 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { collection, getDocs, query } from "firebase/firestore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "../assets/globals.module.css";
-import { db } from "../firebase/config";
-
-// Define Company type based on your Firebase structure
-interface Company {
-  id: string;
-  companyName: string;
-  businessId: string;
-  industryType: string;
-  contactName: string;
-  contactPhone: string;
-  email: string;
-  companyDescription: string;
-  logoURL?: string;
-  businessCertificateURL?: string;
-  status: string;
-  registrationDate: any;
-}
+import { companyServices } from "../firebase/services";
+import type { Company } from "../firebase/services/company-service";
 
 export default function CompanyList() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [firebaseStatus, setFirebaseStatus] = useState<{ status: string }>({
+    status: "連線中...",
+  });
 
-  // Fetch all companies from Firebase on page load
+  // 從 Firebase 獲取公司資料
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
         setLoading(true);
-        console.log("Fetching companies from Firebase...");
-        const companiesRef = collection(db, "company");
-        // Create a query reference without filters to get all documents
-        const companiesQuery = query(companiesRef);
-        console.log("Query created, awaiting results...");
-        const querySnapshot = await getDocs(companiesQuery);
-        console.log("Query returned. Empty?", querySnapshot.empty);
-        console.log("Number of documents:", querySnapshot.size);
+        console.log("從 Firebase 獲取公司資料...");
 
-        if (querySnapshot.empty) {
-          console.log("No company documents found!");
-          setCompanies([]);
-          setLoading(false);
-          return;
-        }
+        // 檢查 Firebase 連線狀態
+        try {
+          // 增加延遲以確保頁面完全載入且 Firebase 初始化
+          await new Promise((resolve) => setTimeout(resolve, 500));
 
-        const companyList: Company[] = [];
-        querySnapshot.forEach((doc) => {
-          console.log("Processing document:", doc.id);
-          const data = doc.data();
-          companyList.push({
-            id: doc.id,
-            companyName: data.companyName || "未命名",
-            businessId: data.businessId || "",
-            industryType: data.industryType || "",
-            contactName: data.contactName || "",
-            contactPhone: data.contactPhone || "",
-            email: data.email || "",
-            companyDescription: data.companyDescription || "",
-            logoURL: data.logoURL,
-            businessCertificateURL: data.businessCertificateURL,
-            status: data.status || "pending",
-            registrationDate: data.registrationDate,
+          const companiesData = await companyServices.getAllCompanies();
+          console.log("獲取的公司數量:", companiesData.length);
+          setCompanies(companiesData);
+          setFirebaseStatus({
+            status: "連線正常",
           });
-        });
+        } catch (fetchErr) {
+          console.error("Firebase 資料獲取失敗:", fetchErr);
+          setFirebaseStatus({
+            status: "連線失敗",
+          });
 
-        console.log("獲取的公司資料:", companyList);
-        console.log("獲取的公司數量:", companyList.length);
-        setCompanies(companyList);
+          // 提供更詳細的錯誤信息
+          let errorMessage = "無法從 Firebase 獲取資料";
+          if (fetchErr instanceof Error) {
+            errorMessage = `Firebase 錯誤: ${fetchErr.message}`;
+          }
+          setError(errorMessage);
+          // 如果是認證錯誤，給出更具體的提示
+          if (
+            fetchErr instanceof Error &&
+            fetchErr.message.includes("permission-denied")
+          ) {
+            setError(
+              "您沒有訪問此數據的權限。請確保您已登入並有權訪問公司數據。"
+            );
+          }
+        }
       } catch (err) {
-        console.error("Error fetching companies:", err);
-        setError("資料載入失敗，請稍後再試");
+        console.error("獲取公司資料時發生錯誤:", err);
+
+        let errorMessage = "資料載入失敗";
+        if (err instanceof Error) {
+          errorMessage = `資料載入失敗: ${err.message}`;
+        }
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCompanies();
+    // 設定延遲等待組件完全掛載
+    const timer = setTimeout(() => {
+      fetchCompanies();
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Format date for display
-  const formatDate = (timestamp: any) => {
+  const formatDate = (timestamp: string | null | undefined) => {
     if (!timestamp) return "N/A";
 
     try {
-      // Handle Firebase Timestamp
-      if (timestamp.toDate) {
-        return timestamp.toDate().toLocaleDateString("zh-TW");
-      }
-      // Handle regular date
+      // Parse ISO date string
       return new Date(timestamp).toLocaleDateString("zh-TW");
     } catch (err) {
       return "無效日期";
@@ -135,13 +125,21 @@ export default function CompanyList() {
 
           <Divider sx={{ mb: 3 }} />
 
+          {/* Firebase 狀態顯示 */}
+          <Alert
+            severity={firebaseStatus.status === "連線正常" ? "info" : "warning"}
+            sx={{ mb: 2 }}
+          >
+            Firebase 狀態: {firebaseStatus.status}
+          </Alert>
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 5 }}>
               <CircularProgress />
             </Box>
           ) : error ? (
             <Box sx={{ textAlign: "center", my: 5 }}>
-              <Typography color="error">{error}</Typography>
+              <Alert severity="error">{error}</Alert>
             </Box>
           ) : companies.length === 0 ? (
             <Box sx={{ textAlign: "center", my: 5 }}>
