@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "../assets/Plat.module.css";
 import Navbar from "../components/Navbar";
+import { getAllPosts, PostData } from "../firebase/services/post-service";
 
 import {
   Box,
@@ -11,6 +12,7 @@ import {
   CardActions,
   CardContent,
   Chip,
+  CircularProgress,
   Container,
   TextField,
   Typography,
@@ -18,24 +20,40 @@ import {
 
 export default function PlatformLanding() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>("全部");
+  const [posts, setPosts] = useState<PostData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
 
-  const tags = ["全部", "活動", "科技", "設計"];
+  // Fetch posts from Firebase
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      try {
+        const postsData = await getAllPosts();
+        setPosts(postsData);
 
-  const articles = [
-    { id: 1, title: "科技新創展覽", content: "這是科技展的文章", tag: "科技" },
-    { id: 2, title: "設計交流會", content: "設計圈的活動紀實", tag: "設計" },
-    { id: 3, title: "社團迎新活動", content: "一年一度迎新", tag: "活動" },
-  ];
+        // Extract unique tags from all posts
+        const tags = postsData.flatMap((post) => post.tags);
+        const uniqueTags = ["全部", ...Array.from(new Set(tags))];
+        setAvailableTags(uniqueTags);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredArticles = articles.filter((article) => {
+    fetchPosts();
+  }, []);
+
+  const filteredPosts = posts.filter((post) => {
     const matchSearch =
-      article.title.includes(searchTerm) ||
-      article.content.includes(searchTerm);
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchTag =
-      selectedTag === "全部" || selectedTag === null
-        ? true
-        : article.tag === selectedTag;
+      selectedTag === "全部" ? true : post.tags.includes(selectedTag || "");
 
     return matchSearch && matchTag;
   });
@@ -61,7 +79,7 @@ export default function PlatformLanding() {
         {/* Tags */}
         <Container sx={{ my: 0 }}>
           <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {tags.map((tag) => (
+            {availableTags.map((tag) => (
               <Chip
                 key={tag}
                 label={tag}
@@ -73,27 +91,59 @@ export default function PlatformLanding() {
           </Box>
         </Container>
 
-        {/* Articles */}
+        {/* Posts */}
         <Container
           sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
         >
-          {filteredArticles.map((article) => (
-            <Card key={article.id} variant="outlined">
-              <CardContent>
-                <Typography variant="h6" component="div">
-                  {article.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {article.content}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button size="small">閱讀更多</Button>
-              </CardActions>
-            </Card>
-          ))}
-          {filteredArticles.length === 0 && (
-            <Typography variant="body1">找不到符合的文章</Typography>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {filteredPosts.map((post) => (
+                <Card key={post.id} variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" component="div">
+                      {post.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {post.content}
+                    </Typography>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 0.5,
+                      }}
+                    >
+                      {post.tags.map((tag) => (
+                        <Chip
+                          key={tag}
+                          label={tag}
+                          size="small"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      sx={{ mt: 1 }}
+                    >
+                      {post.location}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <Button size="small">閱讀更多</Button>
+                  </CardActions>
+                </Card>
+              ))}
+              {filteredPosts.length === 0 && !loading && (
+                <Typography variant="body1">找不到符合的文章</Typography>
+              )}
+            </>
           )}
         </Container>
       </main>

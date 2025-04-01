@@ -1,6 +1,6 @@
 "use client";
-import ImageIcon from "@mui/icons-material/Image";
 import {
+  Alert,
   Autocomplete,
   Box,
   Button,
@@ -8,11 +8,15 @@ import {
   MenuItem,
   Paper,
   Select,
+  Snackbar,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { useRouter } from "next/router";
 import * as React from "react";
+import { auth } from "../firebase/config";
+import { postService } from "../firebase/services";
 
 const postLocations = ["企業版", "社團版"];
 const tagOptions = ["教學", "科技", "活動"];
@@ -22,11 +26,65 @@ export default function PublishPage() {
   const [title, setTitle] = React.useState("");
   const [content, setContent] = React.useState("");
   const [tags, setTags] = React.useState<string[]>([]);
-  const [imageFile, setImageFile] = React.useState<File | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [openSnackbar, setOpenSnackbar] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = React.useState<
+    "success" | "error"
+  >("success");
+  const router = useRouter();
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setImageFile(e.target.files[0]);
+  const handlePublish = async () => {
+    // 表單驗證
+    if (!location || !title || !content) {
+      setSnackbarMessage("請填寫所有必填欄位");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setSnackbarMessage("請先登入");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        setLoading(false);
+        return;
+      }
+
+      const result = await postService.createPost({
+        title,
+        content,
+        location,
+        tags,
+        authorId: currentUser.uid,
+      });
+
+      if (result.success) {
+        setSnackbarMessage("文章發布成功");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+        // 重設表單
+        setTitle("");
+        setContent("");
+        setLocation("");
+        setTags([]);
+        // 可選：導航到文章列表頁面
+        setTimeout(() => {
+          router.push("/");
+        }, 1500);
+      } else {
+        throw new Error("發布失敗");
+      }
+    } catch (error) {
+      console.error("發布文章時出錯:", error);
+      setSnackbarMessage("發布失敗，請稍後再試");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,18 +131,6 @@ export default function PublishPage() {
               placeholder="請輸入文章內容"
             />
 
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={<ImageIcon />}
-            >
-              <Typography component="span">上傳圖片</Typography>
-              <input type="file" hidden onChange={handleImageUpload} />
-            </Button>
-            {imageFile && (
-              <Typography variant="body2">已選擇：{imageFile.name}</Typography>
-            )}
-
             <Autocomplete
               multiple
               options={tagOptions}
@@ -93,12 +139,33 @@ export default function PublishPage() {
               renderInput={(params) => <TextField {...params} label="標籤" />}
             />
 
-            <Button variant="contained" color="primary" fullWidth>
-              發文
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              onClick={handlePublish}
+              disabled={loading}
+            >
+              {loading ? "發布中..." : "發文"}
             </Button>
           </Stack>
         </Paper>
       </Container>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

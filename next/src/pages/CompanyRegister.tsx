@@ -1,111 +1,69 @@
 "use client";
 
+// 引入必要的套件和服務
 import {
   Alert,
   Box,
   Button,
-  Checkbox,
+  CircularProgress,
   Container,
-  Divider,
-  FormControl,
-  FormControlLabel,
-  FormHelperText,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
-  SelectChangeEvent,
   TextField,
   Typography,
 } from "@mui/material";
+import {
+  createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+} from "firebase/auth";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 import styles from "../assets/globals.module.css";
+import { auth } from "../firebase/config";
+import { companyServices } from "../firebase/services";
 
-// Define types for formData and errors
+// 簡化的表單資料類型，新增密碼欄位
 interface FormData {
   companyName: string;
   businessId: string;
-  industryType: string;
-  contactName: string;
-  contactPhone: string;
   email: string;
-  companyDescription: string;
-  cooperationFields: string[];
-  logo: File | null;
-  businessCertificate: File | null;
+  password: string;
+  confirmPassword: string;
 }
 
+// 簡化的表單錯誤類型，新增密碼錯誤
 interface FormErrors {
   companyName: string;
   businessId: string;
-  industryType: string;
-  contactName: string;
-  contactPhone: string;
   email: string;
-  businessCertificate: string;
+  password: string;
+  confirmPassword: string;
 }
 
-const industryTypes = [
-  "資訊科技",
-  "金融服務",
-  "製造業",
-  "零售業",
-  "教育產業",
-  "醫療保健",
-  "媒體與娛樂",
-  "餐飲業",
-  "房地產",
-  "物流運輸",
-  "顧問服務",
-  "其他",
-];
-
-const cooperationFields = [
-  "技術合作",
-  "人才培育",
-  "產品設計",
-  "市場行銷",
-  "活動贊助",
-  "研究發展",
-  "社會企業責任",
-  "校園招募",
-  "實習機會",
-  "創新創業",
-  "其他",
-];
-
 export default function CompanyRegister() {
-  // Form state
+  // 表單狀態
   const [formData, setFormData] = useState<FormData>({
     companyName: "",
     businessId: "",
-    industryType: "",
-    contactName: "",
-    contactPhone: "",
     email: "",
-    companyDescription: "",
-    cooperationFields: [],
-    logo: null,
-    businessCertificate: null,
+    password: "",
+    confirmPassword: "",
   });
 
-  // Validation errors
+  // 驗證錯誤
   const [errors, setErrors] = useState<FormErrors>({
     companyName: "",
     businessId: "",
-    industryType: "",
-    contactName: "",
-    contactPhone: "",
     email: "",
-    businessCertificate: "",
+    password: "",
+    confirmPassword: "",
   });
 
-  // Form submission state
+  // 提交狀態
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Handle text input changes
+  // 處理輸入變化
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -113,7 +71,7 @@ export default function CompanyRegister() {
       [name]: value,
     }));
 
-    // Clear error when user starts typing
+    // 清除錯誤
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({
         ...prev,
@@ -122,80 +80,30 @@ export default function CompanyRegister() {
     }
   };
 
-  // Handle select change for industry type
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Clear error
-    if (errors[name as keyof FormErrors]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  // Handle multi-select for cooperation fields
-  const handleCooperationFieldChange = (e: SelectChangeEvent<string[]>) => {
-    const { value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      cooperationFields: typeof value === "string" ? value.split(",") : value,
-    }));
-  };
-
-  // Handle file upload for logo
-  const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        logo: file,
-      }));
-    }
-  };
-
-  // Handle file upload for business certificate
-  const handleCertificateUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        businessCertificate: file,
-      }));
-
-      // Clear error
-      if (errors.businessCertificate) {
-        setErrors((prev) => ({
-          ...prev,
-          businessCertificate: "",
-        }));
-      }
-    }
-  };
-
-  // Validate business ID (統一編號) format - 8 digits
+  // 驗證統一編號格式 - 8位數字
   const validateBusinessId = (id: string) => {
     const regex = /^\d{8}$/;
     return regex.test(id);
   };
 
-  // Validate email format
+  // 驗證電子郵件格式
   const validateEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
 
-  // Form validation
+  // 驗證密碼強度 (至少8個字元，包含數字和字母)
+  const validatePassword = (password: string) => {
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    return regex.test(password);
+  };
+
+  // 表單驗證
   const validateForm = () => {
     let valid = true;
     const newErrors = { ...errors };
 
-    // Required fields validation
+    // 必填欄位驗證
     if (!formData.companyName.trim()) {
       newErrors.companyName = "此欄位為必填";
       valid = false;
@@ -209,21 +117,6 @@ export default function CompanyRegister() {
       valid = false;
     }
 
-    if (!formData.industryType) {
-      newErrors.industryType = "此欄位為必填";
-      valid = false;
-    }
-
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = "此欄位為必填";
-      valid = false;
-    }
-
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = "此欄位為必填";
-      valid = false;
-    }
-
     if (!formData.email.trim()) {
       newErrors.email = "此欄位為必填";
       valid = false;
@@ -232,8 +125,21 @@ export default function CompanyRegister() {
       valid = false;
     }
 
-    if (!formData.businessCertificate) {
-      newErrors.businessCertificate = "此欄位為必填";
+    // 密碼驗證
+    if (!formData.password) {
+      newErrors.password = "此欄位為必填";
+      valid = false;
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = "密碼必須至少8個字元，且包含字母和數字";
+      valid = false;
+    }
+
+    // 確認密碼驗證
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "請確認您的密碼";
+      valid = false;
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "兩次輸入的密碼不一致";
       valid = false;
     }
 
@@ -241,25 +147,83 @@ export default function CompanyRegister() {
     return valid;
   };
 
-  // Handle form submission
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // 處理表單提交
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validate form
+    // 驗證表單
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // 先檢查電子郵件是否已註冊
+      const signInMethods = await fetchSignInMethodsForEmail(
+        auth,
+        formData.email
+      );
+      if (signInMethods.length > 0) {
+        throw new Error("auth/email-already-in-use");
+      }
+
+      // 使用電子郵件和用戶設定的密碼創建 Firebase Auth 用戶
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      const userId = userCredential.user.uid;
+      console.log("用戶創建成功:", userId);
+
+      // 將簡化的公司資料存入 Firestore
+      const companyData = {
+        companyName: formData.companyName,
+        businessId: formData.businessId,
+        industryType: "其他", // 預設值
+        contactName: "", // 空值
+        contactPhone: "", // 空值
+        email: formData.email,
+        companyDescription: "", // 空值
+        cooperationFields: [], // 空值
+        logoURL: "", // 改為空字串而非 null
+        businessCertificateURL: "", // 改為空字串而非 null
+        status: "pending", // 預設狀態為待審核
+        registrationDate: new Date().toISOString(),
+        userId: userId,
+      };
+
+      // 存儲公司資料
+      const companyId = await companyServices.addCompany(companyData);
+      console.log("公司資料存儲成功:", companyId);
+
       setSubmitSuccess(true);
+    } catch (error) {
+      console.error("註冊公司過程中發生錯誤:", error);
 
-      // Reset form or redirect after success
-      // Can be replaced with actual API call
-    }, 1500);
+      // 處理 Firebase 錯誤
+      let errorMessage = "註冊過程中發生錯誤，請稍後再試";
+
+      if (error instanceof Error) {
+        // 處理常見的 Firebase 註冊錯誤
+        if (error.message.includes("email-already-in-use")) {
+          errorMessage = "此電子郵件已被註冊，請使用其他電子郵件或嘗試登入";
+        } else if (error.message.includes("invalid-email")) {
+          errorMessage = "請提供有效的電子郵件地址";
+        } else if (error.message.includes("weak-password")) {
+          errorMessage = "密碼強度不足，請使用更複雜的密碼";
+        } else {
+          errorMessage = `註冊失敗: ${error.message}`;
+        }
+      }
+
+      setSubmitError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -270,20 +234,20 @@ export default function CompanyRegister() {
             <Typography variant="h4" align="center" gutterBottom>
               註冊成功！
             </Typography>
-            <Typography align="center" paragraph>
-              感謝您完成企業註冊，您的帳號已成功建立
+            <Typography align="center" sx={{ mb: 2 }}>
+              感謝您完成企業註冊，您的帳號已成功建立，我們將審核您的資料
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
               <Button
                 variant="contained"
                 component={Link}
-                href="/login"
+                href="/CompanyList"
                 sx={{ mr: 2 }}
               >
-                前往登入
+                查看公司列表
               </Button>
-              <Button variant="outlined" component={Link} href="/">
-                返回首頁
+              <Button variant="outlined" component={Link} href="/LoginPage">
+                前往登入
               </Button>
             </Box>
           </Paper>
@@ -292,253 +256,121 @@ export default function CompanyRegister() {
             <Typography variant="h4" align="center" gutterBottom>
               企業帳號註冊
             </Typography>
-            <Typography color="textSecondary" align="center" paragraph>
-              請填寫以下資料以註冊企業帳號
+            <Typography color="textSecondary" align="center" sx={{ mb: 2 }}>
+              請填寫基本資料以註冊企業帳號
             </Typography>
 
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="subtitle1" color="primary">
-                基本資料
-              </Typography>
-            </Divider>
+            {submitError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {submitError}
+              </Alert>
+            )}
 
             <form onSubmit={handleSubmit}>
-              <div className={styles.gridContainer}>
+              <Box
+                sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 3 }}
+              >
                 {/* 企業名稱 */}
-                <div className={styles.fullWidth}>
-                  <TextField
-                    name="companyName"
-                    label="企業名稱"
-                    value={formData.companyName}
-                    onChange={handleInputChange}
-                    error={!!errors.companyName}
-                    helperText={errors.companyName}
-                    fullWidth
-                    required
-                  />
-                </div>
+                <TextField
+                  name="companyName"
+                  label="企業名稱"
+                  value={formData.companyName}
+                  onChange={handleInputChange}
+                  error={!!errors.companyName}
+                  helperText={errors.companyName}
+                  fullWidth
+                  required
+                />
 
-                {/* 統一編號 和 產業類型 */}
-                <div className={styles.formRow}>
-                  <TextField
-                    name="businessId"
-                    label="統一編號"
-                    value={formData.businessId}
-                    onChange={handleInputChange}
-                    error={!!errors.businessId}
-                    helperText={errors.businessId}
-                    fullWidth
-                    required
-                    inputProps={{
+                {/* 統一編號 */}
+                <TextField
+                  name="businessId"
+                  label="統一編號"
+                  value={formData.businessId}
+                  onChange={handleInputChange}
+                  error={!!errors.businessId}
+                  helperText={errors.businessId || "請輸入8位數字的統一編號"}
+                  fullWidth
+                  required
+                  sx={{
+                    "& .MuiInputBase-input": {
                       maxLength: 8,
-                    }}
-                  />
-
-                  <FormControl fullWidth error={!!errors.industryType} required>
-                    <InputLabel>產業類型</InputLabel>
-                    <Select
-                      name="industryType"
-                      value={formData.industryType}
-                      onChange={handleSelectChange}
-                      label="產業類型"
-                    >
-                      {industryTypes.map((type) => (
-                        <MenuItem key={type} value={type}>
-                          {type}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.industryType && (
-                      <FormHelperText>{errors.industryType}</FormHelperText>
-                    )}
-                  </FormControl>
-                </div>
-
-                {/* 聯絡人姓名 和 聯絡電話 */}
-                <div className={styles.formRow}>
-                  <TextField
-                    name="contactName"
-                    label="聯絡人姓名"
-                    value={formData.contactName}
-                    onChange={handleInputChange}
-                    error={!!errors.contactName}
-                    helperText={errors.contactName}
-                    fullWidth
-                    required
-                  />
-
-                  <TextField
-                    name="contactPhone"
-                    label="聯絡電話"
-                    value={formData.contactPhone}
-                    onChange={handleInputChange}
-                    error={!!errors.contactPhone}
-                    helperText={errors.contactPhone}
-                    fullWidth
-                    required
-                  />
-                </div>
+                    },
+                  }}
+                />
 
                 {/* 電子郵件 */}
-                <div className={styles.fullWidth}>
-                  <TextField
-                    name="email"
-                    label="電子郵件"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    fullWidth
-                    required
-                  />
-                </div>
+                <TextField
+                  name="email"
+                  label="電子郵件"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  error={!!errors.email}
+                  helperText={errors.email}
+                  fullWidth
+                  required
+                />
 
-                <div className={styles.fullWidth}>
-                  <Divider sx={{ my: 1 }}>
-                    <Typography variant="subtitle1" color="primary">
-                      選填資料
-                    </Typography>
-                  </Divider>
-                </div>
+                {/* 密碼 */}
+                <TextField
+                  name="password"
+                  label="密碼"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  error={!!errors.password}
+                  helperText={
+                    errors.password || "至少8個字元，須包含字母和數字"
+                  }
+                  fullWidth
+                  required
+                />
 
-                {/* 企業簡介 */}
-                <div className={styles.fullWidth}>
-                  <TextField
-                    name="companyDescription"
-                    label="企業簡介"
-                    value={formData.companyDescription}
-                    onChange={handleInputChange}
-                    fullWidth
-                    multiline
-                    rows={4}
-                  />
-                </div>
+                {/* 確認密碼 */}
+                <TextField
+                  name="confirmPassword"
+                  label="確認密碼"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword}
+                  fullWidth
+                  required
+                />
 
-                {/* 企業標誌 和 合作意向領域 */}
-                <div className={styles.formRow}>
-                  <div>
-                    <Typography variant="subtitle2" gutterBottom>
-                      企業標誌
-                    </Typography>
-                    <Button variant="outlined" component="label" fullWidth>
-                      選擇檔案
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                      />
-                    </Button>
-                    {formData.logo && (
-                      <Typography
-                        variant="caption"
-                        sx={{ display: "block", mt: 1 }}
-                      >
-                        已選擇: {formData.logo.name}
-                      </Typography>
-                    )}
-                  </div>
-
-                  <FormControl fullWidth>
-                    <InputLabel>合作意向領域</InputLabel>
-                    <Select
-                      multiple
-                      name="cooperationFields"
-                      value={formData.cooperationFields}
-                      onChange={handleCooperationFieldChange}
-                      label="合作意向領域"
-                      renderValue={(selected) => selected.join(", ")}
-                    >
-                      {cooperationFields.map((field) => (
-                        <MenuItem key={field} value={field}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={
-                                  formData.cooperationFields.indexOf(field) > -1
-                                }
-                              />
-                            }
-                            label={field}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </div>
-
-                <div className={styles.fullWidth}>
-                  <Divider sx={{ my: 1 }}>
-                    <Typography variant="subtitle1" color="primary">
-                      證明文件
-                    </Typography>
-                  </Divider>
-                </div>
-
-                {/* 營業登記證明文件 */}
-                <div className={styles.fullWidth}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    營業登記證明文件 <span style={{ color: "red" }}>*</span>
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    fullWidth
-                    color={errors.businessCertificate ? "error" : "primary"}
-                  >
-                    上傳營業登記證明文件
-                    <input
-                      type="file"
-                      hidden
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleCertificateUpload}
-                    />
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mt: 3,
+                  }}
+                >
+                  <Button variant="outlined" component={Link} href="/">
+                    返回首頁
                   </Button>
-                  {formData.businessCertificate && (
-                    <Typography
-                      variant="caption"
-                      sx={{ display: "block", mt: 1 }}
-                    >
-                      已選擇: {formData.businessCertificate.name}
-                    </Typography>
-                  )}
-                  {errors.businessCertificate && (
-                    <FormHelperText error>
-                      {errors.businessCertificate}
-                    </FormHelperText>
-                  )}
-                </div>
-
-                <div className={styles.fullWidth}>
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    提交資料後，我們將進行審核。審核通過後您將收到通知。
-                  </Alert>
-                </div>
-
-                <div className={styles.fullWidth}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      mt: 3,
-                    }}
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={isSubmitting}
                   >
-                    <Button variant="outlined" component={Link} href="/">
-                      返回首頁
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      color="primary"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? "處理中..." : "完成註冊"}
-                    </Button>
-                  </Box>
-                </div>
-              </div>
+                    {isSubmitting ? (
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <CircularProgress
+                          size={24}
+                          sx={{ mr: 1 }}
+                          color="inherit"
+                        />
+                        處理中...
+                      </Box>
+                    ) : (
+                      "完成註冊"
+                    )}
+                  </Button>
+                </Box>
+              </Box>
             </form>
           </Paper>
         )}
