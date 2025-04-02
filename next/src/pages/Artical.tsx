@@ -141,6 +141,38 @@ export default function PublishPage() {
   const router = useRouter();
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 添加登入檢查
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const user = auth.currentUser;
+      if (!user) {
+        // 用戶未登入，重定向到登入頁面
+        setSnackbarMessage("請先登入以發布文章");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+
+        // 短暫延遲後重定向，以便用戶看到提示訊息
+        setTimeout(() => {
+          router.push("/LoginPage");
+        }, 1500);
+      }
+    };
+
+    // 立即檢查
+    checkAuthStatus();
+
+    // 設置監聽器以檢測登入狀態變更
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        // 用戶登出，重定向到登入頁面
+        router.push("/LoginPage");
+      }
+    });
+
+    // 清理監聽器
+    return () => unsubscribe();
+  }, [router]);
+
   // 確認表單是否有變更
   const checkFormChanged = () => {
     if (title || content || location || tags.length > 0 || postType) {

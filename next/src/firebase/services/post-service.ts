@@ -183,33 +183,40 @@ export const getAllPosts = async (): Promise<PostData[]> => {
 
     const querySnapshot: QuerySnapshot = await getDocs(postsQuery);
 
+    if (querySnapshot.empty) {
+      console.log("No posts found in database");
+      return [];
+    }
+
     // Filter out draft posts client-side
     const posts: PostData[] = querySnapshot.docs
       .map((doc) => {
         const data = doc.data();
+        // 確保所有必要字段都有默認值，防止渲染時出現問題
         return {
           id: doc.id,
-          title: data.title,
-          content: data.content,
-          location: data.location,
+          title: data.title || "無標題",
+          content: data.content || "",
+          location: data.location || "",
           postType: data.postType || "一般文章",
-          tags: data.tags,
+          tags: Array.isArray(data.tags) ? data.tags : [],
           createdAt: data.createdAt
             ? convertTimestampToString(data.createdAt)
             : new Date().toISOString(),
-          authorId: data.authorId,
+          authorId: data.authorId || "",
           cooperationDeadline: data.cooperationDeadline || null,
           cooperationType: data.cooperationType || null,
           budget: data.budget || null,
           eventDate: data.eventDate || null,
           visibility: data.visibility || "公開",
-          isDraft: data.isDraft || false,
+          isDraft: !!data.isDraft, // 確保轉換為布爾值
           viewCount: data.viewCount || 0,
           interactionCount: data.interactionCount || 0,
         };
       })
-      .filter((post) => post.isDraft === false); // Filter out drafts client-side
+      .filter((post) => !post.isDraft); // 過濾掉草稿
 
+    console.log(`Fetched ${posts.length} published posts`);
     return posts;
   } catch (error) {
     console.error("Error getting posts:", error);

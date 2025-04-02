@@ -18,7 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function PlatformLanding() {
+export default function Index() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>("全部");
   const [posts, setPosts] = useState<PostData[]>([]);
@@ -48,12 +48,19 @@ export default function PlatformLanding() {
   }, []);
 
   const filteredPosts = posts.filter((post) => {
+    // 確保 post 和必要字段存在，避免空值引起的錯誤
+    if (!post || !post.title || !post.content) return false;
+
     const matchSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchTag =
-      selectedTag === "全部" ? true : post.tags.includes(selectedTag || "");
+      selectedTag === "全部"
+        ? true
+        : post.tags && Array.isArray(post.tags)
+        ? post.tags.includes(selectedTag || "")
+        : false;
 
     return matchSearch && matchTag;
   });

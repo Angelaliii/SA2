@@ -25,7 +25,7 @@ import { auth } from "../firebase/config";
 import { authServices } from "../firebase/services/auth-service";
 
 const pages = [
-  { name: "首頁", path: "/PlatformLanding" },
+  { name: "首頁", path: "/" },
   { name: "企業列表", path: "/CompanyList" },
   { name: "文章發布", path: "/Artical" },
 ];
