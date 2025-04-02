@@ -1,12 +1,18 @@
 "use client";
 
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   AppBar,
   Box,
   Button,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Menu,
   MenuItem,
@@ -14,7 +20,9 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { auth } from "../firebase/config";
+import { authServices } from "../firebase/services/auth-service";
 
 const pages = [
   { name: "首頁", path: "/PlatformLanding" },
@@ -31,6 +39,17 @@ const userOptions = [
 export default function Navbar() {
   const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
+
+  useEffect(() => {
+    // 監聽登入狀態
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsLoggedIn(!!user);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -46,6 +65,20 @@ export default function Navbar() {
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
+  };
+
+  const handleLogoutClick = () => {
+    setOpenLogoutDialog(true);
+    handleCloseUserMenu();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authServices.logout();
+      setOpenLogoutDialog(false);
+    } catch (error) {
+      console.error("登出時發生錯誤:", error);
+    }
   };
 
   return (
@@ -172,20 +205,48 @@ export default function Navbar() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              {userOptions.map((option) => (
-                <MenuItem
-                  key={option.name}
-                  onClick={handleCloseUserMenu}
-                  component={Link}
-                  href={option.path}
-                >
-                  <Typography textAlign="center">{option.name}</Typography>
+              {isLoggedIn ? (
+                <MenuItem onClick={handleLogoutClick}>
+                  <LogoutIcon sx={{ mr: 1 }} />
+                  <Typography textAlign="center">登出</Typography>
                 </MenuItem>
-              ))}
+              ) : (
+                userOptions.map((option) => (
+                  <MenuItem
+                    key={option.name}
+                    onClick={handleCloseUserMenu}
+                    component={Link}
+                    href={option.path}
+                  >
+                    <Typography textAlign="center">{option.name}</Typography>
+                  </MenuItem>
+                ))
+              )}
             </Menu>
           </Box>
         </Toolbar>
       </Container>
+
+      {/* 登出確認對話框 */}
+      <Dialog
+        open={openLogoutDialog}
+        onClose={() => setOpenLogoutDialog(false)}
+        aria-labelledby="logout-dialog-title"
+        aria-describedby="logout-dialog-description"
+      >
+        <DialogTitle id="logout-dialog-title">確認登出</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="logout-dialog-description">
+            您確定要登出嗎？
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
+          <Button onClick={handleLogout} color="primary" autoFocus>
+            確認登出
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppBar>
   );
 }

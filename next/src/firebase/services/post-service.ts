@@ -9,6 +9,7 @@ import {
   QuerySnapshot,
   serverTimestamp,
   Timestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "../config";
@@ -18,9 +19,18 @@ export interface PostData {
   title: string;
   content: string;
   location: string;
+  postType: string;
   tags: string[];
   createdAt: any;
   authorId: string;
+  cooperationDeadline?: string | null;
+  cooperationType?: string | null;
+  budget?: { min: number; max: number } | null;
+  eventDate?: string | null;
+  visibility?: string;
+  isDraft?: boolean;
+  viewCount?: number;
+  interactionCount?: number;
 }
 
 export const createPost = async (postData: Omit<PostData, "createdAt">) => {
@@ -33,6 +43,121 @@ export const createPost = async (postData: Omit<PostData, "createdAt">) => {
     return { id: docRef.id, success: true };
   } catch (error) {
     console.error("Error creating post:", error);
+    return { success: false, error };
+  }
+};
+
+// 儲存或更新草稿
+export const saveDraft = async (
+  draftData: Omit<PostData, "createdAt">,
+  draftId?: string
+) => {
+  try {
+    const postsCollection = collection(db, "posts");
+
+    // 確保草稿旗標設置為 true
+    const dataToSave = {
+      ...draftData,
+      isDraft: true,
+      updatedAt: serverTimestamp(),
+    };
+
+    // 如果提供了 ID，則更新現有草稿，否則建立新草稿
+    if (draftId) {
+      const draftRef = doc(db, "posts", draftId);
+      await updateDoc(draftRef, dataToSave);
+      return { id: draftId, success: true };
+    } else {
+      const docRef = await addDoc(postsCollection, {
+        ...dataToSave,
+        createdAt: serverTimestamp(),
+      });
+      return { id: docRef.id, success: true };
+    }
+  } catch (error) {
+    console.error("Error saving draft:", error);
+    return { success: false, error };
+  }
+};
+
+// 獲取特定用戶的所有草稿
+export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
+  try {
+    // 移除 orderBy 以避免需要複合索引
+    const draftsQuery = query(
+      collection(db, "posts"),
+      where("authorId", "==", userId),
+      where("isDraft", "==", true)
+      // orderBy("createdAt", "desc") - 暫時移除，避免需要複合索引
+    );
+
+    const querySnapshot: QuerySnapshot = await getDocs(draftsQuery);
+
+    // 在 JavaScript 中手動排序結果
+    const drafts: PostData[] = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title || "無標題草稿",
+        content: data.content || "",
+        location: data.location || "",
+        postType: data.postType || "一般文章",
+        tags: data.tags || [],
+        createdAt: data.createdAt
+          ? convertTimestampToString(data.createdAt)
+          : new Date().toISOString(),
+        authorId: data.authorId,
+        cooperationDeadline: data.cooperationDeadline || null,
+        cooperationType: data.cooperationType || null,
+        budget: data.budget || null,
+        eventDate: data.eventDate || null,
+        visibility: data.visibility || "公開",
+        isDraft: true,
+        viewCount: data.viewCount || 0,
+        interactionCount: data.interactionCount || 0,
+      };
+    });
+
+    // 手動對結果進行排序
+    drafts.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // 降序排序，最新的在前面
+    });
+
+    return drafts;
+  } catch (error) {
+    console.error("Error getting user drafts:", error);
+    return [];
+  }
+};
+
+// 將草稿轉換為正式文章
+export const publishDraft = async (draftId: string) => {
+  try {
+    const draftRef = doc(db, "posts", draftId);
+    await updateDoc(draftRef, {
+      isDraft: false,
+      publishedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error publishing draft:", error);
+    return { success: false, error };
+  }
+};
+
+// 刪除草稿或文章
+export const deletePost = async (postId: string) => {
+  try {
+    const postRef = doc(db, "posts", postId);
+    await updateDoc(postRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting post:", error);
     return { success: false, error };
   }
 };
@@ -50,6 +175,7 @@ const convertTimestampToString = (timestamp: Timestamp | Date): string => {
 // Get all posts
 export const getAllPosts = async (): Promise<PostData[]> => {
   try {
+    // Temporarily use a simpler query without the isDraft filter to avoid index requirement
     const postsQuery = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc")
@@ -57,20 +183,32 @@ export const getAllPosts = async (): Promise<PostData[]> => {
 
     const querySnapshot: QuerySnapshot = await getDocs(postsQuery);
 
-    const posts: PostData[] = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        content: data.content,
-        location: data.location,
-        tags: data.tags,
-        createdAt: data.createdAt
-          ? convertTimestampToString(data.createdAt)
-          : new Date().toISOString(),
-        authorId: data.authorId,
-      };
-    });
+    // Filter out draft posts client-side
+    const posts: PostData[] = querySnapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          content: data.content,
+          location: data.location,
+          postType: data.postType || "一般文章",
+          tags: data.tags,
+          createdAt: data.createdAt
+            ? convertTimestampToString(data.createdAt)
+            : new Date().toISOString(),
+          authorId: data.authorId,
+          cooperationDeadline: data.cooperationDeadline || null,
+          cooperationType: data.cooperationType || null,
+          budget: data.budget || null,
+          eventDate: data.eventDate || null,
+          visibility: data.visibility || "公開",
+          isDraft: data.isDraft || false,
+          viewCount: data.viewCount || 0,
+          interactionCount: data.interactionCount || 0,
+        };
+      })
+      .filter((post) => post.isDraft === false); // Filter out drafts client-side
 
     return posts;
   } catch (error) {
@@ -94,11 +232,20 @@ export const getPostById = async (id: string): Promise<PostData | null> => {
       title: postData.title,
       content: postData.content,
       location: postData.location,
+      postType: postData.postType || "一般文章",
       tags: postData.tags,
       createdAt: postData.createdAt
         ? convertTimestampToString(postData.createdAt)
         : new Date().toISOString(),
       authorId: postData.authorId,
+      cooperationDeadline: postData.cooperationDeadline || null,
+      cooperationType: postData.cooperationType || null,
+      budget: postData.budget || null,
+      eventDate: postData.eventDate || null,
+      visibility: postData.visibility || "公開",
+      isDraft: postData.isDraft || false,
+      viewCount: postData.viewCount || 0,
+      interactionCount: postData.interactionCount || 0,
     };
   } catch (error) {
     console.error("Error getting post:", error);
@@ -124,11 +271,20 @@ export const getPostsByTag = async (tag: string): Promise<PostData[]> => {
         title: data.title,
         content: data.content,
         location: data.location,
+        postType: data.postType || "一般文章",
         tags: data.tags,
         createdAt: data.createdAt
           ? convertTimestampToString(data.createdAt)
           : new Date().toISOString(),
         authorId: data.authorId,
+        cooperationDeadline: data.cooperationDeadline || null,
+        cooperationType: data.cooperationType || null,
+        budget: data.budget || null,
+        eventDate: data.eventDate || null,
+        visibility: data.visibility || "公開",
+        isDraft: data.isDraft || false,
+        viewCount: data.viewCount || 0,
+        interactionCount: data.interactionCount || 0,
       };
     });
 
