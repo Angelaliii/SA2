@@ -1,22 +1,24 @@
 "use client";
+
 import {
   Alert,
   Autocomplete,
   Box,
   Button,
   Container,
+  Divider,
   MenuItem,
   Paper,
   Select,
   Snackbar,
-  Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
 import * as React from "react";
 import { auth } from "../firebase/config";
-import { postService } from "../firebase/services";
+import * as postService from "../firebase/services/post-service";
+import Navbar from "../components/Navbar";
 
 const postLocations = ["最新消息", "找贊助"];
 const tagOptions = ["教學", "科技", "活動"];
@@ -32,10 +34,10 @@ export default function PublishPage() {
   const [snackbarSeverity, setSnackbarSeverity] = React.useState<
     "success" | "error"
   >("success");
+
   const router = useRouter();
 
   const handlePublish = async () => {
-    // 表單驗證
     if (!location || !title || !content) {
       setSnackbarMessage("請填寫所有必填欄位");
       setSnackbarSeverity("error");
@@ -66,14 +68,12 @@ export default function PublishPage() {
         setSnackbarMessage("文章發布成功");
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
-        // 重設表單
         setTitle("");
         setContent("");
         setLocation("");
         setTags([]);
-        // 可選：導航到文章列表頁面
         setTimeout(() => {
-          router.push("/");
+          router.push("/PlatformLanding");
         }, 1500);
       } else {
         throw new Error("發布失敗");
@@ -89,22 +89,30 @@ export default function PublishPage() {
   };
 
   return (
-    <Box sx={{ bgcolor: "#f5f5f5", minHeight: "100vh", py: 6 }}>
-      <Container maxWidth="sm">
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h5" align="center" gutterBottom>
-            發布文章
-          </Typography>
-          <Typography variant="body2" align="center" gutterBottom></Typography>
+    <>
+      <Navbar />
 
-          <Stack spacing={2} mt={2}>
+      {/* 發文區塊容器 */}
+      <Box sx={{ pt: 10, pb: 8 }}>
+        <Container maxWidth="md">
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+            {/* 標題 */}
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              發布文章
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+
+            {/* 發文位置 */}
+            <Typography variant="subtitle2" gutterBottom>
+              發文位置
+            </Typography>
             <Select
               fullWidth
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               displayEmpty
             >
-              <MenuItem value="" disabled hidden>
+              <MenuItem value="" disabled>
                 請選擇發文位置
               </MenuItem>
               {postLocations.map((loc) => (
@@ -114,44 +122,64 @@ export default function PublishPage() {
               ))}
             </Select>
 
-            <TextField
-              fullWidth
-              label="標題"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-
-            <TextField
-              fullWidth
-              label="文章內容"
-              multiline
-              rows={6}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="請輸入文章內容"
-            />
-
+            {/* 標籤 */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
+              標籤
+            </Typography>
             <Autocomplete
               multiple
               options={tagOptions}
               value={tags}
               onChange={(_, newValue) => setTags(newValue)}
-              renderInput={(params) => <TextField {...params} label="標籤" />}
+              renderInput={(params) => (
+                <TextField {...params} label="請選擇標籤" placeholder="選擇標籤" />
+              )}
             />
 
+            {/* 標題欄位 */}
+            <TextField
+              fullWidth
+              label="標題"
+              variant="standard"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              inputProps={{ maxLength: 80 }}
+              sx={{ mt: 4 }}
+            />
+
+            {/* 內容輸入 */}
+            <TextField
+              fullWidth
+              placeholder="請輸入文章內容（可換行）"
+              multiline
+              rows={12}
+              variant="outlined"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              sx={{
+                mt: 3,
+                "& .MuiInputBase-input": {
+                  whiteSpace: "pre-line",
+                },
+              }}
+            />
+
+            {/* 發文按鈕 */}
             <Button
               variant="contained"
               color="primary"
               fullWidth
               onClick={handlePublish}
               disabled={loading}
+              sx={{ mt: 3 }}
             >
               {loading ? "發布中..." : "發文"}
             </Button>
-          </Stack>
-        </Paper>
-      </Container>
+          </Paper>
+        </Container>
+      </Box>
 
+      {/* Snackbar 提示訊息 */}
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
@@ -166,9 +194,6 @@ export default function PublishPage() {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-    </Box>
+    </>
   );
 }
-
-
-
