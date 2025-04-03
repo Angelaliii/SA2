@@ -18,7 +18,7 @@ import * as React from "react";
 import { auth } from "../firebase/config";
 import { postService } from "../firebase/services";
 
-const postLocations = ["企業版", "社團版"];
+const postLocations = ["最新消息", "找贊助"];
 const tagOptions = ["教學", "科技", "活動"];
 
 export default function PublishPage() {
@@ -169,3 +169,6 @@ export default function PublishPage() {
     </Box>
   );
 }
+
+
+
