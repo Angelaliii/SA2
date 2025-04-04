@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "../assets/Plat.module.css";
 import Navbar from "../components/Navbar";
 import { getAllPosts, PostData } from "../firebase/services/post-service";
+import Link from "next/link";
 
 import {
   Box,
@@ -107,8 +108,11 @@ export default function PlatformLanding() {
                     <Typography variant="h6" component="div">
                       {post.title}
                     </Typography>
+                    {/* 文章內容只顯示 40 字 + "..." */}
                     <Typography variant="body2" color="text.secondary">
-                      {post.content}
+                      {post.content.length > 40
+                        ? post.content.slice(0, 40) + "..."
+                        : post.content}
                     </Typography>
                     <Box
                       sx={{
@@ -136,7 +140,8 @@ export default function PlatformLanding() {
                     </Typography>
                   </CardContent>
                   <CardActions>
-                    <Button size="small">閱讀更多</Button>
+                 
+                    <Link href={`/post/${post.id}`}><Button  size="small">閱讀更多 </Button> </Link>
                   </CardActions>
                 </Card>
               ))}
