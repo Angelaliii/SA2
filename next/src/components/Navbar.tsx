@@ -1,12 +1,15 @@
 "use client";
 
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople"; // Added for greeting icon
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   AppBar,
+  Avatar,
   Box,
   Button,
+  Chip,
   Container,
   Dialog,
   DialogActions,
@@ -17,6 +20,7 @@ import {
   Menu,
   MenuItem,
   Toolbar,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
@@ -41,11 +45,36 @@ export default function Navbar() {
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [greetingIndex, setGreetingIndex] = useState(0);
+
+  // Creative greetings list
+  const greetings = [
+    "您好，",
+    "歡迎回來，",
+    "很高興見到您，",
+    "哈囉，",
+    "今天過得如何，",
+    "今天真是美好，",
+    "準備好探索了嗎，",
+    "嗨！",
+  ];
 
   useEffect(() => {
     // 監聽登入狀態
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setIsLoggedIn(!!user);
+      if (user) {
+        // Extract display name or email username part
+        const displayName =
+          user.displayName || user.email?.split("@")[0] || "夥伴";
+        setUserName(displayName);
+
+        // Set random greeting when user logs in
+        setGreetingIndex(Math.floor(Math.random() * greetings.length));
+      } else {
+        setUserName(null);
+      }
     });
 
     return () => unsubscribe();
@@ -180,6 +209,28 @@ export default function Navbar() {
             ))}
           </Box>
 
+          {/* User Greeting - Only show when logged in */}
+          {isLoggedIn && userName && (
+            <Tooltip title="這是您的個人識別標誌">
+              <Chip
+                icon={<EmojiPeopleIcon />}
+                label={`${greetings[greetingIndex]}${userName}`}
+                variant="outlined"
+                sx={{
+                  mr: 2,
+                  color: "white",
+                  borderColor: "rgba(255,255,255,0.5)",
+                  "& .MuiChip-icon": { color: "white" },
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    transform: "scale(1.05)",
+                  },
+                }}
+              />
+            </Tooltip>
+          )}
+
           {/* User Menu */}
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
@@ -187,7 +238,11 @@ export default function Navbar() {
               sx={{ p: 0 }}
               color="inherit"
             >
-              <AccountCircleIcon />
+              <Avatar
+                sx={{ bgcolor: isLoggedIn ? "secondary.main" : "inherit" }}
+              >
+                <AccountCircleIcon />
+              </Avatar>
             </IconButton>
             <Menu
               sx={{ mt: "45px" }}
