@@ -1,226 +1,230 @@
-// 文章發布頁面 - 主容器
 "use client";
 
 import {
   Alert,
+  Autocomplete,
   Box,
+  Button,
   Container,
-  IconButton,
+  Divider,
+  MenuItem,
   Paper,
+  Select,
   Snackbar,
-  Tooltip,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
-
-// 引入圖標
-import ListAltIcon from "@mui/icons-material/ListAlt";
-import PreviewIcon from "@mui/icons-material/Preview";
-
-// 引入自定義組件
-import ArticleEditForm from "../components/article/ArticleEditForm";
-import ArticlePreview from "../components/article/ArticlePreview";
-import DeleteConfirmDialog from "../components/article/DeleteConfirmDialog";
-import DraftManager from "../components/article/DraftManager";
-
-// 引入自定義Hook和Firebase服務
+import * as React from "react";
+import Navbar from "../components/Navbar";
 import { auth } from "../firebase/config";
-import useArticleForm from "../hooks/useArticleForm";
+import * as postService from "../firebase/services/post-service";
 
-/**
- * 文章發布頁面
- * 整合所有文章編輯、預覽、草稿管理等功能
- */
+const postLocations = ["企業版", "社團版"];
+const postTypes = ["最新消息", "找贊助"];
+const tagOptions = ["教學", "科技", "活動"];
+
 export default function ArticlePage() {
+  // 基本文章資料
+  const [title, setTitle] = React.useState("");
+  const [content, setContent] = React.useState("");
+  const [location, setLocation] = React.useState("");
+  const [tags, setTags] = React.useState<string[]>([]);
+  const [postType, setPostType] = React.useState("");
+
+  // UI狀態
+  const [loading, setLoading] = React.useState(false);
+  const [openSnackbar, setOpenSnackbar] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = React.useState<
+    "success" | "error"
+  >("success");
+
   const router = useRouter();
 
-  // 使用自定義Hook獲取所有表單狀態和操作函數
-  const articleForm = useArticleForm();
+  const handlePublish = async () => {
+    // 表單驗證
+    if (!location || !title || !content || !postType) {
+      setSnackbarMessage("請填寫所有必填欄位");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
 
-  // 從自定義Hook中解構需要的狀態和函數
-  const {
-    formData,
-    errors,
-    isDraft,
-    loading,
-    lastSaved,
-    currentDraftId,
-    previewMode,
-    openSnackbar,
-    snackbarMessage,
-    snackbarSeverity,
-    drafts,
-    openDraftsDialog,
-    loadingDrafts,
-    draftToDelete,
-    openDeleteDialog,
+    setLoading(true);
 
-    // UI控制函數
-    setOpenSnackbar,
-    setPreviewMode,
+    try {
+      // 檢查用戶是否已登入
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setSnackbarMessage("請先登入");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        setLoading(false);
+        return;
+      }
 
-    // 操作函數
-    togglePreview,
-    resetForm,
-    loadDrafts,
-    loadDraft,
-    confirmDeleteDraft,
-    deleteDraft,
-    handleSaveDraft,
-    handlePublish,
+      // 準備文章資料
+      const postData = {
+        title,
+        content,
+        location,
+        tags,
+        postType,
+        authorId: currentUser.uid,
+        isDraft: false,
+        viewCount: 0,
+        interactionCount: 0,
+        createdAt: new Date().toISOString(),
+      };
 
-    // 表單輸入處理函數
-    setTitle,
-    setContent,
-    setLocation,
-    setTags,
-    setPostType,
-    setVisibility,
-    setCooperationType,
-    setCooperationDeadlineStr,
-    setBudgetMin,
-    setBudgetMax,
-    setEventDateStr,
-  } = articleForm;
+      // 發布文章
+      const result = await postService.createPost(postData);
 
-  // ========== 登入檢查 ==========
-  useEffect(() => {
-    // 檢查用戶是否已登入
-    const checkAuthStatus = () => {
-      const user = auth.currentUser;
-      if (!user) {
-        // 用戶未登入，顯示訊息並重定向
-        articleForm.setSnackbarMessage("請先登入以發布文章");
-        articleForm.setSnackbarSeverity("error");
-        articleForm.setOpenSnackbar(true);
-
-        // 短暫延遲後重定向，以便用戶看到提示訊息
+      if (result.success) {
+        setSnackbarMessage("文章發布成功");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+        // 重設表單
+        setTitle("");
+        setContent("");
+        setLocation("");
+        setTags([]);
+        setPostType("");
+        // 導航到平台首頁
         setTimeout(() => {
-          router.push("/LoginPage");
+          router.push("/PlatformLanding");
         }, 1500);
+      } else {
+        throw new Error("發布失敗");
       }
-    };
-
-    // 立即檢查
-    checkAuthStatus();
-
-    // 設置監聽器以持續監控登入狀態
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        // 用戶登出，立即重定向到登入頁面
-        router.push("/LoginPage");
-      }
-    });
-
-    // 組件卸載時清理監聽器
-    return () => unsubscribe();
-  }, [router]);
+    } catch (error) {
+      console.error("發布文章時出錯:", error);
+      setSnackbarMessage("發布失敗，請稍後再試");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Box sx={{ bgcolor: "#f5f5f5", minHeight: "100vh", py: 6 }}>
-      <Container maxWidth="md">
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          {/* 頁面標題與工具列 */}
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-          >
-            {/* 標題：根據當前模式顯示不同文字 */}
-            <Typography variant="h5">
-              {previewMode
-                ? "預覽文章"
-                : currentDraftId
-                ? "編輯草稿"
-                : "發布文章"}
+    <>
+      <Navbar />
+
+      {/* 發文區塊容器 */}
+      <Box sx={{ pt: 10, pb: 8 }}>
+        <Container maxWidth="md">
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+            {/* 標題 */}
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              發布文章
             </Typography>
+            <Divider sx={{ mb: 3 }} />
 
-            {/* 右側工具按鈕區 */}
-            <Box>
-              {/* 顯示上次保存時間 */}
-              {!previewMode && lastSaved && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ mr: 2 }}
-                >
-                  {lastSaved}
-                </Typography>
+            {/* 發文位置 */}
+            <Typography variant="subtitle2" gutterBottom>
+              發文位置
+            </Typography>
+            <Select
+              fullWidth
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              displayEmpty
+            >
+              <MenuItem value="" disabled>
+                請選擇發文位置
+              </MenuItem>
+              {postLocations.map((loc) => (
+                <MenuItem key={loc} value={loc}>
+                  {loc}
+                </MenuItem>
+              ))}
+            </Select>
+
+            {/* 文章類型 */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
+              文章類型
+            </Typography>
+            <Select
+              fullWidth
+              value={postType}
+              onChange={(e) => setPostType(e.target.value)}
+              displayEmpty
+            >
+              <MenuItem value="" disabled>
+                請選擇文章類型
+              </MenuItem>
+              {postTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+
+            {/* 標籤 */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
+              標籤
+            </Typography>
+            <Autocomplete
+              multiple
+              options={tagOptions}
+              value={tags}
+              onChange={(_, newValue) => setTags(newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="請選擇標籤"
+                  placeholder="選擇標籤"
+                />
               )}
-
-              {/* 草稿列表按鈕 */}
-              <Tooltip title="查看已儲存草稿">
-                <IconButton onClick={loadDrafts} disabled={loadingDrafts}>
-                  <ListAltIcon />
-                </IconButton>
-              </Tooltip>
-
-              {/* 預覽/返回編輯按鈕 */}
-              <Tooltip title={previewMode ? "返回編輯" : "預覽文章"}>
-                <IconButton onClick={togglePreview}>
-                  <PreviewIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
-
-          {/* 根據模式顯示不同組件 */}
-          {previewMode ? (
-            <ArticlePreview
-              data={formData}
-              loading={loading}
-              onBack={togglePreview}
-              onPublish={handlePublish}
             />
-          ) : (
-            <ArticleEditForm
-              data={formData}
-              errors={errors}
-              isDraft={isDraft}
-              loading={loading}
-              currentDraftId={currentDraftId}
-              lastSaved={lastSaved}
-              onTitleChange={setTitle}
-              onContentChange={setContent}
-              onLocationChange={setLocation}
-              onPostTypeChange={setPostType}
-              onTagsChange={setTags}
-              onVisibilityChange={setVisibility}
-              onCooperationTypeChange={setCooperationType}
-              onCooperationDeadlineChange={setCooperationDeadlineStr}
-              onBudgetMinChange={setBudgetMin}
-              onBudgetMaxChange={setBudgetMax}
-              onEventDateChange={setEventDateStr}
-              onSaveDraft={handleSaveDraft}
-              onPublish={handlePublish}
-              onDeleteDraft={() => confirmDeleteDraft(currentDraftId || "")}
-              onResetForm={resetForm}
-              onPreview={togglePreview}
+
+            {/* 標題欄位 */}
+            <TextField
+              fullWidth
+              label="標題"
+              variant="standard"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              inputProps={{ maxLength: 80 }}
+              sx={{ mt: 4 }}
             />
-          )}
-        </Paper>
-      </Container>
 
-      {/* 草稿管理對話框 */}
-      <DraftManager
-        open={openDraftsDialog}
-        onClose={() => articleForm.setOpenDraftsDialog(false)}
-        drafts={drafts}
-        loading={loadingDrafts}
-        onLoadDraft={loadDraft}
-        onDeleteDraft={confirmDeleteDraft}
-      />
+            {/* 內容輸入 */}
+            <TextField
+              fullWidth
+              label="文章內容"
+              placeholder="請輸入文章內容（可換行）"
+              multiline
+              rows={12}
+              variant="outlined"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              sx={{
+                mt: 3,
+                "& .MuiInputBase-input": {
+                  whiteSpace: "pre-line",
+                },
+              }}
+            />
 
-      {/* 刪除確認對話框 */}
-      <DeleteConfirmDialog
-        open={openDeleteDialog}
-        onClose={() => articleForm.setOpenDeleteDialog(false)}
-        onConfirm={() => (draftToDelete ? deleteDraft(draftToDelete) : null)}
-      />
+            {/* 發文按鈕 */}
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              onClick={handlePublish}
+              disabled={loading}
+              sx={{ mt: 3 }}
+            >
+              {loading ? "發布中..." : "發文"}
+            </Button>
+          </Paper>
+        </Container>
+      </Box>
 
-      {/* 通知消息 Snackbar */}
+      {/* Snackbar 提示訊息 */}
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
@@ -235,6 +239,6 @@ export default function ArticlePage() {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-    </Box>
+    </>
   );
 }
