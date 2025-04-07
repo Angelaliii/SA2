@@ -1,21 +1,21 @@
 "use client";
 
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { getPostById, PostData } from "../../firebase/services/post-service";
-import Navbar from "../../components/Navbar"; // 套用你的共用 Navbar
+import FavoriteIcon from "@mui/icons-material/Favorite"; // 實心愛心
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder"; // 空心愛心
 import {
   Box,
   Chip,
   CircularProgress,
   Container,
-  Paper,
-  Typography,
   Divider,
   IconButton,
+  Paper,
+  Typography,
 } from "@mui/material";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder"; // 空心愛心
-import FavoriteIcon from "@mui/icons-material/Favorite"; // 實心愛心
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import Navbar from "../../components/Navbar"; // 套用你的共用 Navbar
+import { getPostById, PostData } from "../../firebase/services/post-service";
 
 export default function PostDetailPage() {
   const router = useRouter(); // 取得網址參數 id
