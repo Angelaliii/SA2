@@ -171,19 +171,6 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
       </Box>
 
       <Box sx={{ mt: 4, textAlign: "center" }}>
-        <Typography variant="body2">
-          還沒有帳號？{" "}
-          <Link href="/register">
-            <Typography
-              component="span"
-              color="primary"
-              sx={{ cursor: "pointer" }}
-            >
-              註冊新帳號
-            </Typography>
-          </Link>
-        </Typography>
-
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
           <Typography variant="body2">
             企業用戶？{" "}
