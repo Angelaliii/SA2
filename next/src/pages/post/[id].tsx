@@ -87,13 +87,19 @@ export default function PostDetailPage() {
             {/* 標題 */}
             <Typography variant="h5" fontWeight={700}>
               {post.title}
-            </Typography>
-
+            </Typography>{" "}
             {/* 發布位置 */}
             <Typography variant="subtitle1" color="primary" sx={{ mt: 1 }}>
               發布位置：{post.location}
+            </Typography>{" "}
+            {/* 作者ID */}
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+              sx={{ mt: 1 }}
+            >
+              發布者：{post.authorId || "匿名發布者"}
             </Typography>
-
             {/* 發布時間，只顯示日期 */}
             <Typography
               variant="caption"
@@ -102,22 +108,18 @@ export default function PostDetailPage() {
             >
               發布時間：{post.createdAt.slice(0, 10)}
             </Typography>
-
             {/* 分隔線 */}
             <Divider sx={{ my: 2 }} />
-
             {/* 文章內容 */}
             <Typography variant="body1" sx={{ mb: 2 }}>
               {post.content}
             </Typography>
-
             {/* 標籤 */}
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2 }}>
               {post.tags.map((tag) => (
                 <Chip key={tag} label={tag} variant="outlined" />
               ))}
             </Box>
-
             {/* 收藏按鈕 */}
             <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
               <IconButton onClick={handleLike} color="primary">

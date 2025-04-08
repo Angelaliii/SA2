@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "../assets/globals.module.css";
+import Navbar from "../components/Navbar";
 import { companyServices } from "../firebase/services";
 import type { Company } from "../firebase/services/company-service";
 
@@ -132,6 +133,7 @@ export default function CompanyList() {
           >
             Firebase 狀態: {firebaseStatus.status}
           </Alert>
+          <Navbar />
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 5 }}>

@@ -133,12 +133,13 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
 };
 
 // 將草稿轉換為正式文章
-export const publishDraft = async (draftId: string) => {
+export const publishDraft = async (draftId: string, userEmail?: string) => {
   try {
     const draftRef = doc(db, "posts", draftId);
     await updateDoc(draftRef, {
       isDraft: false,
       publishedAt: serverTimestamp(),
+      authorEmail: userEmail || null, // 儲存發布者的 Gmail
     });
     return { success: true };
   } catch (error) {
