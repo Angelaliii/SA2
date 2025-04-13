@@ -20,10 +20,10 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import styles from "../assets/globals.module.css";
-import Navbar from "../components/Navbar";
-import { companyServices } from "../firebase/services";
-import type { Company } from "../firebase/services/company-service";
+import styles from "../../assets/globals.module.css";
+import Navbar from "../../components/Navbar";
+import { companyServices } from "../../firebase/services";
+import type { Company } from "../../firebase/services/company-service";
 
 export default function CompanyList() {
   const [companies, setCompanies] = useState<Company[]>([]);
