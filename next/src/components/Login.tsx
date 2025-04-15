@@ -15,7 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useRouter } from 'next/navigation'; // ✅ 正確！
 import { FormEvent, useState } from "react";
 import { authServices } from "../firebase/services";
 

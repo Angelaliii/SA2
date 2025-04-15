@@ -1,7 +1,7 @@
 import { Box, Button, Container, Typography } from "@mui/material";
 import Link from "next/link";
-import styles from "../assets/globals.module.css";
-import Login from "../components/Login";
+import styles from "../../assets/globals.module.css";
+import Login from "../../components/Login";
 
 export default function LoginPage() {
   return (

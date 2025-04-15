@@ -14,13 +14,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
+import { useRouter } from 'next/navigation'; // ✅ 正確！
 import * as React from "react";
-import DeleteConfirmDialog from "../components/article/DeleteConfirmDialog";
-import DraftManager from "../components/article/DraftManager";
-import Navbar from "../components/Navbar";
-import { auth } from "../firebase/config";
-import * as postService from "../firebase/services/post-service";
+import DeleteConfirmDialog from "../../components/article/DeleteConfirmDialog";
+import DraftManager from "../../components/article/DraftManager";
+import Navbar from "../../components/Navbar";
+import { auth } from "../../firebase/config";
+import * as postService from "../../firebase/services/post-service";
 
 const postLocations = ["企業版", "社團版"];
 const postTypes = ["最新消息", "找贊助"];
@@ -109,7 +109,7 @@ export default function ArticlePage() {
         setPostType("");
         // 導航到平台首頁
         setTimeout(() => {
-          router.push("/PlatformLanding");
+          router.push("/");
         }, 1500);
       } else {
         throw new Error("發布失敗");
