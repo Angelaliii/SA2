@@ -33,9 +33,7 @@ export default function DraftManager({
 }: DraftManagerProps) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>
-        <Typography variant="h6">已儲存草稿</Typography>
-      </DialogTitle>
+      <DialogTitle>已儲存草稿</DialogTitle>
       <DialogContent dividers>
         {/* 載入中顯示 */}
         {loading ? (
