@@ -32,6 +32,7 @@ const pages = [
   { name: "首頁", path: "/" },
   { name: "企業列表", path: "/CompanyList" },
   { name: "文章發布", path: "/Artical" },
+  { name: "個人資料", path: "/Profile" },
 ];
 
 const userOptions = [
