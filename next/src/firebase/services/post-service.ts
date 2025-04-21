@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc, // ✅ 加入這行
   doc,
   getDoc,
   getDocs,
@@ -33,6 +34,7 @@ export interface PostData {
   interactionCount?: number;
 }
 
+// 建立文章
 export const createPost = async (postData: Omit<PostData, "createdAt">) => {
   try {
     const postsCollection = collection(db, "posts");
@@ -54,15 +56,12 @@ export const saveDraft = async (
 ) => {
   try {
     const postsCollection = collection(db, "posts");
-
-    // 確保草稿旗標設置為 true
     const dataToSave = {
       ...draftData,
       isDraft: true,
       updatedAt: serverTimestamp(),
     };
 
-    // 如果提供了 ID，則更新現有草稿，否則建立新草稿
     if (draftId) {
       const draftRef = doc(db, "posts", draftId);
       await updateDoc(draftRef, dataToSave);
@@ -80,20 +79,16 @@ export const saveDraft = async (
   }
 };
 
-// 獲取特定用戶的所有草稿
+// 取得使用者草稿
 export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
   try {
-    // 移除 orderBy 以避免需要複合索引
     const draftsQuery = query(
       collection(db, "posts"),
       where("authorId", "==", userId),
       where("isDraft", "==", true)
-      // orderBy("createdAt", "desc") - 暫時移除，避免需要複合索引
     );
 
     const querySnapshot: QuerySnapshot = await getDocs(draftsQuery);
-
-    // 在 JavaScript 中手動排序結果
     const drafts: PostData[] = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -118,11 +113,10 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
       };
     });
 
-    // 手動對結果進行排序
     drafts.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
-      return dateB - dateA; // 降序排序，最新的在前面
+      return dateB - dateA;
     });
 
     return drafts;
@@ -132,14 +126,14 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
   }
 };
 
-// 將草稿轉換為正式文章
+// 發布草稿
 export const publishDraft = async (draftId: string, userEmail?: string) => {
   try {
     const draftRef = doc(db, "posts", draftId);
     await updateDoc(draftRef, {
       isDraft: false,
       publishedAt: serverTimestamp(),
-      authorEmail: userEmail || null, // 儲存發布者的 Gmail
+      authorEmail: userEmail || null,
     });
     return { success: true };
   } catch (error) {
@@ -148,7 +142,7 @@ export const publishDraft = async (draftId: string, userEmail?: string) => {
   }
 };
 
-// 刪除草稿或文章
+// 軟刪除文章（可恢復）
 export const deletePost = async (postId: string) => {
   try {
     const postRef = doc(db, "posts", postId);
@@ -163,20 +157,31 @@ export const deletePost = async (postId: string) => {
   }
 };
 
-// Function to convert Firestore timestamps to dates
+// 硬刪除文章（徹底刪除，不可復原）
+export const permanentlyDeletePost = async (postId: string) => {
+  try {
+    const postRef = doc(db, "posts", postId);
+    await deleteDoc(postRef);
+    return { success: true };
+  } catch (error) {
+    console.error("Error permanently deleting post:", error);
+    return { success: false, error };
+  }
+};
+
+// 時間格式轉換
 const convertTimestampToString = (timestamp: Timestamp | Date): string => {
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
   } else if (timestamp instanceof Date) {
     return timestamp.toISOString();
   }
-  return new Date().toISOString(); // Default to current date if invalid
+  return new Date().toISOString();
 };
 
-// Get all posts
+// 取得所有文章
 export const getAllPosts = async (): Promise<PostData[]> => {
   try {
-    // Temporarily use a simpler query without the isDraft filter to avoid index requirement
     const postsQuery = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc")
@@ -184,16 +189,9 @@ export const getAllPosts = async (): Promise<PostData[]> => {
 
     const querySnapshot: QuerySnapshot = await getDocs(postsQuery);
 
-    if (querySnapshot.empty) {
-      console.log("No posts found in database");
-      return [];
-    }
-
-    // Filter out draft posts client-side
     const posts: PostData[] = querySnapshot.docs
       .map((doc) => {
         const data = doc.data();
-        // 確保所有必要字段都有默認值，防止渲染時出現問題
         return {
           id: doc.id,
           title: data.title || "無標題",
@@ -210,14 +208,13 @@ export const getAllPosts = async (): Promise<PostData[]> => {
           budget: data.budget || null,
           eventDate: data.eventDate || null,
           visibility: data.visibility || "公開",
-          isDraft: !!data.isDraft, // 確保轉換為布爾值
+          isDraft: !!data.isDraft,
           viewCount: data.viewCount || 0,
           interactionCount: data.interactionCount || 0,
         };
       })
-      .filter((post) => !post.isDraft); // 過濾掉草稿
+      .filter((post) => !post.isDraft);
 
-    console.log(`Fetched ${posts.length} published posts`);
     return posts;
   } catch (error) {
     console.error("Error getting posts:", error);
@@ -225,7 +222,7 @@ export const getAllPosts = async (): Promise<PostData[]> => {
   }
 };
 
-// Get post by ID
+// 取得單篇文章
 export const getPostById = async (id: string): Promise<PostData | null> => {
   try {
     const postDoc = await getDoc(doc(db, "posts", id));
@@ -261,7 +258,7 @@ export const getPostById = async (id: string): Promise<PostData | null> => {
   }
 };
 
-// Get posts by tag
+// 依標籤取得文章
 export const getPostsByTag = async (tag: string): Promise<PostData[]> => {
   try {
     const postsQuery = query(
