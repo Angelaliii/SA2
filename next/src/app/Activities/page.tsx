@@ -1,12 +1,36 @@
 // 📁 src/app/activities/page.tsx
 "use client";
 
+"use client";
+
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Container,
+  Grid,
+  MenuItem,
+  Pagination,
+  TextField,
+  Typography,
+} from "@mui/material";
+
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  where,
+} from "firebase/firestore";
+
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { TextField, MenuItem, Grid, Card, CardContent, Typography, Container } from "@mui/material";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { db } from "../../firebase/config";
 import Navbar from "../../components/Navbar";
-import Link from "next/link"; // 用來實現跳轉到活動詳細頁面
+import { db } from "../../firebase/config";
 
 const activityTypes = ["迎新", "講座", "比賽", "展覽", "其他"];
 
@@ -127,7 +151,9 @@ export default function ActivityListPage() {
             label="最低參與人數"
             type="number"
             value={filters.participants}
-            onChange={(e) => setFilters({ ...filters, participants: e.target.value })}
+            onChange={(e) =>
+              setFilters({ ...filters, participants: e.target.value })
+            }
           />
         </Grid>
         <Grid item xs={12} sm={4}>
@@ -175,7 +201,9 @@ export default function ActivityListPage() {
                 <Typography variant="body2">
                   📅 {act.date.toDate().toLocaleDateString()}
                 </Typography>
-                <Typography variant="body2">👥 {act.participants} 人</Typography>
+                <Typography variant="body2">
+                  👥 {act.participants} 人
+                </Typography>
                 <Typography variant="body2">🔖 {act.type}</Typography>
                 <Typography variant="body2" mt={1}>
                   {act.content}
@@ -187,7 +215,11 @@ export default function ActivityListPage() {
                 )}
                 {/* Link to Activity Detail Page */}
                 <Link href={`/Activities/${act.id}`} passHref>
-                  <Typography variant="body2" color="primary" sx={{ cursor: "pointer" }}>
+                  <Typography
+                    variant="body2"
+                    color="primary"
+                    sx={{ cursor: "pointer" }}
+                  >
                     查看詳細內容
                   </Typography>
                 </Link>
