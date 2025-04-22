@@ -34,6 +34,7 @@ const pages = [
   { name: "文章發布", path: "/Artical" },
   { name: "活動資訊", path: "/Activities" },
   { name: "發布活動資訊", path: "/ActivitiesList" },
+  { name: "個人活動資訊", path: "/ActivitiesUser" },
 ];
 
 const userOptions = [
