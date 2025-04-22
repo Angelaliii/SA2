@@ -66,10 +66,55 @@ export default function Index() {
         pb: 6,
       }}
     >
-      <Navbar />
+      <Navbar />{" "}
       <main>
-        {/* 搜尋欄位 */}
-        <Container sx={{ mb: 4 }}>
+        {/* 封面區塊 */}
+        <Box
+          sx={{
+            position: "relative",
+            textAlign: "center",
+            mb: 4,
+            py: 4,
+            maxWidth: "100%",
+            height: "300",
+          }}
+        >
+          <img
+            src="/image/index_picture.png"
+            alt="首頁封面圖"
+            style={{
+              height: "350px",
+              objectFit: "contain",
+            }}
+          />
+          <Typography variant="h4" sx={{ mt: 2, fontWeight: "bold" }}>
+            找資源、找合作，從這裡開始！
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            一站式媒合平台，串聯企業與社團，共創雙贏
+          </Typography>
+          <Box
+            sx={{ mt: 3, display: "flex", justifyContent: "center", gap: 2 }}
+          >
+            <Button
+              variant="contained"
+              color="primary"
+              href="/explore" // ⬅ 替換為實際的合作探索頁
+            >
+              找合作
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              href="/edit-home" // ⬅ 替換為實際的編輯主頁頁面
+            >
+              編輯主頁
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Search */}
+        <Container sx={{ my: 6 }}>
           <TextField
             fullWidth
             placeholder="搜尋文章..."

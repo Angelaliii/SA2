@@ -33,6 +33,50 @@ export interface PostData {
   interactionCount?: number;
 }
 
+export interface DemandPostData extends PostData {
+  organizationName?: string;
+  selectedDemands?: string[];
+  demandDescription?: string;
+  cooperationReturn?: string;
+  estimatedParticipants?: string;
+  eventDescription?: string;
+}
+
+export const getOrganizationName = async (userId: string): Promise<string | null> => {
+  try {
+    const clubQuery = query(collection(db, "clubs"), where("userId", "==", userId));
+    const companyQuery = query(collection(db, "companies"), where("userId", "==", userId));
+
+    const [clubSnap, companySnap] = await Promise.all([
+      getDocs(clubQuery),
+      getDocs(companyQuery),
+    ]);
+
+    if (!clubSnap.empty) {
+      return clubSnap.docs[0].data().clubName || "社團名稱未填寫";
+    }
+
+    if (!companySnap.empty) {
+      return companySnap.docs[0].data().companyName || "企業名稱未填寫";
+    }
+
+    return null;
+  } catch (error) {
+    console.error("取得使用者組織名稱失敗", error);
+    return null;
+  }
+};
+
+export const getDemandItems = async (): Promise<string[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "demandItems"));
+    return querySnapshot.docs.map((doc) => doc.data().name as string);
+  } catch (error) {
+    console.error("Error fetching demand items:", error);
+    return [];
+  }
+};
+
 export const createPost = async (postData: Omit<PostData, "createdAt">) => {
   try {
     const postsCollection = collection(db, "posts");
@@ -47,22 +91,18 @@ export const createPost = async (postData: Omit<PostData, "createdAt">) => {
   }
 };
 
-// 儲存或更新草稿
 export const saveDraft = async (
   draftData: Omit<PostData, "createdAt">,
   draftId?: string
 ) => {
   try {
     const postsCollection = collection(db, "posts");
-
-    // 確保草稿旗標設置為 true
     const dataToSave = {
       ...draftData,
       isDraft: true,
       updatedAt: serverTimestamp(),
     };
 
-    // 如果提供了 ID，則更新現有草稿，否則建立新草稿
     if (draftId) {
       const draftRef = doc(db, "posts", draftId);
       await updateDoc(draftRef, dataToSave);
@@ -80,20 +120,16 @@ export const saveDraft = async (
   }
 };
 
-// 獲取特定用戶的所有草稿
 export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
   try {
-    // 移除 orderBy 以避免需要複合索引
     const draftsQuery = query(
       collection(db, "posts"),
       where("authorId", "==", userId),
       where("isDraft", "==", true)
-      // orderBy("createdAt", "desc") - 暫時移除，避免需要複合索引
     );
 
     const querySnapshot: QuerySnapshot = await getDocs(draftsQuery);
 
-    // 在 JavaScript 中手動排序結果
     const drafts: PostData[] = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -118,11 +154,10 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
       };
     });
 
-    // 手動對結果進行排序
     drafts.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
-      return dateB - dateA; // 降序排序，最新的在前面
+      return dateB - dateA;
     });
 
     return drafts;
@@ -132,14 +167,13 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
   }
 };
 
-// 將草稿轉換為正式文章
 export const publishDraft = async (draftId: string, userEmail?: string) => {
   try {
     const draftRef = doc(db, "posts", draftId);
     await updateDoc(draftRef, {
       isDraft: false,
       publishedAt: serverTimestamp(),
-      authorEmail: userEmail || null, // 儲存發布者的 Gmail
+      authorEmail: userEmail || null,
     });
     return { success: true };
   } catch (error) {
@@ -148,7 +182,6 @@ export const publishDraft = async (draftId: string, userEmail?: string) => {
   }
 };
 
-// 刪除草稿或文章
 export const deletePost = async (postId: string) => {
   try {
     const postRef = doc(db, "posts", postId);
@@ -163,20 +196,17 @@ export const deletePost = async (postId: string) => {
   }
 };
 
-// Function to convert Firestore timestamps to dates
 const convertTimestampToString = (timestamp: Timestamp | Date): string => {
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
   } else if (timestamp instanceof Date) {
     return timestamp.toISOString();
   }
-  return new Date().toISOString(); // Default to current date if invalid
+  return new Date().toISOString();
 };
 
-// Get all posts
 export const getAllPosts = async (): Promise<PostData[]> => {
   try {
-    // Temporarily use a simpler query without the isDraft filter to avoid index requirement
     const postsQuery = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc")
@@ -189,11 +219,9 @@ export const getAllPosts = async (): Promise<PostData[]> => {
       return [];
     }
 
-    // Filter out draft posts client-side
     const posts: PostData[] = querySnapshot.docs
       .map((doc) => {
         const data = doc.data();
-        // 確保所有必要字段都有默認值，防止渲染時出現問題
         return {
           id: doc.id,
           title: data.title || "無標題",
@@ -210,12 +238,19 @@ export const getAllPosts = async (): Promise<PostData[]> => {
           budget: data.budget || null,
           eventDate: data.eventDate || null,
           visibility: data.visibility || "公開",
-          isDraft: !!data.isDraft, // 確保轉換為布爾值
+          isDraft: !!data.isDraft,
           viewCount: data.viewCount || 0,
           interactionCount: data.interactionCount || 0,
+        
+          // 🆕 加上以下
+          organizationName: data.organizationName || "未知組織",
+          selectedDemands: Array.isArray(data.selectedDemands)
+            ? data.selectedDemands
+            : [],
         };
+        
       })
-      .filter((post) => !post.isDraft); // 過濾掉草稿
+      .filter((post) => !post.isDraft);
 
     console.log(`Fetched ${posts.length} published posts`);
     return posts;
@@ -225,8 +260,7 @@ export const getAllPosts = async (): Promise<PostData[]> => {
   }
 };
 
-// Get post by ID
-export const getPostById = async (id: string): Promise<PostData | null> => {
+export const getPostById = async (id: string): Promise<DemandPostData | null> => {
   try {
     const postDoc = await getDoc(doc(db, "posts", id));
 
@@ -237,31 +271,36 @@ export const getPostById = async (id: string): Promise<PostData | null> => {
     const postData = postDoc.data();
     return {
       id: postDoc.id,
-      title: postData.title,
-      content: postData.content,
-      location: postData.location,
+      title: postData.title || "無標題",
+      content: postData.content || "",
+      location: postData.location || "",
       postType: postData.postType || "一般文章",
-      tags: postData.tags,
+      tags: Array.isArray(postData.tags) ? postData.tags : [],
       createdAt: postData.createdAt
         ? convertTimestampToString(postData.createdAt)
         : new Date().toISOString(),
-      authorId: postData.authorId,
+      authorId: postData.authorId || "",
       cooperationDeadline: postData.cooperationDeadline || null,
       cooperationType: postData.cooperationType || null,
       budget: postData.budget || null,
       eventDate: postData.eventDate || null,
       visibility: postData.visibility || "公開",
-      isDraft: postData.isDraft || false,
+      isDraft: !!postData.isDraft,
       viewCount: postData.viewCount || 0,
       interactionCount: postData.interactionCount || 0,
+      organizationName: postData.organizationName || "",
+      selectedDemands: Array.isArray(postData.selectedDemands) ? postData.selectedDemands : [],
+      demandDescription: postData.demandDescription || "",
+      cooperationReturn: postData.cooperationReturn || "",
+      estimatedParticipants: postData.estimatedParticipants || "",
+      eventDescription: postData.eventDescription || "",
     };
   } catch (error) {
-    console.error("Error getting post:", error);
+    console.error("Error getting post by ID:", error);
     return null;
   }
 };
 
-// Get posts by tag
 export const getPostsByTag = async (tag: string): Promise<PostData[]> => {
   try {
     const postsQuery = query(
