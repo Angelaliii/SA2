@@ -1,11 +1,12 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import styles from "../assets/Plat.module.css";
 import Navbar from "../components/Navbar";
 import { getAllPosts, PostData } from "../firebase/services/post-service";
 
+import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
   Button,
@@ -26,15 +27,12 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
 
-  // Fetch posts from Firebase
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
         const postsData = await getAllPosts();
         setPosts(postsData);
-
-        // Extract unique tags from all posts
         const tags = postsData.flatMap((post) => post.tags);
         const uniqueTags = ["全部", ...Array.from(new Set(tags))];
         setAvailableTags(uniqueTags);
@@ -44,89 +42,118 @@ export default function Index() {
         setLoading(false);
       }
     };
-
     fetchPosts();
   }, []);
 
   const filteredPosts = posts.filter((post) => {
-    // 確保 post 和必要字段存在，避免空值引起的錯誤
-    if (!post || !post.title || !post.content) return false;
-
+    if (!post?.title || !post?.content) return false;
     const matchSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchTag =
       selectedTag === "全部"
         ? true
-        : post.tags && Array.isArray(post.tags)
-        ? post.tags.includes(selectedTag || "")
-        : false;
-
+        : Array.isArray(post.tags) && post.tags.includes(selectedTag ?? "");
     return matchSearch && matchTag;
   });
 
   return (
-    <Box className={styles.page}>
-      {/* Navbar */}
+    <Box
+      sx={{
+        backgroundColor: "#f2f2f7",
+        minHeight: "100vh",
+        pt: "100px",
+        pb: 6,
+      }}
+    >
       <Navbar />
-
-      {/* Main Content */}
       <main>
-        {/* Search */}
-        <Container sx={{ my: 6 }}>
+        {/* 搜尋欄位 */}
+        <Container sx={{ mb: 4 }}>
           <TextField
             fullWidth
-            label="搜尋文章"
-            variant="outlined"
+            placeholder="搜尋文章..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
+              ),
+              sx: {
+                borderRadius: 8,
+                backgroundColor: "#fff",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                px: 1,
+              },
+            }}
           />
         </Container>
 
         {/* Tags */}
-        <Container sx={{ my: 0 }}>
+        <Container sx={{ mb: 2 }}>
           <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
             {availableTags.map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                color={selectedTag === tag ? "primary" : "default"}
-                onClick={() => setSelectedTag(tag)}
-                clickable
-              />
+              <motion.div key={tag} whileTap={{ scale: 0.95 }}>
+                <Chip
+                  label={tag}
+                  color={selectedTag === tag ? "primary" : "default"}
+                  onClick={() => setSelectedTag(tag)}
+                  clickable
+                  sx={{ borderRadius: 2, px: 1.5 }}
+                />
+              </motion.div>
             ))}
           </Box>
         </Container>
 
         {/* Posts */}
-        <Container
-          sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
-        >
+        <Container sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <>
-              {filteredPosts.map((post) => (
-                <Card key={post.id} variant="outlined">
+            filteredPosts.map((post, index) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+              >
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 4,
+                    p: 2,
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
+                      transform: "translateY(-4px)",
+                    },
+                  }}
+                >
                   <CardContent>
-                    <Typography variant="h6" component="div">
+                    <Typography variant="h6" component="div" sx={{ mb: 1 }}>
                       {post.title}
                     </Typography>
-                    {/* 文章內容只顯示 40 字 + "..." */}
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1.5, lineHeight: 1.6 }}
+                    >
                       {post.content.length > 40
                         ? post.content.slice(0, 40) + "..."
                         : post.content}
                     </Typography>
                     <Box
                       sx={{
-                        mt: 1,
                         display: "flex",
                         flexWrap: "wrap",
                         gap: 0.5,
+                        mb: 1,
                       }}
                     >
                       {post.tags.map((tag) => (
@@ -138,25 +165,31 @@ export default function Index() {
                         />
                       ))}
                     </Box>
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      sx={{ mt: 1 }}
-                    >
+                    <Typography variant="caption" color="text.secondary">
                       {post.location}
                     </Typography>
                   </CardContent>
                   <CardActions>
                     <Link href={`/post/${post.id}`}>
-                      <Button size="small">閱讀更多 </Button>{" "}
+                      <Button
+                        size="small"
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 500,
+                          borderRadius: 2,
+                          px: 2,
+                        }}
+                      >
+                        閱讀更多
+                      </Button>
                     </Link>
                   </CardActions>
                 </Card>
-              ))}
-              {filteredPosts.length === 0 && !loading && (
-                <Typography variant="body1">找不到符合的文章</Typography>
-              )}
-            </>
+              </motion.div>
+            ))
+          )}
+          {filteredPosts.length === 0 && !loading && (
+            <Typography variant="body1">找不到符合的文章</Typography>
           )}
         </Container>
       </main>

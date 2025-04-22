@@ -53,6 +53,7 @@ export default function SideNavbar({
   const drawerContent = (
     <Box
       sx={{
+        pt: 2,
         p: 3,
         width: drawerWidth,
         height: "100%",
