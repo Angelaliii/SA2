@@ -31,9 +31,11 @@ import { authServices } from "../firebase/services/auth-service";
 const pages = [
   { name: "首頁", path: "/" },
   { name: "企業列表", path: "/CompanyList" },
-  { name: "文章發布", path: "/Artical" },
+  { name: "發布需求", path: "/Artical" },
+  { name: "需求牆", path: "/Artical/DemandList" },
   { name: "活動資訊", path: "/Activities" },
   { name: "發布活動資訊", path: "/ActivitiesList" },
+
 ];
 
 const userOptions = [
