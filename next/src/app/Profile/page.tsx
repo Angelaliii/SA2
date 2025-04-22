@@ -1,3 +1,4 @@
+// 导入所需的库
 "use client";
 
 import ArticleIcon from "@mui/icons-material/Article";
@@ -14,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
+import ActivityFormDialog from "../../components/activities/ActivityFormDialog";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../components/profile/CompanyProfileForm";
@@ -174,7 +176,6 @@ export default function Profile() {
       setLoading(false);
     }
   };
-
   if (loading) {
     return (
       <>
@@ -194,6 +195,23 @@ export default function Profile() {
       </>
     );
   }
+
+  // 格式化日期顯示
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "未知日期";
+
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString("zh-TW", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (err) {
+      console.error("Date formatting error:", err);
+      return "日期格式錯誤";
+    }
+  };
 
   return (
     <>
@@ -336,6 +354,15 @@ export default function Profile() {
           </Container>
         </Box>
       </Box>
+      {/* Activity Form Dialog */}
+      <ActivityFormDialog
+        open={activityDialogOpen}
+        onClose={() => setActivityDialogOpen(false)}
+        onSuccess={() => {
+          setActivityDialogOpen(false);
+          refreshActivities();
+        }}
+      />
     </>
   );
 }
