@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TextField, MenuItem, Grid, Card, CardContent, Typography, Container } from "@mui/material";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import Navbar from "../../components/Navbar";
 
