@@ -48,8 +48,8 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [greeting, setGreeting] = useState("");
-  const [isClient, setIsClient] = useState(false);
+  const [greeting, setGreeting] = useState("您好，");
+  const [isMounted, setIsMounted] = useState(false);
 
   const greetings = [
     "您好，",
@@ -63,7 +63,8 @@ export default function Navbar() {
   ];
 
   useEffect(() => {
-    setIsClient(true);
+    setIsMounted(true);
+    // Only set random greeting after component is mounted on client
     setGreeting(greetings[Math.floor(Math.random() * greetings.length)]);
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -99,6 +100,10 @@ export default function Navbar() {
       console.error("登出時發生錯誤:", error);
     }
   };
+  // Only render the full component on the client side
+  if (!isMounted) {
+    return null; // Return empty during server-side rendering
+  }
 
   return (
     <AppBar position="fixed">
@@ -121,7 +126,6 @@ export default function Navbar() {
           >
             社團企業媒合平台
           </Typography>
-
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
@@ -148,7 +152,6 @@ export default function Navbar() {
               ))}
             </Menu>
           </Box>
-
           {/* Mobile Title */}
           <Typography
             variant="h5"
@@ -167,7 +170,6 @@ export default function Navbar() {
           >
             媒合平台
           </Typography>
-
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {pages.map((page) => (
@@ -181,10 +183,9 @@ export default function Navbar() {
                 {page.name}
               </Button>
             ))}
-          </Box>
-
+          </Box>{" "}
           {/* User Greeting */}
-          {isClient && isLoggedIn && userName && (
+          {isMounted && isLoggedIn && userName && (
             <Tooltip title="這是您的個人識別標誌">
               <Chip
                 icon={<EmojiPeopleIcon />}
@@ -203,7 +204,6 @@ export default function Navbar() {
               />
             </Tooltip>
           )}
-
           {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
             <IconButton

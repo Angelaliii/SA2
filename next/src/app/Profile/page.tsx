@@ -14,12 +14,14 @@ import {
   Snackbar,
   Typography,
 } from "@mui/material";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import ActivityFormDialog from "../../components/activities/ActivityFormDialog";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../components/profile/CompanyProfileForm";
 import SideNavbar from "../../components/SideNavbar";
+import { db } from "../../firebase/config";
 import { authServices } from "../../firebase/services/auth-service";
 import { Club, clubServices } from "../../firebase/services/club-service";
 import {
@@ -61,6 +63,16 @@ export default function Profile() {
   const [selectedTag, setSelectedTag] = useState<string | null>("個人檔案");
   const [searchTerm, setSearchTerm] = useState("0");
   const drawerWidth = 200;
+  const [activities, setActivities] = useState<any[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  // Add client-side only rendering state
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set isMounted to true when component mounts on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -107,12 +119,72 @@ export default function Profile() {
     fetchUserProfile();
   }, []);
 
+  // When searchTerm changes, update the tab index
   useEffect(() => {
     if (searchTerm) {
       setValue(parseInt(searchTerm));
     }
   }, [searchTerm]);
 
+  // Function to refresh activities after adding a new one
+  const refreshActivities = async () => {
+    const currentUser = authServices.getCurrentUser();
+    if (!currentUser) return;
+
+    setActivitiesLoading(true);
+    try {
+      const q = query(
+        collection(db, "activities"),
+        where("uid", "==", currentUser.uid)
+      );
+
+      const snapshot = await getDocs(q);
+      const activitiesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setActivities(activitiesData);
+    } catch (err) {
+      console.error("Error refreshing activities:", err);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
+  // 獲取用戶活動資訊
+  useEffect(() => {
+    const fetchUserActivities = async () => {
+      if (value !== 3) return; // 只有當選擇了活動資訊標籤時才獲取數據
+
+      const currentUser = authServices.getCurrentUser();
+      if (!currentUser) return;
+
+      setActivitiesLoading(true);
+      try {
+        const q = query(
+          collection(db, "activities"),
+          where("uid", "==", currentUser.uid)
+        );
+
+        const snapshot = await getDocs(q);
+        const activitiesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setActivities(activitiesData);
+      } catch (err) {
+        console.error("Error fetching activities:", err);
+      } finally {
+        setActivitiesLoading(false);
+      }
+    };
+
+    fetchUserActivities();
+  }, [value]);
+
+  // 當新增活動成功後重新獲取活動列表
   const handleClubProfileUpdate = async (
     updatedData: Partial<Club>,
     logoFile?: File
@@ -177,6 +249,27 @@ export default function Profile() {
     }
   };
   if (loading) {
+    return (
+      <>
+        <Navbar />
+        <Box
+          sx={{
+            pt: "64px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "calc(100vh - 64px)",
+            backgroundColor: "#f2f2f7",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </>
+    );
+  }
+
+  // Only render complete UI on client-side to prevent hydration errors
+  if (!isMounted) {
     return (
       <>
         <Navbar />
