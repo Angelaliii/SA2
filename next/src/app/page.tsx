@@ -1,10 +1,13 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // ✅ 注意：使用 app router 要用這個
 import { useEffect, useState } from "react";
-import styles from "../assets/Plat.module.css";
 import Navbar from "../components/Navbar";
+import { getAllPosts, PostData } from "../firebase/services/post-service";
+
+import SearchIcon from "@mui/icons-material/Search";
 import { auth } from "../firebase/config"; // ✅ 要拿目前使用者 uid
 import {
   getAllPosts,
@@ -42,7 +45,6 @@ export default function Index() {
     }
   }, []);
 
-  // 抓文章
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
@@ -59,20 +61,20 @@ export default function Index() {
         setLoading(false);
       }
     };
-
     fetchPosts();
   }, []);
 
   const filteredPosts = posts.filter((post) => {
-    if (!post || !post.title || !post.content) return false;
+
+    if (!post?.title || !post?.content) return false;
 
     const matchSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchTag =
       selectedTag === "全部"
         ? true
+
         : post.tags?.includes(selectedTag || "") ?? false;
 
     return matchSearch && matchTag;
@@ -92,8 +94,10 @@ export default function Index() {
     }
   };
   return (
+
     <Box className={styles.page}>
       <Navbar />
+
       <main>
         {/* 封面區塊 */}
         <Box
@@ -144,23 +148,38 @@ export default function Index() {
         <Container sx={{ my: 6 }}>
           <TextField
             fullWidth
-            label="搜尋文章"
-            variant="outlined"
+            placeholder="搜尋文章..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
+              ),
+              sx: {
+                borderRadius: 8,
+                backgroundColor: "#fff",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                px: 1,
+              },
+            }}
           />
         </Container>
 
-        <Container sx={{ my: 0 }}>
+
+        {/* Tags */}
+        <Container sx={{ mb: 2 }}>
+
           <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
             {availableTags.map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                color={selectedTag === tag ? "primary" : "default"}
-                onClick={() => setSelectedTag(tag)}
-                clickable
-              />
+              <motion.div key={tag} whileTap={{ scale: 0.95 }}>
+                <Chip
+                  label={tag}
+                  color={selectedTag === tag ? "primary" : "default"}
+                  onClick={() => setSelectedTag(tag)}
+                  clickable
+                  sx={{ borderRadius: 2, px: 1.5 }}
+                />
+              </motion.div>
             ))}
           </Box>
         </Container>
@@ -168,27 +187,49 @@ export default function Index() {
         <Container
           sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
         >
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <>
-              {filteredPosts.map((post) => (
-                <Card key={post.id} variant="outlined">
+            filteredPosts.map((post, index) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+              >
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 4,
+                    p: 2,
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
+                      transform: "translateY(-4px)",
+                    },
+                  }}
+                >
                   <CardContent>
+
                     <Typography variant="h6">{post.title}</Typography>
                     <Typography variant="body2" color="text.secondary">
+
                       {post.content.length > 40
                         ? post.content.slice(0, 40) + "..."
                         : post.content}
                     </Typography>
                     <Box
                       sx={{
-                        mt: 1,
                         display: "flex",
                         flexWrap: "wrap",
                         gap: 0.5,
+                        mb: 1,
                       }}
                     >
                       {post.tags.map((tag) => (
@@ -204,12 +245,25 @@ export default function Index() {
                       variant="caption"
                       sx={{ mt: 1, display: "block" }}
                     >
+
                       {post.location}
                     </Typography>
                   </CardContent>
                   <CardActions>
                     <Link href={`/post/${post.id}`}>
-                      <Button size="small">閱讀更多</Button>
+
+                      <Button
+                        size="small"
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 500,
+                          borderRadius: 2,
+                          px: 2,
+                        }}
+                      >
+                        閱讀更多
+                      </Button>
+
                     </Link>
                     {/* 刪除按鈕（只有當前使用者是作者才顯示） */}
                     {auth.currentUser?.uid === post.authorId && (
@@ -223,11 +277,11 @@ export default function Index() {
                     )}
                   </CardActions>
                 </Card>
-              ))}
-              {filteredPosts.length === 0 && !loading && (
-                <Typography variant="body1">找不到符合的文章</Typography>
-              )}
-            </>
+              </motion.div>
+            ))
+          )}
+          {filteredPosts.length === 0 && !loading && (
+            <Typography variant="body1">找不到符合的文章</Typography>
           )}
         </Container>
       </main>

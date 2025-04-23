@@ -13,20 +13,22 @@ import {
   Typography,
 } from "@mui/material";
 
-import LoginPrompt from "../../components/LoginPromp";
-import React, { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase/config";
-import * as postService from "../../firebase/services/post-service";
-import Navbar from "../../components/Navbar";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import RedeemIcon from "@mui/icons-material/Redeem";
 import EventIcon from "@mui/icons-material/Event";
 import InfoIcon from "@mui/icons-material/Info";
-
+import InventoryIcon from "@mui/icons-material/Inventory";
+import RedeemIcon from "@mui/icons-material/Redeem";
+import { onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState } from "react";
+import DeleteDraftDialog from "../../components/article/DeleteDraftDialog";
+import DemandDraftManager from "../../components/article/DemandDraftManager";
+import LoginPrompt from "../../components/LoginPromp";
+import Navbar from "../../components/Navbar";
+import { auth } from "../../firebase/config";
+import * as postService from "../../firebase/services/post-service";
 
 export default function DemandPostPage() {
+  // 基本表單狀態
   const [title, setTitle] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const [demandItems, setDemandItems] = useState<string[]>([]);
@@ -38,19 +40,31 @@ export default function DemandPostPage() {
   const [eventDescription, setEventDescription] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
+  // 草稿相關狀態
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [openDraftsDialog, setOpenDraftsDialog] = useState(false);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState<string | null>(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+
+  // UI狀態
   const [loading, setLoading] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
+    "success"
+  );
 
-useEffect(() => {
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsLoggedIn(true);
-  
+
         const organization = await postService.getOrganizationName(user.uid);
         setOrganizationName(organization || "未知組織");
-  
+
         const defaultItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
         try {
           const items = await postService.getDemandItems();
@@ -63,10 +77,9 @@ useEffect(() => {
         setIsLoggedIn(false);
       }
     });
-  
+
     return () => unsubscribe();
   }, []);
-  
 
   if (isLoggedIn === false) {
     return (
@@ -78,7 +91,6 @@ useEffect(() => {
   }
 
   if (isLoggedIn === null) return null;
-
   const clearForm = () => {
     setTitle("");
     setSelectedDemands([]);
@@ -87,8 +99,109 @@ useEffect(() => {
     setEstimatedParticipants("");
     setEventDate("");
     setEventDescription("");
+    setCurrentDraftId(null);
+    setLastSaved(null);
   };
 
+  // 加載草稿列表
+  const loadDrafts = async () => {
+    setLoadingDrafts(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setSnackbarMessage("請先登入以查看草稿");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        setLoadingDrafts(false);
+        return;
+      }
+
+      // 從資料庫獲取使用者的需求草稿
+      const userDrafts = await postService.getUserDrafts(currentUser.uid);
+      setDrafts(userDrafts);
+      setOpenDraftsDialog(true);
+    } catch (error) {
+      console.error("載入草稿時出錯:", error);
+      setSnackbarMessage("無法載入草稿");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } finally {
+      setLoadingDrafts(false);
+    }
+  };
+
+  // 加載特定草稿
+  const loadDraft = async (draftId: string) => {
+    try {
+      // 從資料庫獲取草稿
+      const draft = await postService.getPostById(draftId);
+      if (!draft) {
+        throw new Error("找不到指定草稿");
+      }
+
+      // 填充表單基本資料
+      setTitle(draft.title || "");
+      setCurrentDraftId(draftId);
+
+      // 設置其他字段
+      if (draft.selectedDemands) setSelectedDemands(draft.selectedDemands);
+      if (draft.demandDescription)
+        setDemandDescription(draft.demandDescription);
+      if (draft.cooperationReturn)
+        setCooperationReturn(draft.cooperationReturn);
+      if (draft.estimatedParticipants)
+        setEstimatedParticipants(draft.estimatedParticipants);
+      if (draft.eventDate) setEventDate(draft.eventDate);
+      if (draft.eventDescription) setEventDescription(draft.eventDescription);
+
+      // 更新UI狀態
+      setSnackbarMessage("草稿已載入");
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
+      setOpenDraftsDialog(false);
+    } catch (error) {
+      console.error("載入草稿時出錯:", error);
+      setSnackbarMessage("無法載入草稿");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    }
+  };
+
+  // 確認刪除草稿
+  const confirmDeleteDraft = (draftId: string) => {
+    setDraftToDelete(draftId);
+    setOpenDeleteDialog(true);
+  };
+
+  // 刪除草稿
+  const deleteDraft = async () => {
+    if (!draftToDelete) return;
+
+    try {
+      // 從資料庫刪除草稿
+      await postService.deletePost(draftToDelete);
+
+      // 更新本地草稿列表
+      setDrafts(drafts.filter((draft) => draft.id !== draftToDelete));
+
+      // 如果刪除的是當前正在編輯的草稿，則重置表單
+      if (currentDraftId === draftToDelete) {
+        clearForm();
+      }
+
+      // 更新UI通知
+      setSnackbarMessage("草稿已刪除");
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
+      setOpenDeleteDialog(false);
+      setDraftToDelete(null);
+    } catch (error) {
+      console.error("刪除草稿時出錯:", error);
+      setSnackbarMessage("無法刪除草稿");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    }
+  };
   const handleSubmit = async () => {
     if (!title || !selectedDemands.length || !eventDate) {
       setSnackbarMessage("請填寫所有必填欄位");
@@ -120,15 +233,19 @@ useEffect(() => {
         isDraft: false,
       };
 
-      const result = await postService.createPost(postData);
-
-      if (result.success) {
-        setSnackbarMessage("文章發布成功");
-        setSnackbarSeverity("success");
-        clearForm();
+      // 如果是編輯現有草稿，則直接發布該草稿
+      if (currentDraftId) {
+        await postService.publishDraft(currentDraftId);
+        setSnackbarMessage("草稿已成功發布");
       } else {
-        throw new Error("發布失敗");
+        // 否則創建新的發布
+        const result = await postService.createPost(postData);
+        if (!result.success) throw new Error("發布失敗");
+        setSnackbarMessage("文章發布成功");
       }
+
+      setSnackbarSeverity("success");
+      clearForm();
     } catch (error) {
       console.error("發布文章時出錯:", error);
       setSnackbarMessage("發布失敗，請稍後再試");
@@ -180,15 +297,14 @@ useEffect(() => {
       setLoading(false);
     }
   };
-
   const handleViewDrafts = () => {
-    window.location.href = "/post/drafts";
+    loadDrafts();
   };
 
   return (
     <>
       <Navbar />
-  
+
       <Box sx={{ pt: 10, pb: 8 }}>
         <Container maxWidth="md">
           <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
@@ -214,9 +330,11 @@ useEffect(() => {
 
             </Typography>
             <Divider sx={{ mb: 3 }} />
-  
+
             {/* ➤ 基本資訊區塊 */}
-            <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
+            <Box
+              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <AssignmentIcon sx={{ mr: 1, color: "#1976d2" }} />
                 <Typography variant="h6">填寫基本資訊</Typography>
@@ -239,9 +357,11 @@ useEffect(() => {
                 sx={{ mb: 3 }}
               />
             </Box>
-  
+
             {/* ➤ 需求物資區塊 */}
-            <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
+            <Box
+              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
                 <Typography variant="h6">選擇你需要的資源</Typography>
@@ -252,7 +372,11 @@ useEffect(() => {
                 value={selectedDemands}
                 onChange={(_, newValue) => setSelectedDemands(newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} label="請選擇需求物資" placeholder="選擇需求物資" />
+                  <TextField
+                    {...params}
+                    label="請選擇需求物資"
+                    placeholder="選擇需求物資"
+                  />
                 )}
                 sx={{ mb: 3 }}
               />
@@ -267,12 +391,14 @@ useEffect(() => {
                 onChange={(e) => setDemandDescription(e.target.value)}
               />
             </Box>
-  
+
             {/* ➤ 回饋方案 */}
-  
-              <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
+
+            <Box
+              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <RedeemIcon  sx={{ mr: 1, color: "#1976d2" }} />
+                <RedeemIcon sx={{ mr: 1, color: "#1976d2" }} />
                 <Typography variant="h6">說明你的回饋方式</Typography>
               </Box>
               <TextField
@@ -286,12 +412,14 @@ useEffect(() => {
                 onChange={(e) => setCooperationReturn(e.target.value)}
               />
             </Box>
-  
+
             {/* ➤ 活動資訊 */}
-            <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
+            <Box
+              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <EventIcon  sx={{ mr: 1, color: "#1976d2" }} />
-          
+                <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
+
                 <Typography variant="h6">補充活動資訊</Typography>
               </Box>
               <TextField
@@ -312,12 +440,14 @@ useEffect(() => {
                 sx={{ mb: 3 }}
               />
             </Box>
-  
+
             {/* ➤ 活動說明 */}
-            
-                <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
+
+            <Box
+              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <InfoIcon  sx={{ mr: 1, color: "#1976d2" }} />
+                <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
                 <Typography variant="h6">補充說明</Typography>
               </Box>
               <TextField
@@ -331,9 +461,11 @@ useEffect(() => {
                 onChange={(e) => setEventDescription(e.target.value)}
               />
             </Box>
-  
+
             {/* ➤ 按鈕區塊 */}
-            <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
+            >
               {/* 左側：草稿操作 */}
               <Box sx={{ display: "flex", gap: 2 }}>
                 <Button
@@ -359,7 +491,7 @@ useEffect(() => {
                   查看草稿
                 </Button>
               </Box>
-  
+
               {/* 右側：發布按鈕 */}
               <Button
                 variant="contained"
@@ -373,7 +505,7 @@ useEffect(() => {
           </Paper>
         </Container>
       </Box>
-  
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
@@ -385,9 +517,27 @@ useEffect(() => {
           severity={snackbarSeverity}
           sx={{ width: "100%" }}
         >
-          {snackbarMessage}
+          {snackbarMessage}{" "}
         </Alert>
       </Snackbar>
+
+      {/* 草稿管理對話框 */}
+      <DemandDraftManager
+        open={openDraftsDialog}
+        onClose={() => setOpenDraftsDialog(false)}
+        drafts={drafts}
+        loading={loadingDrafts}
+        onLoadDraft={loadDraft}
+        onDeleteDraft={confirmDeleteDraft}
+      />
+
+      {/* 刪除草稿確認對話框 */}
+      <DeleteDraftDialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        onConfirm={deleteDraft}
+      />
     </>
   );
-  }
+}
+

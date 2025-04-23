@@ -1,7 +1,7 @@
 "use client";
 
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople"; // Added for greeting icon
+import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
@@ -35,7 +35,6 @@ const pages = [
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
-  { name: "發布活動資訊", path: "/ActivitiesList" },
   { name: "訊息", path: "/messages" },
 ];
 
@@ -51,9 +50,9 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [greeting, setGreeting] = useState("您好，");
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Creative greetings list
   const greetings = [
     "您好，",
     "歡迎回來，",
@@ -66,17 +65,16 @@ export default function Navbar() {
   ];
 
   useEffect(() => {
-    // 監聽登入狀態
+    setIsMounted(true);
+    // Only set random greeting after component is mounted on client
+    setGreeting(greetings[Math.floor(Math.random() * greetings.length)]);
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setIsLoggedIn(!!user);
       if (user) {
-        // Extract display name or email username part
         const displayName =
           user.displayName || user.email?.split("@")[0] || "夥伴";
         setUserName(displayName);
-
-        // Set random greeting when user logs in
-        setGreetingIndex(Math.floor(Math.random() * greetings.length));
       } else {
         setUserName(null);
       }
@@ -85,22 +83,12 @@ export default function Navbar() {
     return () => unsubscribe();
   }, []);
 
-  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
+  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorElNav(event.currentTarget);
-  };
-
-  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorElUser(event.currentTarget);
-  };
-
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
-  };
-
+  const handleCloseNavMenu = () => setAnchorElNav(null);
+  const handleCloseUserMenu = () => setAnchorElUser(null);
   const handleLogoutClick = () => {
     setOpenLogoutDialog(true);
     handleCloseUserMenu();
@@ -114,12 +102,16 @@ export default function Navbar() {
       console.error("登出時發生錯誤:", error);
     }
   };
+  // Only render the full component on the client side
+  if (!isMounted) {
+    return null; // Return empty during server-side rendering
+  }
 
   return (
     <AppBar position="fixed">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          {/* Desktop Logo */}
+          {/* Logo & Menu */}
           <Typography
             variant="h6"
             noWrap
@@ -136,36 +128,19 @@ export default function Navbar() {
           >
             社團企業媒合平台
           </Typography>
-
-          {/* Mobile Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
-              aria-label="menu"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
               onClick={handleOpenNavMenu}
               color="inherit"
             >
               <MenuIcon />
             </IconButton>
             <Menu
-              id="menu-appbar"
               anchorEl={anchorElNav}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "left",
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "left",
-              }}
               open={Boolean(anchorElNav)}
               onClose={handleCloseNavMenu}
-              sx={{
-                display: { xs: "block", md: "none" },
-              }}
+              sx={{ display: { xs: "block", md: "none" } }}
             >
               {pages.map((page) => (
                 <MenuItem
@@ -179,8 +154,7 @@ export default function Navbar() {
               ))}
             </Menu>
           </Box>
-
-          {/* Mobile Logo */}
+          {/* Mobile Title */}
           <Typography
             variant="h5"
             noWrap
@@ -198,8 +172,7 @@ export default function Navbar() {
           >
             媒合平台
           </Typography>
-
-          {/* Desktop Navigation */}
+          {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {pages.map((page) => (
               <Button
@@ -207,26 +180,24 @@ export default function Navbar() {
                 component={Link}
                 href={page.path}
                 onClick={handleCloseNavMenu}
-                sx={{ my: 2, color: "white", display: "block" }}
+                sx={{ color: "white" }}
               >
                 {page.name}
               </Button>
             ))}
-          </Box>
-
-          {/* User Greeting - Only show when logged in */}
-          {isLoggedIn && userName && (
+          </Box>{" "}
+          {/* User Greeting */}
+          {isMounted && isLoggedIn && userName && (
             <Tooltip title="這是您的個人識別標誌">
               <Chip
                 icon={<EmojiPeopleIcon />}
-                label={`${greetings[greetingIndex]}${userName}`}
+                label={`${greeting}${userName}`}
                 variant="outlined"
                 sx={{
                   mr: 2,
                   color: "white",
                   borderColor: "rgba(255,255,255,0.5)",
                   "& .MuiChip-icon": { color: "white" },
-                  transition: "all 0.3s ease",
                   "&:hover": {
                     backgroundColor: "rgba(255,255,255,0.1)",
                     transform: "scale(1.05)",
@@ -235,8 +206,7 @@ export default function Navbar() {
               />
             </Tooltip>
           )}
-
-          {/* User Menu */}
+          {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
               onClick={handleOpenUserMenu}
@@ -251,19 +221,11 @@ export default function Navbar() {
             </IconButton>
             <Menu
               sx={{ mt: "45px" }}
-              id="menu-appbar"
               anchorEl={anchorElUser}
-              anchorOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
             >
               {isLoggedIn ? (
                 <MenuItem onClick={handleLogoutClick}>
@@ -287,18 +249,14 @@ export default function Navbar() {
         </Toolbar>
       </Container>
 
-      {/* 登出確認對話框 */}
+      {/* Logout Confirmation */}
       <Dialog
         open={openLogoutDialog}
         onClose={() => setOpenLogoutDialog(false)}
-        aria-labelledby="logout-dialog-title"
-        aria-describedby="logout-dialog-description"
       >
-        <DialogTitle id="logout-dialog-title">確認登出</DialogTitle>
+        <DialogTitle>確認登出</DialogTitle>
         <DialogContent>
-          <DialogContentText id="logout-dialog-description">
-            您確定要登出嗎？
-          </DialogContentText>
+          <DialogContentText>您確定要登出嗎？</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
