@@ -1,20 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { useRouter } from "next/navigation"; // ✅ 注意：使用 app router 要用這個
-import { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
-import { getAllPosts, PostData } from "../firebase/services/post-service";
-
 import SearchIcon from "@mui/icons-material/Search";
-import { auth } from "../firebase/config"; // ✅ 要拿目前使用者 uid
-import {
-  getAllPosts,
-  permanentlyDeletePost,
-  PostData,
-} from "../firebase/services/post-service";
-
 import {
   Box,
   Button,
@@ -27,23 +13,24 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import styles from "../assets/globals.module.css";
+import Navbar from "../components/Navbar";
+import { auth } from "../firebase/config";
+import {
+  getAllPosts,
+  permanentlyDeletePost,
+  PostData,
+} from "../firebase/services/post-service";
 
 export default function Index() {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>("全部");
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  // 取得使用者 ID（登入後）
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (user) {
-      setCurrentUserId(user.uid);
-    }
-  }, []);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -65,8 +52,7 @@ export default function Index() {
   }, []);
 
   const filteredPosts = posts.filter((post) => {
-
-    if (!post?.title || !post?.content) return false;
+    if (!post?.title ?? !post?.content) return false;
 
     const matchSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,8 +60,7 @@ export default function Index() {
     const matchTag =
       selectedTag === "全部"
         ? true
-
-        : post.tags?.includes(selectedTag || "") ?? false;
+        : post.tags?.includes(selectedTag ?? "") ?? false;
 
     return matchSearch && matchTag;
   });
@@ -94,7 +79,6 @@ export default function Index() {
     }
   };
   return (
-
     <Box className={styles.page}>
       <Navbar />
 
@@ -107,7 +91,7 @@ export default function Index() {
             mb: 4,
             py: 4,
             maxWidth: "100%",
-            height: "300",
+            height: 300,
           }}
         >
           <img
@@ -146,29 +130,38 @@ export default function Index() {
 
         {/* Search */}
         <Container sx={{ my: 6 }}>
-          <TextField
-            fullWidth
-            placeholder="搜尋文章..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
-              ),
-              sx: {
-                borderRadius: 8,
-                backgroundColor: "#fff",
-                boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-                px: 1,
-              },
-            }}
-          />
+          <Box sx={{ position: "relative", width: "100%" }}>
+            <SearchIcon
+              sx={{
+                position: "absolute",
+                left: 2,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "text.secondary",
+                zIndex: 1,
+                ml: 1,
+              }}
+            />
+            <TextField
+              fullWidth
+              placeholder="搜尋文章..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{
+                "& .MuiInputBase-root": {
+                  borderRadius: 8,
+                  backgroundColor: "#fff",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                  pl: 5,
+                  pr: 2,
+                },
+              }}
+            />
+          </Box>
         </Container>
-
 
         {/* Tags */}
         <Container sx={{ mb: 2 }}>
-
           <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
             {availableTags.map((tag) => (
               <motion.div key={tag} whileTap={{ scale: 0.95 }}>
@@ -187,7 +180,6 @@ export default function Index() {
         <Container
           sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
         >
-
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
               <CircularProgress />
@@ -208,7 +200,7 @@ export default function Index() {
                     p: 2,
                     backgroundColor: "#ffffff",
                     boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
-                    transition: "all 0.3s ease",
+                    transition: "transform 0.3s ease",
                     "&:hover": {
                       boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
                       transform: "translateY(-4px)",
@@ -216,10 +208,8 @@ export default function Index() {
                   }}
                 >
                   <CardContent>
-
                     <Typography variant="h6">{post.title}</Typography>
                     <Typography variant="body2" color="text.secondary">
-
                       {post.content.length > 40
                         ? post.content.slice(0, 40) + "..."
                         : post.content}
@@ -245,13 +235,11 @@ export default function Index() {
                       variant="caption"
                       sx={{ mt: 1, display: "block" }}
                     >
-
                       {post.location}
                     </Typography>
                   </CardContent>
                   <CardActions>
                     <Link href={`/post/${post.id}`}>
-
                       <Button
                         size="small"
                         sx={{
@@ -263,7 +251,6 @@ export default function Index() {
                       >
                         閱讀更多
                       </Button>
-
                     </Link>
                     {/* 刪除按鈕（只有當前使用者是作者才顯示） */}
                     {auth.currentUser?.uid === post.authorId && (

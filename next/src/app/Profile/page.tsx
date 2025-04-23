@@ -4,7 +4,6 @@
 import ArticleIcon from "@mui/icons-material/Article";
 import EventIcon from "@mui/icons-material/Event";
 import HandshakeIcon from "@mui/icons-material/Handshake";
-import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import {
   Alert,
   Box,
@@ -396,57 +395,92 @@ export default function Profile() {
                 )}
               </TabPanel>
 
-              {[1, 2, 3].map((i) => (
-                <TabPanel key={i} value={value} index={i}>
+              <TabPanel value={value} index={1}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    <ArticleIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                    我的文章
+                  </Typography>
+                </Box>
+              </TabPanel>
+
+              <TabPanel value={value} index={2}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    <HandshakeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                    合作記錄
+                  </Typography>
+                </Box>
+              </TabPanel>
+
+              <TabPanel value={value} index={3}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    <EventIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                    活動管理
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setActivityDialogOpen(true)}
+                    sx={{ mt: 2 }}
+                  >
+                    新增活動
+                  </Button>
+                </Box>
+
+                {activitiesLoading ? (
                   <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      py: 4,
-                    }}
+                    sx={{ display: "flex", justifyContent: "center", my: 4 }}
                   >
-                    您目前沒有任何活動資訊。活動資訊功能正在開發中，敬請期待！
-                  </Typography>
-                </Box>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <Box sx={{ mt: 3 }}>
+                    {activities.map((activity) => (
+                      <Paper
+                        key={activity.id}
+                        sx={{
+                          p: 3,
+                          mb: 2,
+                          borderRadius: 2,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                        }}
+                      >
+                        <Typography variant="h6">{activity.title}</Typography>
+                        <Typography color="text.secondary" sx={{ mt: 1 }}>
+                          {activity.description}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          sx={{ mt: 2 }}
+                        >
+                          建立日期：{formatDate(activity.createdAt)}
+                        </Typography>
+                      </Paper>
+                    ))}
+                    {activities.length === 0 && (
+                      <Typography color="text.secondary">
+                        目前還沒有任何活動
+                      </Typography>
+                    )}
+                  </Box>
+                )}
               </TabPanel>
-              <TabPanel value={value} index={4}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    py: 4,
-                  }}
-                >
-                  <BookmarksIcon
-                    sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
-                  />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    尚無收藏
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    align="center"
-                  >
-                    您目前沒有任何收藏。多多去需求牆瀏覽吧!
-                  </Typography>
-                </Box>
-              </TabPanel>
+
+              <ActivityFormDialog
+                open={activityDialogOpen}
+                onClose={() => setActivityDialogOpen(false)}
+                onSuccess={() => {
+                  setActivityDialogOpen(false);
+                  refreshActivities();
+                }}
+              />
             </Paper>
           </Container>
         </Box>
       </Box>
-      {/* Activity Form Dialog */}
-      <ActivityFormDialog
-        open={activityDialogOpen}
-        onClose={() => setActivityDialogOpen(false)}
-        onSuccess={() => {
-          setActivityDialogOpen(false);
-          refreshActivities();
-        }}
-      />
     </>
   );
 }
