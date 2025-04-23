@@ -37,7 +37,6 @@ const pages = [
   { name: "活動資訊", path: "/Activities" },
   { name: "發布活動資訊", path: "/ActivitiesList" },
   { name: "訊息", path: "/messages" },
-
 ];
 
 const userOptions = [
