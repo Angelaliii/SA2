@@ -3,6 +3,7 @@
 import ArticleIcon from "@mui/icons-material/Article";
 import EventIcon from "@mui/icons-material/Event";
 import HandshakeIcon from "@mui/icons-material/Handshake";
+import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import {
   Alert,
   Box,
@@ -415,6 +416,30 @@ export default function Profile() {
                     align="center"
                   >
                     您目前沒有任何活動資訊。活動資訊功能正在開發中，敬請期待！
+                  </Typography>
+                </Box>
+              </TabPanel>
+              <TabPanel value={value} index={4}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    py: 4,
+                  }}
+                >
+                  <BookmarksIcon
+                    sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
+                  />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    尚無收藏
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    align="center"
+                  >
+                    您目前沒有任何收藏。多多去需求牆瀏覽吧!
                   </Typography>
                 </Box>
               </TabPanel>
