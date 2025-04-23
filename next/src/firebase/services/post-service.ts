@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -42,10 +43,18 @@ export interface DemandPostData extends PostData {
   eventDescription?: string;
 }
 
-export const getOrganizationName = async (userId: string): Promise<string | null> => {
+export const getOrganizationName = async (
+  userId: string
+): Promise<string | null> => {
   try {
-    const clubQuery = query(collection(db, "clubs"), where("userId", "==", userId));
-    const companyQuery = query(collection(db, "companies"), where("userId", "==", userId));
+    const clubQuery = query(
+      collection(db, "clubs"),
+      where("userId", "==", userId)
+    );
+    const companyQuery = query(
+      collection(db, "companies"),
+      where("userId", "==", userId)
+    );
 
     const [clubSnap, companySnap] = await Promise.all([
       getDocs(clubQuery),
@@ -196,6 +205,17 @@ export const deletePost = async (postId: string) => {
   }
 };
 
+export const permanentlyDeletePost = async (postId: string) => {
+  try {
+    const postRef = doc(db, "posts", postId);
+    await deleteDoc(postRef);
+    return { success: true };
+  } catch (error) {
+    console.error("Error permanently deleting post:", error);
+    return { success: false, error };
+  }
+};
+
 const convertTimestampToString = (timestamp: Timestamp | Date): string => {
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
@@ -241,14 +261,13 @@ export const getAllPosts = async (): Promise<PostData[]> => {
           isDraft: !!data.isDraft,
           viewCount: data.viewCount || 0,
           interactionCount: data.interactionCount || 0,
-        
+
           // 🆕 加上以下
           organizationName: data.organizationName || "未知組織",
           selectedDemands: Array.isArray(data.selectedDemands)
             ? data.selectedDemands
             : [],
         };
-        
       })
       .filter((post) => !post.isDraft);
 
@@ -260,7 +279,9 @@ export const getAllPosts = async (): Promise<PostData[]> => {
   }
 };
 
-export const getPostById = async (id: string): Promise<DemandPostData | null> => {
+export const getPostById = async (
+  id: string
+): Promise<DemandPostData | null> => {
   try {
     const postDoc = await getDoc(doc(db, "posts", id));
 
@@ -289,7 +310,9 @@ export const getPostById = async (id: string): Promise<DemandPostData | null> =>
       viewCount: postData.viewCount || 0,
       interactionCount: postData.interactionCount || 0,
       organizationName: postData.organizationName || "",
-      selectedDemands: Array.isArray(postData.selectedDemands) ? postData.selectedDemands : [],
+      selectedDemands: Array.isArray(postData.selectedDemands)
+        ? postData.selectedDemands
+        : [],
       demandDescription: postData.demandDescription || "",
       cooperationReturn: postData.cooperationReturn || "",
       estimatedParticipants: postData.estimatedParticipants || "",
