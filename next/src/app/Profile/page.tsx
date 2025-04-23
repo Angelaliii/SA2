@@ -7,6 +7,7 @@ import HandshakeIcon from "@mui/icons-material/Handshake";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Container,
   Divider,
@@ -417,7 +418,7 @@ export default function Profile() {
                       <EventIcon
                         sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
                       />
-                    )}
+                    )}{" "}
                     <Typography
                       variant="h6"
                       color="text.secondary"
@@ -427,19 +428,34 @@ export default function Profile() {
                         ? "尚無已發佈文章"
                         : i === 2
                         ? "尚無合作紀錄"
+                        : activities.length > 0
+                        ? "您的活動資訊"
                         : "尚無活動資訊"}
                     </Typography>
                     <Typography
                       variant="body2"
                       color="text.secondary"
                       align="center"
+                      sx={{ mb: 2 }}
                     >
                       {i === 1
                         ? "您還沒有發佈任何文章。發佈功能正在開發中，敬請期待！"
                         : i === 2
                         ? "您目前沒有任何合作紀錄。合作紀錄功能正在開發中，敬請期待！"
-                        : "您目前沒有任何活動資訊。活動資訊功能正在開發中，敬請期待！"}
+                        : activities.length > 0
+                        ? `您目前有 ${activities.length} 筆活動資訊`
+                        : "您目前沒有任何活動資訊。點擊下方按鈕新增活動！"}
                     </Typography>
+                    {i === 3 && (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => setActivityDialogOpen(true)}
+                        sx={{ mt: 2 }}
+                      >
+                        {activities.length > 0 ? "新增更多活動" : "新增活動"}
+                      </Button>
+                    )}
                   </Box>
                 </TabPanel>
               ))}
