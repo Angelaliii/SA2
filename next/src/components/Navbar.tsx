@@ -37,7 +37,7 @@ const pages = [
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
-  { name: "訊息", path: "/messages" },
+  { name: "通知中心", path: "/messages" },
 ];
 
 const userOptions = [

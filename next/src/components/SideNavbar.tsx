@@ -1,11 +1,10 @@
 "use client";
 
 import ArticleIcon from "@mui/icons-material/Article";
+import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import EventIcon from "@mui/icons-material/Event";
 import FolderIcon from "@mui/icons-material/Folder";
-import HandshakeIcon from "@mui/icons-material/Handshake";
 import PersonIcon from "@mui/icons-material/Person";
-import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import {
   Box,
   Chip,
@@ -36,7 +35,7 @@ export default function SideNavbar({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // 直接在組件內部定義標籤列表
-  const availableTags = ["個人檔案", "已發佈文章", "合作紀錄", "活動資訊","我的收藏"];
+  const availableTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊"];
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -54,7 +53,7 @@ export default function SideNavbar({
   const drawerContent = (
     <Box
       sx={{
-        pt: 2,
+        pt: 3,
         p: 3,
         width: drawerWidth,
         height: "100%",
@@ -84,9 +83,6 @@ export default function SideNavbar({
               break;
             case "已發佈文章":
               icon = <ArticleIcon fontSize="small" />;
-              break;
-            case "合作紀錄":
-              icon = <HandshakeIcon fontSize="small" />;
               break;
             case "活動資訊":
               icon = <EventIcon fontSize="small" />;
@@ -156,12 +152,12 @@ export default function SideNavbar({
             boxSizing: "border-box",
             width: drawerWidth,
             borderRight: "1px solid rgba(0, 0, 0, 0.08)",
-            top: "64px", // 確保抽屜從頂部導航欄下方開始
+            position: "fixed",
+            top: { xs: "56px", sm: "64px" }, // 根據 MUI AppBar 的高度調整
             height: "calc(100% - 64px)",
-            overflowY: "visible", // 移除滾動條
-            overflowX: "visible",
+            overflowY: "auto",
             backgroundColor: theme.palette.background.default,
-            zIndex: (theme) => theme.zIndex.drawer, // 設定合適的 z-index
+            zIndex: theme.zIndex.drawer,
           },
         }}
         open
