@@ -36,7 +36,6 @@ const pages = [
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
   { name: "發布活動資訊", path: "/ActivitiesList" },
-
 ];
 
 const userOptions = [
