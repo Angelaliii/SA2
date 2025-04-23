@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // ✅ 注意：使用 app router 要用這個
 import { useEffect, useState } from "react";
 import styles from "../assets/Plat.module.css";
 import Navbar from "../components/Navbar";
-import { getAllPosts, PostData } from "../firebase/services/post-service";
-
-
+import { auth } from "../firebase/config"; // ✅ 要拿目前使用者 uid
+import {
+  getAllPosts,
+  permanentlyDeletePost,
+  PostData,
+} from "../firebase/services/post-service";
 
 import {
   Box,
@@ -22,13 +26,23 @@ import {
 } from "@mui/material";
 
 export default function Index() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>("全部");
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Fetch posts from Firebase
+  // 取得使用者 ID（登入後）
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user) {
+      setCurrentUserId(user.uid);
+    }
+  }, []);
+
+  // 抓文章
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
@@ -36,7 +50,6 @@ export default function Index() {
         const postsData = await getAllPosts();
         setPosts(postsData);
 
-        // Extract unique tags from all posts
         const tags = postsData.flatMap((post) => post.tags);
         const uniqueTags = ["全部", ...Array.from(new Set(tags))];
         setAvailableTags(uniqueTags);
@@ -51,7 +64,6 @@ export default function Index() {
   }, []);
 
   const filteredPosts = posts.filter((post) => {
-    // 確保 post 和必要字段存在，避免空值引起的錯誤
     if (!post || !post.title || !post.content) return false;
 
     const matchSearch =
@@ -61,19 +73,27 @@ export default function Index() {
     const matchTag =
       selectedTag === "全部"
         ? true
-        : post.tags && Array.isArray(post.tags)
-        ? post.tags.includes(selectedTag || "")
-        : false;
+        : post.tags?.includes(selectedTag || "") ?? false;
 
     return matchSearch && matchTag;
   });
 
+  // 刪除文章
+  const handleDelete = async (postId: string) => {
+    const confirmDelete = confirm("你確定要刪除這篇文章嗎？此操作無法復原！");
+    if (!confirmDelete) return;
+
+    const result = await permanentlyDeletePost(postId);
+    if (result.success) {
+      alert("文章已成功刪除！");
+      setPosts((prev) => prev.filter((p) => p.id !== postId)); // 本地先更新
+    } else {
+      alert("刪除失敗，請稍後再試");
+    }
+  };
   return (
     <Box className={styles.page}>
-      {/* Navbar */}
       <Navbar />
-
-      {/* Main Content */}
       <main>
         {/* 封面區塊 */}
         <Box
@@ -83,40 +103,41 @@ export default function Index() {
             mb: 4,
             py: 4,
             maxWidth: "100%",
-            height: "300"
+            height: "300",
           }}
         >
-        <img
-          src="/image/index_picture.png"
-          alt="首頁封面圖"
-          style={{
-            
-            height: "350px",
-            objectFit: "contain",
-          }}
-        />
+          <img
+            src="/image/index_picture.png"
+            alt="首頁封面圖"
+            style={{
+              height: "350px",
+              objectFit: "contain",
+            }}
+          />
           <Typography variant="h4" sx={{ mt: 2, fontWeight: "bold" }}>
             找資源、找合作，從這裡開始！
           </Typography>
           <Typography variant="body1" sx={{ mt: 1 }}>
             一站式媒合平台，串聯企業與社團，共創雙贏
           </Typography>
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "center", gap: 2 }}>
-  <Button
-    variant="contained"
-    color="primary"
-    href="/explore" // ⬅ 替換為實際的合作探索頁
-  >
-    找合作
-  </Button>
-  <Button
-    variant="outlined"
-    color="primary"
-    href="/edit-home" // ⬅ 替換為實際的編輯主頁頁面
-  >
-    編輯主頁
-  </Button>
-</Box>
+          <Box
+            sx={{ mt: 3, display: "flex", justifyContent: "center", gap: 2 }}
+          >
+            <Button
+              variant="contained"
+              color="primary"
+              href="/explore" // ⬅ 替換為實際的合作探索頁
+            >
+              找合作
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              href="/edit-home" // ⬅ 替換為實際的編輯主頁頁面
+            >
+              編輯主頁
+            </Button>
+          </Box>
         </Box>
 
         {/* Search */}
@@ -130,7 +151,6 @@ export default function Index() {
           />
         </Container>
 
-        {/* Tags */}
         <Container sx={{ my: 0 }}>
           <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
             {availableTags.map((tag) => (
@@ -145,7 +165,6 @@ export default function Index() {
           </Box>
         </Container>
 
-        {/* Posts */}
         <Container
           sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
         >
@@ -158,10 +177,7 @@ export default function Index() {
               {filteredPosts.map((post) => (
                 <Card key={post.id} variant="outlined">
                   <CardContent>
-                    <Typography variant="h6" component="div">
-                      {post.title}
-                    </Typography>
-                    {/* 文章內容只顯示 40 字 + "..." */}
+                    <Typography variant="h6">{post.title}</Typography>
                     <Typography variant="body2" color="text.secondary">
                       {post.content.length > 40
                         ? post.content.slice(0, 40) + "..."
@@ -186,16 +202,25 @@ export default function Index() {
                     </Box>
                     <Typography
                       variant="caption"
-                      display="block"
-                      sx={{ mt: 1 }}
+                      sx={{ mt: 1, display: "block" }}
                     >
                       {post.location}
                     </Typography>
                   </CardContent>
                   <CardActions>
                     <Link href={`/post/${post.id}`}>
-                      <Button size="small">閱讀更多 </Button>{" "}
+                      <Button size="small">閱讀更多</Button>
                     </Link>
+                    {/* 刪除按鈕（只有當前使用者是作者才顯示） */}
+                    {auth.currentUser?.uid === post.authorId && (
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(post.id!)}
+                      >
+                        刪除
+                      </Button>
+                    )}
                   </CardActions>
                 </Card>
               ))}
