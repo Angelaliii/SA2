@@ -5,6 +5,7 @@ import EventIcon from "@mui/icons-material/Event";
 import FolderIcon from "@mui/icons-material/Folder";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import PersonIcon from "@mui/icons-material/Person";
+import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import {
   Box,
   Chip,
@@ -35,7 +36,7 @@ export default function SideNavbar({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // 直接在組件內部定義標籤列表
-  const availableTags = ["個人檔案", "已發佈文章", "合作紀錄", "活動資訊"];
+  const availableTags = ["個人檔案", "已發佈文章", "合作紀錄", "活動資訊","我的收藏"];
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -89,6 +90,9 @@ export default function SideNavbar({
               break;
             case "活動資訊":
               icon = <EventIcon fontSize="small" />;
+              break;
+            case "我的收藏":
+              icon = <BookmarksIcon fontSize="small" />;
               break;
             default:
               icon = <FolderIcon fontSize="small" />;

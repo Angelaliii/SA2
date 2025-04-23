@@ -4,6 +4,7 @@
 import ArticleIcon from "@mui/icons-material/Article";
 import EventIcon from "@mui/icons-material/Event";
 import HandshakeIcon from "@mui/icons-material/Handshake";
+import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import {
   Alert,
   Box,
@@ -405,60 +406,34 @@ export default function Profile() {
                       py: 4,
                     }}
                   >
-                    {" "}
-                    {i === 1 ? (
-                      <ArticleIcon
-                        sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
-                      />
-                    ) : i === 2 ? (
-                      <HandshakeIcon
-                        sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
-                      />
-                    ) : (
-                      <EventIcon
-                        sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
-                      />
-                    )}{" "}
-                    <Typography
-                      variant="h6"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      {i === 1
-                        ? "尚無已發佈文章"
-                        : i === 2
-                        ? "尚無合作紀錄"
-                        : activities.length > 0
-                        ? "您的活動資訊"
-                        : "尚無活動資訊"}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      align="center"
-                      sx={{ mb: 2 }}
-                    >
-                      {i === 1
-                        ? "您還沒有發佈任何文章。發佈功能正在開發中，敬請期待！"
-                        : i === 2
-                        ? "您目前沒有任何合作紀錄。合作紀錄功能正在開發中，敬請期待！"
-                        : activities.length > 0
-                        ? `您目前有 ${activities.length} 筆活動資訊`
-                        : "您目前沒有任何活動資訊。點擊下方按鈕新增活動！"}
-                    </Typography>
-                    {i === 3 && (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => setActivityDialogOpen(true)}
-                        sx={{ mt: 2 }}
-                      >
-                        {activities.length > 0 ? "新增更多活動" : "新增活動"}
-                      </Button>
-                    )}
-                  </Box>
-                </TabPanel>
-              ))}
+                    您目前沒有任何活動資訊。活動資訊功能正在開發中，敬請期待！
+                  </Typography>
+                </Box>
+              </TabPanel>
+              <TabPanel value={value} index={4}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    py: 4,
+                  }}
+                >
+                  <BookmarksIcon
+                    sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
+                  />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    尚無收藏
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    align="center"
+                  >
+                    您目前沒有任何收藏。多多去需求牆瀏覽吧!
+                  </Typography>
+                </Box>
+              </TabPanel>
             </Paper>
           </Container>
         </Box>

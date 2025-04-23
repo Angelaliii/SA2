@@ -2,11 +2,19 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // ✅ 注意：使用 app router 要用這個
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import { getAllPosts, PostData } from "../firebase/services/post-service";
 
 import SearchIcon from "@mui/icons-material/Search";
+import { auth } from "../firebase/config"; // ✅ 要拿目前使用者 uid
+import {
+  getAllPosts,
+  permanentlyDeletePost,
+  PostData,
+} from "../firebase/services/post-service";
+
 import {
   Box,
   Button,
@@ -21,11 +29,21 @@ import {
 } from "@mui/material";
 
 export default function Index() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>("全部");
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // 取得使用者 ID（登入後）
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user) {
+      setCurrentUserId(user.uid);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -33,6 +51,7 @@ export default function Index() {
       try {
         const postsData = await getAllPosts();
         setPosts(postsData);
+
         const tags = postsData.flatMap((post) => post.tags);
         const uniqueTags = ["全部", ...Array.from(new Set(tags))];
         setAvailableTags(uniqueTags);
@@ -46,27 +65,39 @@ export default function Index() {
   }, []);
 
   const filteredPosts = posts.filter((post) => {
+
     if (!post?.title || !post?.content) return false;
+
     const matchSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchTag =
       selectedTag === "全部"
         ? true
-        : Array.isArray(post.tags) && post.tags.includes(selectedTag ?? "");
+
+        : post.tags?.includes(selectedTag || "") ?? false;
+
     return matchSearch && matchTag;
   });
 
+  // 刪除文章
+  const handleDelete = async (postId: string) => {
+    const confirmDelete = confirm("你確定要刪除這篇文章嗎？此操作無法復原！");
+    if (!confirmDelete) return;
+
+    const result = await permanentlyDeletePost(postId);
+    if (result.success) {
+      alert("文章已成功刪除！");
+      setPosts((prev) => prev.filter((p) => p.id !== postId)); // 本地先更新
+    } else {
+      alert("刪除失敗，請稍後再試");
+    }
+  };
   return (
-    <Box
-      sx={{
-        backgroundColor: "#f2f2f7",
-        minHeight: "100vh",
-        pt: "100px",
-        pb: 6,
-      }}
-    >
-      <Navbar />{" "}
+
+    <Box className={styles.page}>
+      <Navbar />
+
       <main>
         {/* 封面區塊 */}
         <Box
@@ -134,8 +165,10 @@ export default function Index() {
           />
         </Container>
 
+
         {/* Tags */}
         <Container sx={{ mb: 2 }}>
+
           <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
             {availableTags.map((tag) => (
               <motion.div key={tag} whileTap={{ scale: 0.95 }}>
@@ -151,8 +184,10 @@ export default function Index() {
           </Box>
         </Container>
 
-        {/* Posts */}
-        <Container sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Container
+          sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
+        >
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
               <CircularProgress />
@@ -181,14 +216,10 @@ export default function Index() {
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h6" component="div" sx={{ mb: 1 }}>
-                      {post.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1.5, lineHeight: 1.6 }}
-                    >
+
+                    <Typography variant="h6">{post.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+
                       {post.content.length > 40
                         ? post.content.slice(0, 40) + "..."
                         : post.content}
@@ -210,12 +241,17 @@ export default function Index() {
                         />
                       ))}
                     </Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      sx={{ mt: 1, display: "block" }}
+                    >
+
                       {post.location}
                     </Typography>
                   </CardContent>
                   <CardActions>
                     <Link href={`/post/${post.id}`}>
+
                       <Button
                         size="small"
                         sx={{
@@ -227,7 +263,18 @@ export default function Index() {
                       >
                         閱讀更多
                       </Button>
+
                     </Link>
+                    {/* 刪除按鈕（只有當前使用者是作者才顯示） */}
+                    {auth.currentUser?.uid === post.authorId && (
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(post.id!)}
+                      >
+                        刪除
+                      </Button>
+                    )}
                   </CardActions>
                 </Card>
               </motion.div>

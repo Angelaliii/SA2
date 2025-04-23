@@ -309,7 +309,25 @@ export default function DemandPostPage() {
         <Container maxWidth="md">
           <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
             <Typography variant="h5" fontWeight="bold" gutterBottom>
+            <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center", // 垂直方向置中
+              mb: 3,
+            }}
+          >
+            <Box
+              component="img"
+              src="/image/findsponsor.png"
+              alt="find sponsor"
+              sx={{ width: 80, height: 80, mb: 1 }} // 更大圖，並與文字留一點距離
+            />
+            <Typography variant="h5" fontWeight="bold">
               發布需求文章
+            </Typography>
+          </Box>
+
             </Typography>
             <Divider sx={{ mb: 3 }} />
 
@@ -522,3 +540,4 @@ export default function DemandPostPage() {
     </>
   );
 }
+
