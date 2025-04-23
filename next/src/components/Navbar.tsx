@@ -27,6 +27,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { auth } from "../firebase/config";
 import { authServices } from "../firebase/services/auth-service";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import { Badge } from "@mui/material";
 
 const pages = [
   { name: "首頁", path: "/" },
@@ -35,6 +37,7 @@ const pages = [
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
+  { name: "通知中心", path: "/messages" },
   { name: "訊息", path: "/messages" },
 ];
 
@@ -44,7 +47,7 @@ const userOptions = [
   { name: "社團註冊", path: "/ClubRegister" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
   const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -143,15 +146,27 @@ export default function Navbar() {
               sx={{ display: { xs: "block", md: "none" } }}
             >
               {pages.map((page) => (
-                <MenuItem
-                  key={page.name}
-                  onClick={handleCloseNavMenu}
-                  component={Link}
-                  href={page.path}
-                >
-                  <Typography textAlign="center">{page.name}</Typography>
-                </MenuItem>
-              ))}
+              <Button
+                key={page.name}
+                component={Link}
+                href={page.path}
+                onClick={handleCloseNavMenu}
+                sx={{ my: 2, color: "white", display: "block" }}
+              >
+                {page.name === "通知中心" ? (
+                  <Badge
+                    color="error"
+                    variant="dot"
+                    overlap="circular"
+                    invisible={!hasUnread}
+                  >
+                    <NotificationsIcon />
+                  </Badge>
+                ) : (
+                  page.name
+                )}
+              </Button>
+            ))}
             </Menu>
           </Box>
           {/* Mobile Title */}
