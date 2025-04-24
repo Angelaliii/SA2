@@ -25,6 +25,7 @@ import ActivityEditDialog from "../../components/activities/ActivityEditDialog";
 import ActivityFormDialog from "../../components/activities/ActivityFormDialog";
 import ArticleManager from "../../components/article/ArticleManager";
 import FavoriteArticlesManager from "../../components/article/FavoriteArticlesManager";
+import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../components/profile/CompanyProfileForm";
@@ -94,14 +95,10 @@ export default function Profile() {
   useEffect(() => {
     const unsubscribe = authServices.onAuthStateChanged((user) => {
       setIsAuthenticated(!!user);
-      if (!user) {
-        // Redirect to home page if not logged in
-        router.push("/");
-      }
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -318,7 +315,12 @@ export default function Profile() {
 
   // Redirect if not authenticated
   if (isAuthenticated === false) {
-    return null; // Will be redirected by the useEffect
+    return (
+      <>
+        <Navbar />
+        <LoginPrompt />
+      </>
+    );
   }
 
   if (loading) {

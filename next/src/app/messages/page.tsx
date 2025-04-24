@@ -25,6 +25,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase/config";
 
@@ -42,10 +43,15 @@ type NotificationItem = {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
+      setIsLoggedIn(!!user);
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
 
@@ -163,170 +169,177 @@ export default function NotificationsPage() {
   return (
     <>
       <Navbar hasUnread={notifications.some((n) => !n.isRead)} />
-      <Box
-        sx={{
-          display: "flex",
-          pt: "64px",
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#f2f2f7",
-        }}
-      >
+
+      {isLoggedIn === false ? (
+        <LoginPrompt />
+      ) : (
         <Box
-          component="main"
           sx={{
-            flexGrow: 1,
-            p: { xs: 2, sm: 4 },
+            display: "flex",
+            pt: "64px",
+            minHeight: "calc(100vh - 64px)",
+            backgroundColor: "#f2f2f7",
           }}
         >
-          <Container maxWidth="md" sx={{ pb: 5 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 2, sm: 3, md: 4 },
-                mb: 4,
-                borderRadius: 3,
-                border: "1px solid rgba(0, 0, 0, 0.05)",
-                boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
-              }}
-            >
-              <Box
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              p: { xs: 2, sm: 4 },
+            }}
+          >
+            <Container maxWidth="md" sx={{ pb: 5 }}>
+              <Paper
+                elevation={0}
                 sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
+                  p: { xs: 2, sm: 3, md: 4 },
+                  mb: 4,
+                  borderRadius: 3,
+                  border: "1px solid rgba(0, 0, 0, 0.05)",
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
                 }}
               >
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  gutterBottom
+                <Box
                   sx={{
-                    fontWeight: 700,
-                    color: (theme) => theme.palette.primary.main,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 2,
                   }}
                 >
-                  通知中心
-                </Typography>
-                <Button
-                  variant="outlined"
-                  onClick={markAllAsRead}
-                  disabled={notifications.every((n) => n.isRead)}
-                >
-                  全部標記為已讀
-                </Button>
-              </Box>
-              <Divider sx={{ my: 2 }} />
+                  <Typography
+                    variant="h4"
+                    component="h1"
+                    gutterBottom
+                    sx={{
+                      fontWeight: 700,
+                      color: (theme) => theme.palette.primary.main,
+                    }}
+                  >
+                    通知中心
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    onClick={markAllAsRead}
+                    disabled={notifications.every((n) => n.isRead)}
+                  >
+                    全部標記為已讀
+                  </Button>
+                </Box>
+                <Divider sx={{ my: 2 }} />
 
-              {loading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", my: 5 }}>
-                  <CircularProgress />
-                </Box>
-              ) : notifications.length === 0 ? (
-                <Box sx={{ textAlign: "center", py: 5 }}>
-                  <Typography variant="h6" color="text.secondary">
-                    目前沒有通知
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ mt: 1 }}>
-                    當有人與您互動時，您將在此收到通知
-                  </Typography>
-                </Box>
-              ) : (
-                <List>
-                  {notifications.map((msg, index) => (
-                    <React.Fragment key={msg.id}>
-                      <ListItem
-                        onClick={() => handleClick(index, msg.id)}
-                        sx={{
-                          borderRadius: 2,
-                          backgroundColor: msg.isRead
-                            ? "transparent"
-                            : "rgba(25, 118, 210, 0.05)",
-                          cursor: "pointer",
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          px: 3,
-                          py: 2,
-                          transition: "all 0.2s",
-                          border: msg.isRead
-                            ? "1px solid rgba(0, 0, 0, 0.08)"
-                            : "1px solid rgba(25, 118, 210, 0.3)",
-                          "&:hover": {
-                            backgroundColor: msg.isRead
-                              ? "rgba(0, 0, 0, 0.03)"
-                              : "rgba(25, 118, 210, 0.08)",
-                            boxShadow: "0 3px 10px rgba(0,0,0,0.08)",
-                          },
-                        }}
-                      >
-                        <Box
+                {loading ? (
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", my: 5 }}
+                  >
+                    <CircularProgress />
+                  </Box>
+                ) : notifications.length === 0 ? (
+                  <Box sx={{ textAlign: "center", py: 5 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      目前沒有通知
+                    </Typography>
+                    <Typography color="text.secondary" sx={{ mt: 1 }}>
+                      當有人與您互動時，您將在此收到通知
+                    </Typography>
+                  </Box>
+                ) : (
+                  <List>
+                    {notifications.map((msg, index) => (
+                      <React.Fragment key={msg.id}>
+                        <ListItem
+                          onClick={() => handleClick(index, msg.id)}
                           sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            width: "100%",
-                            mb: 1,
+                            borderRadius: 2,
+                            backgroundColor: msg.isRead
+                              ? "transparent"
+                              : "rgba(25, 118, 210, 0.05)",
+                            cursor: "pointer",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            px: 3,
+                            py: 2,
+                            transition: "all 0.2s",
+                            border: msg.isRead
+                              ? "1px solid rgba(0, 0, 0, 0.08)"
+                              : "1px solid rgba(25, 118, 210, 0.3)",
+                            "&:hover": {
+                              backgroundColor: msg.isRead
+                                ? "rgba(0, 0, 0, 0.03)"
+                                : "rgba(25, 118, 210, 0.08)",
+                              boxShadow: "0 3px 10px rgba(0,0,0,0.08)",
+                            },
                           }}
                         >
-                          <Typography
-                            fontWeight={msg.isRead ? "normal" : "bold"}
-                          >
-                            {msg.senderName || msg.senderId}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {formatDate(msg.timestamp)}
-                          </Typography>
-                        </Box>
-                        <Typography sx={{ mt: 1, mb: 1 }}>
-                          {msg.messageContent}
-                        </Typography>
-                        {msg.postTitle && (
                           <Box
                             sx={{
-                              mt: 1,
-                              p: 1.5,
-                              bgcolor: "rgba(0,0,0,0.02)",
-                              borderRadius: 1,
+                              display: "flex",
+                              justifyContent: "space-between",
                               width: "100%",
+                              mb: 1,
                             }}
                           >
-                            <Typography variant="body2">
-                              相關文章：
-                              <Link
-                                href={`/Artical/${msg.postId}`}
-                                style={{
-                                  color: "#1976d2",
-                                  textDecoration: "none",
-                                  fontWeight: "medium",
-                                }}
-                              >
-                                {msg.postTitle}
-                              </Link>
+                            <Typography
+                              fontWeight={msg.isRead ? "normal" : "bold"}
+                            >
+                              {msg.senderName || msg.senderId}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {formatDate(msg.timestamp)}
                             </Typography>
                           </Box>
-                        )}
-                        {!msg.isRead && (
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              top: 12,
-                              right: 12,
-                              width: 8,
-                              height: 8,
-                              borderRadius: "50%",
-                              bgcolor: "primary.main",
-                            }}
-                          />
-                        )}
-                      </ListItem>
-                      <Box sx={{ height: 16 }} />
-                    </React.Fragment>
-                  ))}
-                </List>
-              )}
-            </Paper>
-          </Container>
+                          <Typography sx={{ mt: 1, mb: 1 }}>
+                            {msg.messageContent}
+                          </Typography>
+                          {msg.postTitle && (
+                            <Box
+                              sx={{
+                                mt: 1,
+                                p: 1.5,
+                                bgcolor: "rgba(0,0,0,0.02)",
+                                borderRadius: 1,
+                                width: "100%",
+                              }}
+                            >
+                              <Typography variant="body2">
+                                相關文章：
+                                <Link
+                                  href={`/Artical/${msg.postId}`}
+                                  style={{
+                                    color: "#1976d2",
+                                    textDecoration: "none",
+                                    fontWeight: "medium",
+                                  }}
+                                >
+                                  {msg.postTitle}
+                                </Link>
+                              </Typography>
+                            </Box>
+                          )}
+                          {!msg.isRead && (
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: 12,
+                                right: 12,
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                bgcolor: "primary.main",
+                              }}
+                            />
+                          )}
+                        </ListItem>
+                        <Box sx={{ height: 16 }} />
+                      </React.Fragment>
+                    ))}
+                  </List>
+                )}
+              </Paper>
+            </Container>
+          </Box>
         </Box>
-      </Box>
+      )}
     </>
   );
 }
