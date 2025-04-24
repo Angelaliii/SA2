@@ -447,7 +447,7 @@ export default function Profile() {
                   sx={{ width: "100%", boxShadow: 3 }}
                   onClose={() => setSnackbarOpen(false)}
                 >
-                  {error || success}
+                  {error ?? success}
                 </Alert>
               </Snackbar>
 
@@ -531,7 +531,7 @@ export default function Profile() {
                           }}
                         >
                           <Typography variant="h6">
-                            {activity.title || activity.name}
+                            {activity.title ?? activity.name}
                           </Typography>
                           <Box>
                             <IconButton
@@ -553,16 +553,16 @@ export default function Profile() {
                           </Box>
                         </Box>
                         <Typography color="text.secondary" sx={{ mt: 1 }}>
-                          {activity.description || activity.content}
+                          {activity.description ?? activity.content}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 1 }}>
                           活動日期：{formatDate(activity.date)}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          活動類型：{activity.type || "未指定"}
+                          活動類型：{activity.type ?? "未指定"}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          預計參與人數：{activity.participants || "未指定"}
+                          預計參與人數：{activity.participants ?? "未指定"}
                         </Typography>
                         {activity.partnerCompany && (
                           <Typography variant="body2" sx={{ mt: 0.5 }}>

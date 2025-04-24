@@ -48,22 +48,25 @@ interface Post {
   selectedDemands?: string[];
   location?: string;
   isDraft?: boolean;
+  cooperationReturn?: string;
+  createdAt?: string;
 }
 
 const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
+const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
 
 export default function DemandListPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     selectedDemand: "",
+    selectedEventType: "",
     startDate: "",
     endDate: "",
     minParticipants: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>("全部");
-  const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每頁顯示8筆資料
@@ -121,6 +124,20 @@ export default function DemandListPage() {
           ...doc.data(),
         })) as Post[];
 
+        // Sort posts by creation date (newest first)
+        results.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA; // Descending order (newest first)
+        });
+
+        // Manual filter for event type
+        if (filters.selectedEventType) {
+          results = results.filter((post) => {
+            return post.eventType === filters.selectedEventType;
+          });
+        }
+
         // Manual date range filtering
         if (filters.startDate || filters.endDate) {
           results = results.filter((post) => {
@@ -153,11 +170,6 @@ export default function DemandListPage() {
         }
 
         setPosts(results);
-
-        // Extract unique tags from posts
-        const tags = results.flatMap((post) => post.tags ?? []);
-        const uniqueTags = ["全部", ...Array.from(new Set(tags))];
-        setAvailableTags(uniqueTags);
       } catch (err) {
         console.error("讀取貼文失敗", err);
       } finally {
@@ -187,7 +199,7 @@ export default function DemandListPage() {
     const matchTag =
       selectedTag === "全部"
         ? true
-        : post.tags?.includes(selectedTag ?? "") ?? false;
+        : (post.selectedDemands ?? []).includes(selectedTag ?? "");
 
     return matchSearch && matchTag;
   });
@@ -301,27 +313,31 @@ export default function DemandListPage() {
             />
           </Box>
 
-          {/* 標籤篩選 */}
-          <Box
-            sx={{
-              mb: 4,
-              display: "flex",
-              gap: 1,
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            {availableTags.map((tag) => (
-              <motion.div key={tag} whileTap={{ scale: 0.95 }}>
-                <Chip
-                  label={tag}
-                  color={selectedTag === tag ? "primary" : "default"}
-                  onClick={() => setSelectedTag(tag)}
-                  clickable
-                  sx={{ borderRadius: 2, px: 1.5 }}
-                />
-              </motion.div>
-            ))}
+          {/* 活動類型篩選 */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="subtitle1" gutterBottom fontWeight="medium">
+              活動類型篩選
+            </Typography>
+            <TextField
+              fullWidth
+              label="活動類型"
+              select
+              value={filters.selectedEventType}
+              onChange={handleFilterChange}
+              name="selectedEventType"
+              sx={{
+                "& .MuiInputBase-root": {
+                  borderRadius: 1,
+                },
+              }}
+            >
+              <MenuItem value="">全部</MenuItem>
+              {eventTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
 
           {/* 進階篩選 */}
@@ -339,7 +355,7 @@ export default function DemandListPage() {
                   onChange={handleFilterChange}
                   name="startDate"
                   sx={{
-                    "& .MuiInputLabel-shrink": {
+                    "& .MuiInputLabel-root": {
                       transform: "translate(14px, -9px) scale(0.75)",
                     },
                   }}
@@ -352,7 +368,7 @@ export default function DemandListPage() {
                   onChange={handleFilterChange}
                   name="endDate"
                   sx={{
-                    "& .MuiInputLabel-shrink": {
+                    "& .MuiInputLabel-root": {
                       transform: "translate(14px, -9px) scale(0.75)",
                     },
                   }}
@@ -408,79 +424,100 @@ export default function DemandListPage() {
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.4, delay: index * 0.08 }}
                 >
-                  <Card
-                    variant="outlined"
-                    sx={{
-                      borderRadius: 4,
-                      p: 2,
-                      backgroundColor: "#ffffff",
-                      boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
-                      transition: "transform 0.3s ease",
-                      "&:hover": {
-                        boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
-                        transform: "translateY(-4px)",
-                      },
-                    }}
+                  <Link
+                    href={`/Artical/${post.id}`}
+                    style={{ textDecoration: "none", display: "block" }}
                   >
-                    <CardContent>
-                      <Typography variant="h6">
-                        {post.title ?? "(未命名文章)"}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mb: 1 }}
-                      >
-                        {post.organizationName ??
-                          post.author ??
-                          "(無發布者資訊)"}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {post.content &&
-                          (post.content.length > 40
-                            ? post.content.slice(0, 40) + "..."
-                            : post.content)}
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: 0.5,
-                          mb: 1,
-                          mt: 1,
-                        }}
-                      >
-                        {(post.tags ?? []).map((tag: string) => (
-                          <Chip
-                            key={`tag-${post.id}-${tag}`}
-                            label={tag}
-                            size="small"
-                            variant="outlined"
-                          />
-                        ))}
-                        {(post.selectedDemands ?? []).map((item: string) => (
-                          <Chip
-                            key={`demand-${post.id}-${item}`}
-                            label={item}
-                            color="primary"
-                            size="small"
-                          />
-                        ))}
-                      </Box>
-                      {post.location && (
-                        <Typography
-                          variant="caption"
-                          sx={{ mt: 1, display: "block" }}
-                        >
-                          {post.location}
+                    <Card
+                      variant="outlined"
+                      sx={{
+                        borderRadius: 4,
+                        p: 2,
+                        backgroundColor: "#ffffff",
+                        boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
+                        transition: "transform 0.3s ease",
+                        cursor: "pointer",
+                        "&:hover": {
+                          boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
+                          transform: "translateY(-4px)",
+                        },
+                      }}
+                    >
+                      <CardContent>
+                        <Typography variant="h6">
+                          {post.title ?? "(未命名文章)"}
                         </Typography>
-                      )}
-                    </CardContent>
-                    <CardActions sx={{ justifyContent: "space-between" }}>
-                      <Link
-                        href={`/Artical/${post.id}`}
-                        style={{ textDecoration: "none" }}
-                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mb: 1 }}
+                        >
+                          組織名稱: {post.organizationName ?? "(無組織資訊)"}
+                        </Typography>
+
+                        {/* 需求物資 */}
+                        <Box sx={{ mt: 1, mb: 1 }}>
+                          <Typography variant="body2" fontWeight="medium">
+                            需求物資:
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 0.5,
+                              mt: 0.5,
+                            }}
+                          >
+                            {(post.selectedDemands ?? []).map(
+                              (item: string) => (
+                                <Chip
+                                  key={`demand-${post.id}-${item}`}
+                                  label={item}
+                                  color="primary"
+                                  size="small"
+                                />
+                              )
+                            )}
+                          </Box>
+                        </Box>
+
+                        {/* 回饋方式 */}
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          <span style={{ fontWeight: 500 }}>回饋方式:</span>{" "}
+                          {!post.cooperationReturn
+                            ? "未提供回饋方式"
+                            : post.cooperationReturn.length > 60
+                            ? post.cooperationReturn.slice(0, 60) + "..."
+                            : post.cooperationReturn}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 0.5,
+                            mb: 1,
+                            mt: 1,
+                          }}
+                        >
+                          {(post.tags ?? []).map((tag: string) => (
+                            <Chip
+                              key={`tag-${post.id}-${tag}`}
+                              label={tag}
+                              size="small"
+                              variant="outlined"
+                            />
+                          ))}
+                        </Box>
+                        {post.location && (
+                          <Typography
+                            variant="caption"
+                            sx={{ mt: 1, display: "block" }}
+                          >
+                            {post.location}
+                          </Typography>
+                        )}
+                      </CardContent>
+                      <CardActions sx={{ justifyContent: "space-between" }}>
                         <Button
                           size="small"
                           sx={{
@@ -492,19 +529,23 @@ export default function DemandListPage() {
                         >
                           閱讀更多
                         </Button>
-                      </Link>
-                      {auth.currentUser && (
-                        <IconButton
-                          size="small"
-                          color={favorites[post.id] ? "error" : "default"}
-                          onClick={() => toggleFavorite(post)}
-                          title={favorites[post.id] ? "取消收藏" : "加入收藏"}
-                        >
-                          {favorites[post.id] ? "❤️" : "🤍"}
-                        </IconButton>
-                      )}
-                    </CardActions>
-                  </Card>
+                        {auth.currentUser && (
+                          <IconButton
+                            size="small"
+                            color={favorites[post.id] ? "error" : "default"}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleFavorite(post);
+                            }}
+                            title={favorites[post.id] ? "取消收藏" : "加入收藏"}
+                          >
+                            {favorites[post.id] ? "❤️" : "🤍"}
+                          </IconButton>
+                        )}
+                      </CardActions>
+                    </Card>
+                  </Link>
                 </motion.div>
               ))
             )}

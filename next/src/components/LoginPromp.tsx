@@ -17,7 +17,7 @@ export default function LoginPrompt() {
       }}
     >
       <Image
-        src="/image/login_prompt.png"
+        src="/image/LoginPrompt.png"
         alt="請先登入"
         width={300}
         height={300}

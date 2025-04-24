@@ -7,9 +7,9 @@ import {
   CardContent,
   CircularProgress,
   Container,
-  Grid,
   MenuItem,
   Pagination,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -26,7 +26,6 @@ const activityTypes = ["迎新", "講座", "比賽", "展覽", "其他"];
 export default function ActivityListPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [filters, setFilters] = useState({
-    date: "",
     participants: "",
     type: "",
     searchQuery: "",
@@ -79,20 +78,8 @@ export default function ActivityListPage() {
     fetchActivities();
   }, [filters.searchQuery, filters.type]);
 
-  // 手動處理日期和參與人數篩選
+  // 手動處理參與人數篩選
   const filteredActivities = activities.filter((act) => {
-    // 日期篩選
-    if (filters.date && act.date) {
-      const actDate = act.date.toDate ? act.date.toDate() : new Date(act.date);
-      const filterDate = new Date(filters.date);
-
-      // 將時間部分設為0以僅比較日期
-      actDate.setHours(0, 0, 0, 0);
-      filterDate.setHours(0, 0, 0, 0);
-
-      if (actDate.getTime() !== filterDate.getTime()) return false;
-    }
-
     // 參與人數篩選
     if (filters.participants && act.participants) {
       const minParticipants = parseInt(filters.participants);
@@ -162,29 +149,19 @@ export default function ActivityListPage() {
               boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
             }}
           >
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="搜尋活動名稱"
-                  value={filters.searchQuery}
-                  onChange={handleSearchChange}
-                  sx={{ mb: 2 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="活動日期"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  value={filters.date}
-                  onChange={(e) =>
-                    setFilters({ ...filters, date: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+            <Stack spacing={2}>
+              <TextField
+                fullWidth
+                label="搜尋活動名稱"
+                value={filters.searchQuery}
+                onChange={handleSearchChange}
+              />
+
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
+                sx={{ width: "100%" }}
+              >
                 <TextField
                   fullWidth
                   label="最低參與人數"
@@ -194,8 +171,6 @@ export default function ActivityListPage() {
                     setFilters({ ...filters, participants: e.target.value })
                   }
                 />
-              </Grid>
-              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   label="活動性質"
@@ -212,8 +187,8 @@ export default function ActivityListPage() {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-            </Grid>
+              </Stack>
+            </Stack>
           </Box>
 
           {/* Loading indicator */}
@@ -243,9 +218,25 @@ export default function ActivityListPage() {
                   目前沒有符合條件的活動資料
                 </Typography>
               ) : (
-                <Grid container spacing={3}>
+                <Stack
+                  direction="row"
+                  flexWrap="wrap"
+                  spacing={3}
+                  useFlexGap
+                  sx={{ width: "100%" }}
+                >
                   {currentActivities.map((act) => (
-                    <Grid item xs={12} sm={6} md={4} key={act.id}>
+                    <Box
+                      key={act.id}
+                      sx={{
+                        width: {
+                          xs: "100%",
+                          sm: "calc(50% - 12px)",
+                          md: "calc(33.333% - 16px)",
+                        },
+                        mb: 3,
+                      }}
+                    >
                       <Card
                         sx={{
                           height: "100%",
@@ -332,9 +323,9 @@ export default function ActivityListPage() {
                           </CardContent>
                         </CardActionArea>
                       </Card>
-                    </Grid>
+                    </Box>
                   ))}
-                </Grid>
+                </Stack>
               )}
 
               {/* 分頁控制 */}

@@ -54,7 +54,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [greeting, setGreeting] = useState("您好，");
+  const [greeting, setGreeting] = useState("您好，"); // Always start with a default greeting
   const [isMounted, setIsMounted] = useState(false);
 
   const greetings = [
@@ -71,38 +71,44 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
   useEffect(() => {
     setIsMounted(true);
     // Only set random greeting after component is mounted on client
-    setGreeting(greetings[Math.floor(Math.random() * greetings.length)]);
+    if (typeof window !== "undefined") {
+      // Only run this on the client side
+      const randomIndex = Math.floor(Math.random() * greetings.length);
+      setGreeting(greetings[randomIndex]);
+    }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
       if (user) {
         try {
-          // Try to get the club name first
+          // 先嘗試獲取社團名稱
           const clubs = await clubServices.getAllClubs();
           const userClub = clubs.find((club) => club.userId === user.uid);
 
           if (userClub) {
             setUserName(userClub.clubName);
-          } else {
-            // Try to get the company name
-            const companies = await companyServices.getAllCompanies();
-            const userCompany = companies.find(
-              (company) => company.userId === user.uid
-            );
-
-            if (userCompany) {
-              setUserName(userCompany.companyName);
-            } else {
-              // Fallback to email if no organization name found
-              const displayName =
-                user.displayName || user.email?.split("@")[0] || "夥伴";
-              setUserName(displayName);
-            }
+            return; // 如果找到社團名稱，就直接返回
           }
-        } catch (error) {
-          console.error("Error fetching organization name:", error);
+
+          // 嘗試獲取公司名稱
+          const companies = await companyServices.getAllCompanies();
+          const userCompany = companies.find(
+            (company) => company.userId === user.uid
+          );
+
+          if (userCompany) {
+            setUserName(userCompany.companyName);
+            return; // 如果找到公司名稱，就直接返回
+          }
+
+          // 若都沒找到，使用電子郵件前綴作為備用
           const displayName =
-            user.displayName || user.email?.split("@")[0] || "夥伴";
+            user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
+          setUserName(displayName);
+        } catch (error) {
+          console.error("無法獲取組織名稱:", error);
+          const displayName =
+            user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
           setUserName(displayName);
         }
       } else {
@@ -191,7 +197,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                   component={Link}
                   href={page.path}
                 >
-                  <Typography textAlign="center">
+                  <Typography textAlign="center" component="span">
                     {page.name === "通知中心" ? (
                       <Box sx={{ display: "flex", alignItems: "center" }}>
                         <Badge
@@ -250,7 +256,6 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                     >
                       <NotificationsIcon sx={{ mr: 1 }} />
                     </Badge>
-                    通知
                   </Box>
                 ) : (
                   page.name
@@ -278,6 +283,23 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               />
             </Tooltip>
           )}
+          {/* 通知鈴鐺 */}
+          {isLoggedIn && (
+            <IconButton
+              component={Link}
+              href="/messages"
+              sx={{ color: "white", mr: 2 }}
+            >
+              <Badge
+                color="error"
+                variant="dot"
+                overlap="circular"
+                invisible={!hasUnread}
+              >
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+          )}
           {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
@@ -302,7 +324,9 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               {isLoggedIn ? (
                 <MenuItem onClick={handleLogoutClick}>
                   <LogoutIcon sx={{ mr: 1 }} />
-                  <Typography textAlign="center">登出</Typography>
+                  <Typography textAlign="center" component="span">
+                    登出
+                  </Typography>
                 </MenuItem>
               ) : (
                 userOptions.map((option) => (
@@ -312,7 +336,9 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                     component={Link}
                     href={option.path}
                   >
-                    <Typography textAlign="center">{option.name}</Typography>
+                    <Typography textAlign="center" component="span">
+                      {option.name}
+                    </Typography>
                   </MenuItem>
                 ))
               )}
