@@ -9,11 +9,12 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Container,
-  Grid,
+  Container, // 引入 Stack 替代 Grid
+  IconButton,
   MenuItem,
   Pagination,
   Paper,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -32,10 +33,27 @@ import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
 
+// Add interfaces for proper typing
+interface Post {
+  id: string;
+  title?: string;
+  content?: string;
+  postType?: string;
+  author?: string;
+  authorId?: string;
+  organizationName?: string;
+  eventDate?: string;
+  estimatedParticipants?: string;
+  tags?: string[];
+  selectedDemands?: string[];
+  location?: string;
+  isDraft?: boolean;
+}
+
 const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
 
 export default function DemandListPage() {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     selectedDemand: "",
@@ -101,7 +119,7 @@ export default function DemandListPage() {
         let results = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })) as Post[];
 
         // Manual date range filtering
         if (filters.startDate || filters.endDate) {
@@ -129,7 +147,7 @@ export default function DemandListPage() {
         // Manual filter for participants
         if (filters.minParticipants) {
           results = results.filter((post) => {
-            const participants = parseInt(post.estimatedParticipants || "0");
+            const participants = parseInt(post.estimatedParticipants ?? "0");
             return participants >= parseInt(filters.minParticipants);
           });
         }
@@ -137,7 +155,7 @@ export default function DemandListPage() {
         setPosts(results);
 
         // Extract unique tags from posts
-        const tags = results.flatMap((post) => post.tags || []);
+        const tags = results.flatMap((post) => post.tags ?? []);
         const uniqueTags = ["全部", ...Array.from(new Set(tags))];
         setAvailableTags(uniqueTags);
       } catch (err) {
@@ -311,8 +329,8 @@ export default function DemandListPage() {
             <Typography variant="subtitle1" gutterBottom fontWeight="medium">
               進階篩選
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
+            <Stack spacing={2} sx={{ width: "100%" }}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <TextField
                   fullWidth
                   label="活動開始日期"
@@ -320,10 +338,12 @@ export default function DemandListPage() {
                   value={filters.startDate}
                   onChange={handleFilterChange}
                   name="startDate"
-                  InputLabelProps={{ shrink: true }}
+                  sx={{
+                    "& .MuiInputLabel-shrink": {
+                      transform: "translate(14px, -9px) scale(0.75)",
+                    },
+                  }}
                 />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
                 <TextField
                   fullWidth
                   label="活動結束日期"
@@ -331,10 +351,14 @@ export default function DemandListPage() {
                   value={filters.endDate}
                   onChange={handleFilterChange}
                   name="endDate"
-                  InputLabelProps={{ shrink: true }}
+                  sx={{
+                    "& .MuiInputLabel-shrink": {
+                      transform: "translate(14px, -9px) scale(0.75)",
+                    },
+                  }}
                 />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              </Stack>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <TextField
                   fullWidth
                   label="最低參與人數"
@@ -343,8 +367,6 @@ export default function DemandListPage() {
                   onChange={handleFilterChange}
                   name="minParticipants"
                 />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
                 <TextField
                   fullWidth
                   label="需求物資"
@@ -360,8 +382,8 @@ export default function DemandListPage() {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-            </Grid>
+              </Stack>
+            </Stack>
           </Box>
         </Container>
       </Paper>
@@ -402,15 +424,15 @@ export default function DemandListPage() {
                   >
                     <CardContent>
                       <Typography variant="h6">
-                        {post.title || "(未命名文章)"}
+                        {post.title ?? "(未命名文章)"}
                       </Typography>
                       <Typography
                         variant="body2"
                         color="text.secondary"
                         sx={{ mb: 1 }}
                       >
-                        {post.organizationName ||
-                          post.author ||
+                        {post.organizationName ??
+                          post.author ??
                           "(無發布者資訊)"}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -428,24 +450,22 @@ export default function DemandListPage() {
                           mt: 1,
                         }}
                       >
-                        {(post.tags || []).map((tag: string, idx: number) => (
+                        {(post.tags ?? []).map((tag: string) => (
                           <Chip
-                            key={idx}
+                            key={`tag-${post.id}-${tag}`}
                             label={tag}
                             size="small"
                             variant="outlined"
                           />
                         ))}
-                        {(post.selectedDemands || []).map(
-                          (item: string, index: number) => (
-                            <Chip
-                              key={`demand-${index}`}
-                              label={item}
-                              color="primary"
-                              size="small"
-                            />
-                          )
-                        )}
+                        {(post.selectedDemands ?? []).map((item: string) => (
+                          <Chip
+                            key={`demand-${post.id}-${item}`}
+                            label={item}
+                            color="primary"
+                            size="small"
+                          />
+                        ))}
                       </Box>
                       {post.location && (
                         <Typography
@@ -456,7 +476,7 @@ export default function DemandListPage() {
                         </Typography>
                       )}
                     </CardContent>
-                    <CardActions sx={{ justifyContent: "flex-start" }}>
+                    <CardActions sx={{ justifyContent: "space-between" }}>
                       <Link
                         href={`/Artical/${post.id}`}
                         style={{ textDecoration: "none" }}
@@ -473,6 +493,16 @@ export default function DemandListPage() {
                           閱讀更多
                         </Button>
                       </Link>
+                      {auth.currentUser && (
+                        <IconButton
+                          size="small"
+                          color={favorites[post.id] ? "error" : "default"}
+                          onClick={() => toggleFavorite(post)}
+                          title={favorites[post.id] ? "取消收藏" : "加入收藏"}
+                        >
+                          {favorites[post.id] ? "❤️" : "🤍"}
+                        </IconButton>
+                      )}
                     </CardActions>
                   </Card>
                 </motion.div>

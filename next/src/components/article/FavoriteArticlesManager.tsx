@@ -13,9 +13,9 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Grid,
   IconButton,
   Snackbar,
+  Stack,
   Typography,
 } from "@mui/material";
 import {
@@ -32,10 +32,31 @@ import { useEffect, useState } from "react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../hooks/useAuth";
 
+// Define types for better type checking
+interface Favorite {
+  id: string;
+  userId: string;
+  articleId: string;
+  [key: string]: any;
+}
+
+interface Article {
+  id: string;
+  title?: string;
+  content?: string;
+  authorName?: string;
+  author?: string;
+  createdAt?: any;
+  postType?: string;
+  tags?: string[];
+  collection?: string;
+  favoriteId?: string;
+  [key: string]: any;
+}
+
 export default function FavoriteArticlesManager() {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [articles, setArticles] = useState<any[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -62,9 +83,7 @@ export default function FavoriteArticlesManager() {
       const favoritesData = favoritesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
-
-      setFavorites(favoritesData);
+      })) as Favorite[];
 
       // Get related article details
       const articleIds = favoritesData.map((fav) => fav.articleId);
@@ -76,7 +95,7 @@ export default function FavoriteArticlesManager() {
       }
 
       // First try to fetch posts collection
-      let allArticles: any[] = [];
+      let allArticles: Article[] = [];
 
       // Try to fetch from posts collection first
       try {
@@ -168,7 +187,7 @@ export default function FavoriteArticlesManager() {
   }, [user]);
 
   // Remove from favorites
-  const handleRemoveFavorite = async (article: any) => {
+  const handleRemoveFavorite = async (article: Article) => {
     if (!article.favoriteId) return;
 
     try {
@@ -237,122 +256,121 @@ export default function FavoriteArticlesManager() {
             </Button>
           </Box>
         ) : (
-          <Grid container spacing={2}>
+          <Stack spacing={2}>
             {articles.map((article, index) => (
-              <Grid item xs={12} sm={6} key={article.id}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                key={article.id}
+              >
+                <Card
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    borderRadius: 2,
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                      boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
+                    },
+                  }}
                 >
-                  <Card
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      borderRadius: 2,
-                      boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography
-                        variant="h6"
-                        component="div"
-                        gutterBottom
-                        sx={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          lineHeight: 1.3,
-                          height: "2.6em",
-                        }}
-                      >
-                        {article.title || "(未命名文章)"}
-                      </Typography>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Typography
+                      variant="h6"
+                      component="div"
+                      gutterBottom
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        lineHeight: 1.3,
+                        height: "2.6em",
+                      }}
+                    >
+                      {article.title ?? "(未命名文章)"}
+                    </Typography>
 
-                      <Box sx={{ mb: 1.5 }}>
+                    <Box sx={{ mb: 1.5 }}>
+                      <Chip
+                        size="small"
+                        label={
+                          article.postType === "demand"
+                            ? "需求文章"
+                            : article.postType ?? "一般文章"
+                        }
+                        color="primary"
+                        variant="outlined"
+                      />
+                      {article.tags && article.tags.length > 0 && (
                         <Chip
                           size="small"
-                          label={
-                            article.postType === "demand"
-                              ? "需求文章"
-                              : article.postType || "一般文章"
-                          }
-                          color="primary"
-                          variant="outlined"
+                          label={article.tags[0]}
+                          sx={{ ml: 0.5 }}
                         />
-                        {article.tags && article.tags.length > 0 && (
-                          <Chip
-                            size="small"
-                            label={article.tags[0]}
-                            sx={{ ml: 0.5 }}
-                          />
-                        )}
-                      </Box>
+                      )}
+                    </Box>
 
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          mb: 1,
-                          height: "2.5em",
-                        }}
-                      >
-                        {article.content || "無內容預覽"}
-                      </Typography>
-
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          作者:{" "}
-                          {article.authorName || article.author || "未知作者"}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          display="block"
-                        >
-                          發布日期: {formatDate(article.createdAt)}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-
-                    <CardActions
-                      sx={{ justifyContent: "space-between", p: 1.5, pt: 0 }}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        mb: 1,
+                        height: "2.5em",
+                      }}
                     >
-                      <Button
-                        size="small"
-                        color="primary"
-                        component={Link}
-                        href={`/Artical/${article.id}`}
-                        startIcon={<VisibilityIcon />}
+                      {article.content ?? "無內容預覽"}
+                    </Typography>
+
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        作者:{" "}
+                        {article.authorName ?? article.author ?? "未知作者"}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
                       >
-                        查看
-                      </Button>
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleRemoveFavorite(article)}
-                        title="移除收藏"
-                      >
-                        <BookmarkIcon fontSize="small" />
-                      </IconButton>
-                    </CardActions>
-                  </Card>
-                </motion.div>
-              </Grid>
+                        發布日期: {formatDate(article.createdAt)}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+
+                  <CardActions
+                    sx={{ justifyContent: "space-between", p: 1.5, pt: 0 }}
+                  >
+                    <Button
+                      size="small"
+                      color="primary"
+                      component={Link}
+                      href={`/Artical/${article.id}`}
+                      startIcon={<VisibilityIcon />}
+                    >
+                      查看
+                    </Button>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleRemoveFavorite(article)}
+                      title="移除收藏"
+                    >
+                      <BookmarkIcon fontSize="small" />
+                    </IconButton>
+                  </CardActions>
+                </Card>
+              </motion.div>
             ))}
-          </Grid>
+          </Stack>
         )}
       </Box>
 

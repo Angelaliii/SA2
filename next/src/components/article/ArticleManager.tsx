@@ -33,17 +33,30 @@ import { useEffect, useState } from "react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../hooks/useAuth";
 
+// Add type interface for articles
+interface Article {
+  id: string;
+  collection: string;
+  title?: string;
+  content?: string;
+  postType?: string;
+  authorId?: string;
+  createdAt?: any; // 更改為 any 以兼容 Firestore 的時間戳記格式
+  updatedAt?: string;
+  isDraft?: boolean;
+}
+
 export default function ArticleManager() {
   const { user } = useAuth();
-  const [articles, setArticles] = useState<any[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [articleToDelete, setArticleToDelete] = useState<any>(null);
+  const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editArticle, setEditArticle] = useState<any>(null);
+  const [editArticle, setEditArticle] = useState<Article | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
 
@@ -81,13 +94,13 @@ export default function ArticleManager() {
         id: doc.id,
         collection: "posts",
         ...doc.data(),
-      }));
+      })) as Article[];
 
       const articlesData = articlesSnapshot.docs.map((doc) => ({
         id: doc.id,
         collection: "articles",
         ...doc.data(),
-      }));
+      })) as Article[];
 
       const allArticles = [...postsData, ...articlesData];
 
@@ -95,10 +108,10 @@ export default function ArticleManager() {
       allArticles.sort((a, b) => {
         const timeA = a.createdAt?.toDate
           ? a.createdAt.toDate()
-          : new Date(a.createdAt || 0);
+          : new Date(a.createdAt ?? 0);
         const timeB = b.createdAt?.toDate
           ? b.createdAt.toDate()
-          : new Date(b.createdAt || 0);
+          : new Date(b.createdAt ?? 0);
         return timeB.getTime() - timeA.getTime();
       });
 
@@ -119,7 +132,7 @@ export default function ArticleManager() {
     }
   }, [user]);
 
-  const handleDeleteClick = (article: any) => {
+  const handleDeleteClick = (article: Article) => {
     setArticleToDelete(article);
     setDeleteDialogOpen(true);
   };
@@ -143,10 +156,10 @@ export default function ArticleManager() {
     }
   };
 
-  const handleEditClick = (article: any) => {
+  const handleEditClick = (article: Article) => {
     setEditArticle(article);
-    setEditTitle(article.title || "");
-    setEditContent(article.content || "");
+    setEditTitle(article.title ?? "");
+    setEditContent(article.content ?? "");
     setEditDialogOpen(true);
   };
 
@@ -224,10 +237,10 @@ export default function ArticleManager() {
                     {article.title}
                   </Typography>
                   <Typography color="text.secondary" sx={{ mb: 1 }}>
-                    {article.postType || "一般文章"}
+                    {article.postType ?? "一般文章"}
                   </Typography>
                   <Typography variant="body2">
-                    {article.content?.length > 100
+                    {article.content && article.content.length > 100
                       ? `${article.content.substring(0, 100)}...`
                       : article.content}
                   </Typography>
