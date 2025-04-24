@@ -88,3 +88,23 @@ export interface Draft {
   updatedAt?: string;
   [key: string]: any;
 }
+
+// 需求貼文類型
+export interface DemandPostData {
+  title: string;
+  organizationName: string;
+  selectedDemands: string[];
+  demandDescription?: string;
+  cooperationReturn?: string;
+  estimatedParticipants?: string;
+  eventDate: string;
+  eventDescription?: string;
+  eventName?: string;
+  eventType?: string;
+  content: string;
+  location: string;
+  postType: string;
+  tags: string[];
+  authorId: string;
+  isDraft: boolean;
+}
