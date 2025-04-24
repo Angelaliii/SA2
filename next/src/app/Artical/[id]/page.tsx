@@ -1,35 +1,39 @@
 "use client";
 
+import EventIcon from "@mui/icons-material/Event";
+import FavoriteIcon from "@mui/icons-material/Favorite"; // 收藏圖示
+import InfoIcon from "@mui/icons-material/Info";
+import InventoryIcon from "@mui/icons-material/Inventory";
 import {
   Box,
-  Container,
-  Typography,
-  Chip,
-  Paper,
-  Link as MuiLink,
   Button,
+  Chip,
+  Container,
+  Link as MuiLink,
+  Paper,
+  Typography,
 } from "@mui/material";
+import { addDoc, collection } from "firebase/firestore";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import * as postService from "../../../firebase/services/post-service";
-import { clubServices } from "../../../firebase/services/club-service";
 import Navbar from "../../../components/Navbar";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import EventIcon from "@mui/icons-material/Event";
-import InfoIcon from "@mui/icons-material/Info";
-import Link from "next/link";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "../../../firebase/config";
-import { auth } from "../../../firebase/config";
-import FavoriteIcon from "@mui/icons-material/Favorite"; // 收藏圖示
+import { auth, db } from "../../../firebase/config";
+import { clubServices } from "../../../firebase/services/club-service";
+import * as postService from "../../../firebase/services/post-service";
 
 export default function DemandPostDetailPage() {
   const { id } = useParams();
   const [post, setPost] = useState<any>(null);
   const [clubInfo, setClubInfo] = useState<any>(null);
   const [messageSent, setMessageSent] = useState(false); // 控制訊息是否已發送
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsLoggedIn(!!user);
+    });
+
     const fetchPost = async () => {
       const data = await postService.getPostById(id as string);
       setPost(data);
@@ -40,6 +44,8 @@ export default function DemandPostDetailPage() {
       }
     };
     fetchPost();
+
+    return () => unsubscribe();
   }, [id]);
 
   if (!post) return null;
@@ -63,7 +69,7 @@ export default function DemandPostDetailPage() {
         timestamp: new Date(),
       });
 
-      setMessageSent(true);  // 訊息發送成功後，設置狀態
+      setMessageSent(true); // 訊息發送成功後，設置狀態
     } catch (error) {
       console.error("發送訊息失敗:", error);
     }
@@ -86,7 +92,11 @@ export default function DemandPostDetailPage() {
             </Typography>
 
             {/* 🔗 社團名稱 + 學校連結 */}
-            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              color="text.secondary"
+              sx={{ mb: 1 }}
+            >
               發布社團：
               {clubInfo ? (
                 <MuiLink
@@ -113,7 +123,9 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 需求物資 */}
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+          <Box
+            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">需求物資</Typography>
@@ -129,7 +141,9 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 活動資訊 */}
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+          <Box
+            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">活動資訊</Typography>
@@ -153,7 +167,7 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 回饋與補充說明 */}
-          <Box sx={{ backgroundColor:"#f9f9f9", p: 3, borderRadius: 2 }}>
+          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">補充說明與回饋</Typography>
@@ -167,39 +181,51 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 按鈕區塊：發送訊息與收藏 */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
-            {/* 收藏按鈕 */}
-            <Box sx={{ textAlign: "left" }}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleAddToFavorites}
-                sx={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: "50%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <FavoriteIcon sx={{ color: "#f44336" }} />
-              </Button>
-            </Box>
+          {isLoggedIn && (
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
+            >
+              {/* 收藏按鈕 */}
+              <Box sx={{ textAlign: "left" }}>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleAddToFavorites}
+                  sx={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: "50%",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <FavoriteIcon sx={{ color: "#f44336" }} />
+                </Button>
+              </Box>
 
-            {/* 發送訊息按鈕 */}
-            <Box sx={{ textAlign: "right" }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSendMessage}
-                disabled={messageSent}
-                sx={{ width: 200 }} // 按鈕變長
-              >
-                {messageSent ? "已發送訊息" : "發送合作訊息"}
-              </Button>
+              {/* 發送訊息按鈕 */}
+              <Box sx={{ textAlign: "right" }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSendMessage}
+                  disabled={messageSent}
+                  sx={{ width: 200 }} // 按鈕變長
+                >
+                  {messageSent ? "已發送訊息" : "發送合作訊息"}
+                </Button>
+              </Box>
             </Box>
-          </Box>
+          )}
+
+          {!isLoggedIn && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                請先登入才能收藏文章或發送合作訊息
+              </Typography>
+            </Box>
+          )}
         </Paper>
       </Container>
     </>

@@ -7,6 +7,7 @@ import {
   Button,
   CircularProgress,
   Container,
+  MenuItem,
   Paper,
   TextField,
   Typography,
@@ -21,22 +22,44 @@ import styles from "../../assets/globals.module.css";
 import { auth } from "../../firebase/config";
 import { companyServices } from "../../firebase/services";
 
-// 簡化的表單資料類型，新增密碼欄位
+// 產業類型選項
+const industryTypes = [
+  "科技/IT",
+  "金融/保險",
+  "零售/電商",
+  "製造/工業",
+  "教育/培訓",
+  "醫療/健康",
+  "餐飲/娛樂",
+  "媒體/廣告",
+  "非營利組織",
+  "其他",
+];
+
+// 表單資料類型
 interface FormData {
   companyName: string;
   businessId: string;
+  industryType: string;
+  contactName: string;
+  contactPhone: string;
   email: string;
   password: string;
   confirmPassword: string;
+  companyDescription: string;
 }
 
-// 簡化的表單錯誤類型，新增密碼錯誤
+// 表單錯誤類型
 interface FormErrors {
   companyName: string;
   businessId: string;
+  industryType: string;
+  contactName: string;
+  contactPhone: string;
   email: string;
   password: string;
   confirmPassword: string;
+  companyDescription: string;
 }
 
 export default function CompanyRegister() {
@@ -44,18 +67,26 @@ export default function CompanyRegister() {
   const [formData, setFormData] = useState<FormData>({
     companyName: "",
     businessId: "",
+    industryType: "",
+    contactName: "",
+    contactPhone: "",
     email: "",
     password: "",
     confirmPassword: "",
+    companyDescription: "",
   });
 
   // 驗證錯誤
   const [errors, setErrors] = useState<FormErrors>({
     companyName: "",
     businessId: "",
+    industryType: "",
+    contactName: "",
+    contactPhone: "",
     email: "",
     password: "",
     confirmPassword: "",
+    companyDescription: "",
   });
 
   // 提交狀態
@@ -117,6 +148,24 @@ export default function CompanyRegister() {
       valid = false;
     }
 
+    if (!formData.industryType.trim()) {
+      newErrors.industryType = "此欄位為必填";
+      valid = false;
+    }
+
+    if (!formData.contactName.trim()) {
+      newErrors.contactName = "此欄位為必填";
+      valid = false;
+    }
+
+    if (!formData.contactPhone.trim()) {
+      newErrors.contactPhone = "此欄位為必填";
+      valid = false;
+    } else if (!/^[0-9]{8,10}$/.test(formData.contactPhone.trim())) {
+      newErrors.contactPhone = "請輸入有效的電話號碼";
+      valid = false;
+    }
+
     if (!formData.email.trim()) {
       newErrors.email = "此欄位為必填";
       valid = false;
@@ -140,6 +189,11 @@ export default function CompanyRegister() {
       valid = false;
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "兩次輸入的密碼不一致";
+      valid = false;
+    }
+
+    if (!formData.companyDescription.trim()) {
+      newErrors.companyDescription = "此欄位為必填";
       valid = false;
     }
 
@@ -183,11 +237,11 @@ export default function CompanyRegister() {
       const companyData = {
         companyName: formData.companyName,
         businessId: formData.businessId,
-        industryType: "其他", // 預設值
-        contactName: "", // 空值
-        contactPhone: "", // 空值
+        industryType: formData.industryType,
+        contactName: formData.contactName,
+        contactPhone: formData.contactPhone,
         email: formData.email,
-        companyDescription: "", // 空值
+        companyDescription: formData.companyDescription,
         cooperationFields: [], // 空值
         logoURL: "", // 改為空字串而非 null
         businessCertificateURL: "", // 改為空字串而非 null
@@ -299,6 +353,67 @@ export default function CompanyRegister() {
                   }}
                 />
 
+                {/* 行業類型 */}
+                <TextField
+                  select
+                  name="industryType"
+                  label="產業類型"
+                  value={formData.industryType}
+                  onChange={handleInputChange}
+                  error={!!errors.industryType}
+                  helperText={errors.industryType}
+                  fullWidth
+                  required
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        style: {
+                          maxHeight: 300,
+                        },
+                      },
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "rgba(0, 0, 0, 0.03)",
+                      "& .MuiSelect-select": {
+                        pt: 1.3,
+                        pb: 1.3,
+                      },
+                    },
+                  }}
+                >
+                  {industryTypes.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                {/* 聯絡人姓名 */}
+                <TextField
+                  name="contactName"
+                  label="聯絡人姓名"
+                  value={formData.contactName}
+                  onChange={handleInputChange}
+                  error={!!errors.contactName}
+                  helperText={errors.contactName}
+                  fullWidth
+                  required
+                />
+
+                {/* 聯絡人電話 */}
+                <TextField
+                  name="contactPhone"
+                  label="聯絡人電話"
+                  value={formData.contactPhone}
+                  onChange={handleInputChange}
+                  error={!!errors.contactPhone}
+                  helperText={errors.contactPhone}
+                  fullWidth
+                  required
+                />
+
                 {/* 電子郵件 */}
                 <TextField
                   name="email"
@@ -338,6 +453,28 @@ export default function CompanyRegister() {
                   helperText={errors.confirmPassword}
                   fullWidth
                   required
+                />
+
+                {/* 公司描述 */}
+                <TextField
+                  name="companyDescription"
+                  label="公司描述"
+                  value={formData.companyDescription}
+                  onChange={handleInputChange}
+                  error={!!errors.companyDescription}
+                  helperText={
+                    errors.companyDescription ||
+                    "請簡述公司業務、合作需求等資訊"
+                  }
+                  fullWidth
+                  required
+                  multiline
+                  rows={4}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "rgba(0, 0, 0, 0.02)",
+                    },
+                  }}
                 />
 
                 <Box

@@ -40,6 +40,18 @@ export default function DemandPostPage() {
   const [eventDescription, setEventDescription] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
+  // 表單錯誤狀態
+  const [errors, setErrors] = useState({
+    title: false,
+    selectedDemands: false,
+    eventDate: false,
+  });
+
+  // 表單區塊參考
+  const titleRef = React.useRef<HTMLDivElement>(null);
+  const demandsRef = React.useRef<HTMLDivElement>(null);
+  const eventDateRef = React.useRef<HTMLDivElement>(null);
+
   // 草稿相關狀態
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -203,10 +215,64 @@ export default function DemandPostPage() {
     }
   };
   const handleSubmit = async () => {
-    if (!title || !selectedDemands.length || !eventDate) {
+    // Reset error states
+    setErrors({
+      title: false,
+      selectedDemands: false,
+      eventDate: false,
+    });
+
+    // Validate form and track if all required fields are filled
+    let isValid = true;
+    const newErrors = {
+      title: false,
+      selectedDemands: false,
+      eventDate: false,
+    };
+
+    if (!title.trim()) {
+      newErrors.title = true;
+      isValid = false;
+    }
+
+    if (!selectedDemands.length) {
+      newErrors.selectedDemands = true;
+      isValid = false;
+    }
+
+    if (!eventDate) {
+      newErrors.eventDate = true;
+      isValid = false;
+    }
+
+    // If form is invalid, update error states and scroll to the first error
+    if (!isValid) {
+      setErrors(newErrors);
       setSnackbarMessage("請填寫所有必填欄位");
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
+
+      // Scroll to first error field
+      if (newErrors.title && titleRef.current) {
+        titleRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      } else if (newErrors.selectedDemands && demandsRef.current) {
+        demandsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      } else if (newErrors.eventDate && eventDateRef.current) {
+        eventDateRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      }
+
       return;
     }
 
@@ -309,30 +375,36 @@ export default function DemandPostPage() {
         <Container maxWidth="md">
           <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
             <Typography variant="h5" fontWeight="bold" gutterBottom>
-            <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center", // 垂直方向置中
-              mb: 3,
-            }}
-          >
-            <Box
-              component="img"
-              src="/image/findsponsor.png"
-              alt="find sponsor"
-              sx={{ width: 80, height: 80, mb: 1 }} // 更大圖，並與文字留一點距離
-            />
-            <Typography variant="h5" fontWeight="bold">
-              發布需求文章
-            </Typography>
-          </Box>
-
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center", // 垂直方向置中
+                  mb: 3,
+                }}
+              >
+                <Box
+                  component="img"
+                  src="/image/findsponsor.png"
+                  alt="find sponsor"
+                  sx={{ width: 80, height: 80, mb: 1 }} // 更大圖，並與文字留一點距離
+                />
+                <Typography variant="h5" fontWeight="bold">
+                  發布需求文章
+                </Typography>
+              </Box>
             </Typography>
             <Divider sx={{ mb: 3 }} />
 
+            <Box sx={{ mb: 3, px: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                * 表示必填欄位
+              </Typography>
+            </Box>
+
             {/* ➤ 基本資訊區塊 */}
             <Box
+              ref={titleRef}
               sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
             >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -341,12 +413,15 @@ export default function DemandPostPage() {
               </Box>
               <TextField
                 fullWidth
-                label="標題"
+                label="標題 *"
                 variant="standard"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 inputProps={{ maxLength: 80 }}
                 sx={{ mb: 3 }}
+                error={errors.title}
+                helperText={errors.title ? "標題為必填項目" : ""}
+                required
               />
               <TextField
                 fullWidth
@@ -360,6 +435,7 @@ export default function DemandPostPage() {
 
             {/* ➤ 需求物資區塊 */}
             <Box
+              ref={demandsRef}
               sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
             >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -376,6 +452,10 @@ export default function DemandPostPage() {
                     {...params}
                     label="請選擇需求物資"
                     placeholder="選擇需求物資"
+                    error={errors.selectedDemands}
+                    helperText={
+                      errors.selectedDemands ? "請選擇至少一項需求物資" : ""
+                    }
                   />
                 )}
                 sx={{ mb: 3 }}
@@ -415,6 +495,7 @@ export default function DemandPostPage() {
 
             {/* ➤ 活動資訊 */}
             <Box
+              ref={eventDateRef}
               sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
             >
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -438,6 +519,8 @@ export default function DemandPostPage() {
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
                 sx={{ mb: 3 }}
+                error={errors.eventDate}
+                helperText={errors.eventDate ? "活動日期為必填項目" : ""}
               />
             </Box>
 
@@ -540,4 +623,3 @@ export default function DemandPostPage() {
     </>
   );
 }
-

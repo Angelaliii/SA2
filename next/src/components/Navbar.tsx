@@ -29,6 +29,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { auth } from "../firebase/config";
 import { authServices } from "../firebase/services/auth-service";
+import { clubServices } from "../firebase/services/club-service";
+import { companyServices } from "../firebase/services/company-service";
 
 const pages = [
   { name: "首頁", path: "/" },
@@ -37,7 +39,7 @@ const pages = [
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
-  { name: "訊息", path: "/messages" },
+  { name: "通知中心", path: "/messages" },
 ];
 
 const userOptions = [
@@ -71,12 +73,38 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
     // Only set random greeting after component is mounted on client
     setGreeting(greetings[Math.floor(Math.random() * greetings.length)]);
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
       if (user) {
-        const displayName =
-          user.displayName || user.email?.split("@")[0] || "夥伴";
-        setUserName(displayName);
+        try {
+          // Try to get the club name first
+          const clubs = await clubServices.getAllClubs();
+          const userClub = clubs.find((club) => club.userId === user.uid);
+
+          if (userClub) {
+            setUserName(userClub.clubName);
+          } else {
+            // Try to get the company name
+            const companies = await companyServices.getAllCompanies();
+            const userCompany = companies.find(
+              (company) => company.userId === user.uid
+            );
+
+            if (userCompany) {
+              setUserName(userCompany.companyName);
+            } else {
+              // Fallback to email if no organization name found
+              const displayName =
+                user.displayName || user.email?.split("@")[0] || "夥伴";
+              setUserName(displayName);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching organization name:", error);
+          const displayName =
+            user.displayName || user.email?.split("@")[0] || "夥伴";
+          setUserName(displayName);
+        }
       } else {
         setUserName(null);
       }
@@ -139,32 +167,48 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               <MenuIcon />
             </IconButton>
             <Menu
+              id="menu-appbar"
               anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "left",
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "left",
+              }}
               open={Boolean(anchorElNav)}
               onClose={handleCloseNavMenu}
-              sx={{ display: { xs: "block", md: "none" } }}
+              sx={{
+                display: { xs: "block", md: "none" },
+              }}
             >
               {pages.map((page) => (
-                <Button
+                <MenuItem
                   key={page.name}
+                  onClick={handleCloseNavMenu}
                   component={Link}
                   href={page.path}
-                  onClick={handleCloseNavMenu}
-                  sx={{ my: 2, color: "white", display: "block" }}
                 >
-                  {page.name === "通知中心" ? (
-                    <Badge
-                      color="error"
-                      variant="dot"
-                      overlap="circular"
-                      invisible={!hasUnread}
-                    >
-                      <NotificationsIcon />
-                    </Badge>
-                  ) : (
-                    page.name
-                  )}
-                </Button>
+                  <Typography textAlign="center">
+                    {page.name === "通知中心" ? (
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Badge
+                          color="error"
+                          variant="dot"
+                          overlap="circular"
+                          invisible={!hasUnread}
+                        >
+                          <NotificationsIcon sx={{ mr: 1 }} />
+                        </Badge>
+                        {page.name}
+                      </Box>
+                    ) : (
+                      page.name
+                    )}
+                  </Typography>
+                </MenuItem>
               ))}
             </Menu>
           </Box>
@@ -194,9 +238,23 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                 component={Link}
                 href={page.path}
                 onClick={handleCloseNavMenu}
-                sx={{ color: "white" }}
+                sx={{ color: "white", mx: 0.5 }}
               >
-                {page.name}
+                {page.name === "通知中心" ? (
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Badge
+                      color="error"
+                      variant="dot"
+                      overlap="circular"
+                      invisible={!hasUnread}
+                    >
+                      <NotificationsIcon sx={{ mr: 1 }} />
+                    </Badge>
+                    通知
+                  </Box>
+                ) : (
+                  page.name
+                )}
               </Button>
             ))}
           </Box>{" "}

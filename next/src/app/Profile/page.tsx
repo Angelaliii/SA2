@@ -1,9 +1,10 @@
-// 导入所需的库
 "use client";
 
 import ArticleIcon from "@mui/icons-material/Article";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import EventIcon from "@mui/icons-material/Event";
-import HandshakeIcon from "@mui/icons-material/Handshake";
 import {
   Alert,
   Box,
@@ -11,13 +12,20 @@ import {
   CircularProgress,
   Container,
   Divider,
+  IconButton,
   Paper,
   Snackbar,
   Typography,
 } from "@mui/material";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
+import ActivityDeleteDialog from "../../components/activities/ActivityDeleteDialog";
+import ActivityEditDialog from "../../components/activities/ActivityEditDialog";
 import ActivityFormDialog from "../../components/activities/ActivityFormDialog";
+import ArticleManager from "../../components/article/ArticleManager";
+import FavoriteArticlesManager from "../../components/article/FavoriteArticlesManager";
+import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../components/profile/CompanyProfileForm";
@@ -50,6 +58,7 @@ function TabPanel(props: {
 }
 
 export default function Profile() {
+  const router = useRouter();
   const [value, setValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,30 +72,48 @@ export default function Profile() {
   );
   const [selectedTag, setSelectedTag] = useState<string | null>("個人檔案");
   const [searchTerm, setSearchTerm] = useState("0");
-  const drawerWidth = 200;
+  const drawerWidth = 240;
   const [activities, setActivities] = useState<any[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  // Activity edit and delete states
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
+  const [activityDeleteDialogOpen, setActivityDeleteDialogOpen] =
+    useState(false);
   // Add client-side only rendering state
   const [isMounted, setIsMounted] = useState(false);
+  // Track auth state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Set isMounted to true when component mounts on client
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // Auth state listener
+  useEffect(() => {
+    const unsubscribe = authServices.onAuthStateChanged((user) => {
+      setIsAuthenticated(!!user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const currentUser = authServices.getCurrentUser();
-        if (!currentUser) {
-          setError("請先登入系統");
-          setLoading(false);
-          return;
-        }
 
+      const currentUser = authServices.getCurrentUser();
+
+      if (!currentUser) {
+        setError("請先登入系統");
+        setLoading(false);
+        return;
+      }
+
+      try {
         const allClubs = await clubServices.getAllClubs();
         const userClub = allClubs.find(
           (club) => club.userId === currentUser.uid
@@ -117,8 +144,11 @@ export default function Profile() {
         setLoading(false);
       }
     };
-    fetchUserProfile();
-  }, []);
+
+    if (isAuthenticated) {
+      fetchUserProfile();
+    }
+  }, [isAuthenticated]);
 
   // When searchTerm changes, update the tab index
   useEffect(() => {
@@ -249,6 +279,50 @@ export default function Profile() {
       setLoading(false);
     }
   };
+
+  // Handle activity edit
+  const handleEditActivity = (activity: any) => {
+    setSelectedActivity(activity);
+    setActivityEditDialogOpen(true);
+  };
+
+  // Handle activity delete
+  const handleDeleteActivity = (activity: any) => {
+    setSelectedActivity(activity);
+    setActivityDeleteDialogOpen(true);
+  };
+
+  // Show loading state during auth check
+  if (isAuthenticated === null) {
+    return (
+      <>
+        <Navbar />
+        <Box
+          sx={{
+            pt: "64px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "calc(100vh - 64px)",
+            backgroundColor: "#f2f2f7",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (isAuthenticated === false) {
+    return (
+      <>
+        <Navbar />
+        <LoginPrompt />
+      </>
+    );
+  }
+
   if (loading) {
     return (
       <>
@@ -402,15 +476,17 @@ export default function Profile() {
                     我的文章
                   </Typography>
                 </Box>
+                <ArticleManager />
               </TabPanel>
 
               <TabPanel value={value} index={2}>
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" gutterBottom>
-                    <HandshakeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                    合作記錄
+                    <BookmarkIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                    收藏的文章
                   </Typography>
                 </Box>
+                <FavoriteArticlesManager />
               </TabPanel>
 
               <TabPanel value={value} index={3}>
@@ -447,10 +523,52 @@ export default function Profile() {
                           boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                         }}
                       >
-                        <Typography variant="h6">{activity.title}</Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          <Typography variant="h6">
+                            {activity.title || activity.name}
+                          </Typography>
+                          <Box>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleEditActivity(activity)}
+                              title="編輯活動"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteActivity(activity)}
+                              title="刪除活動"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Box>
                         <Typography color="text.secondary" sx={{ mt: 1 }}>
-                          {activity.description}
+                          {activity.description || activity.content}
                         </Typography>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          活動日期：{formatDate(activity.date)}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          活動類型：{activity.type || "未指定"}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          預計參與人數：{activity.participants || "未指定"}
+                        </Typography>
+                        {activity.partnerCompany && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            合作企業：{activity.partnerCompany}
+                          </Typography>
+                        )}
                         <Typography
                           variant="caption"
                           display="block"
@@ -469,6 +587,7 @@ export default function Profile() {
                 )}
               </TabPanel>
 
+              {/* 活動相關對話框 */}
               <ActivityFormDialog
                 open={activityDialogOpen}
                 onClose={() => setActivityDialogOpen(false)}
@@ -476,6 +595,26 @@ export default function Profile() {
                   setActivityDialogOpen(false);
                   refreshActivities();
                 }}
+              />
+
+              <ActivityEditDialog
+                open={activityEditDialogOpen}
+                onClose={() => setActivityEditDialogOpen(false)}
+                onSuccess={() => {
+                  setActivityEditDialogOpen(false);
+                  refreshActivities();
+                }}
+                activity={selectedActivity}
+              />
+
+              <ActivityDeleteDialog
+                open={activityDeleteDialogOpen}
+                onClose={() => setActivityDeleteDialogOpen(false)}
+                onSuccess={() => {
+                  setActivityDeleteDialogOpen(false);
+                  refreshActivities();
+                }}
+                activity={selectedActivity}
               />
             </Paper>
           </Container>
