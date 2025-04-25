@@ -1,3 +1,5 @@
+"use client";
+
 import ArticleIcon from "@mui/icons-material/Article";
 import EventIcon from "@mui/icons-material/Event";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -124,8 +126,7 @@ export default function Index() {
             type: data.type,
             participants: data.participants,
             createdAt: data.createdAt?.toDate?.() || new Date()
-          ...doc.data(),
-        }));
+          };
         });
         console.log("Processed activities:", activities);
         setUpcomingActivities(activities);
