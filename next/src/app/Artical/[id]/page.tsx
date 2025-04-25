@@ -47,9 +47,9 @@ export default function DemandPostDetailPage() {
       setPost(data);
 
       if (data?.authorId) {
-        const club = await clubServices.getClubById(data.authorId);
-        setClubInfo(club);
-
+          const club = await clubServices.getClubById(data.authorId);
+          setClubInfo(club);
+          
         // 直接使用 clubInfo 的 email 作為聯絡信箱
         if (club && club.email) {
           setPost((prev) => ({ ...prev, authorEmail: club.email }));
@@ -113,23 +113,23 @@ export default function DemandPostDetailPage() {
               sx={{ mb: 1 }}
             >
               發布社團：
-              {clubInfo ? (
-                <MuiLink
-                  component={Link}
-                  href={`/user/${clubInfo.userId}`}
-                  underline="hover"
-                >
-                  {clubInfo.clubName}（{clubInfo.schoolName}）
-                </MuiLink>
-              ) : (
-                post.organizationName ?? "未知社團"
-              )}
-            </Typography>
+                    {clubInfo ? (
+                      <MuiLink
+                        component={Link}
+                        href={`/user/${clubInfo.userId}`}
+                        underline="hover"
+                      >
+                        {clubInfo.clubName}（{clubInfo.schoolName}）
+                      </MuiLink>
+                    ) : (
+                      post.organizationName ?? "未知社團"
+                    )}
+                  </Typography>
 
             {/* 🕒 發文時間 */}
             <Typography variant="body2" color="text.secondary">
               發文時間：{formattedDate}
-            </Typography>
+                  </Typography>
 
             {/* 📧 社團信箱 */}
             <Typography variant="body2" color="text.secondary">

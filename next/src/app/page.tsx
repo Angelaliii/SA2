@@ -63,7 +63,7 @@ export default function Index() {
           orderBy("createdAt", "desc"),
           limit(10)
         );
-
+        
         const demandsSnapshot = await getDocs(demandsQuery);
         // Filter for demands in JavaScript instead
         const demands = demandsSnapshot.docs
@@ -83,10 +83,10 @@ export default function Index() {
           orderBy("date", "asc"),
           limit(3)
         );
-
+        
         const activitiesSnapshot = await getDocs(activitiesQuery);
         const activities = activitiesSnapshot.docs.map((doc) => ({
-          id: doc.id,
+            id: doc.id,
           ...doc.data(),
         }));
         setUpcomingActivities(activities);
@@ -114,52 +114,52 @@ export default function Index() {
             pt: { xs: 10, sm: 12 }, // 從頂部增加適當的間距，根據螢幕尺寸自適應
             pb: 3, // 減少底部間距
             maxWidth: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
             height: "auto",
             minHeight: { xs: 350, sm: 400 }, // 縮小最小高度，響應式設計
-          }}
-        >
-          <img
-            src="/image/index_picture.png"
-            alt="首頁封面圖"
-            style={{
+              }}
+            >
+              <img
+                src="/image/index_picture.png"
+                alt="首頁封面圖"
+                style={{
               maxHeight: "220px", // 稍微縮小圖片
-              objectFit: "contain",
+                  objectFit: "contain",
               marginBottom: "16px", // 減少圖片下方間距
-            }}
-          />
+                }}
+              />
           <Box sx={{ maxWidth: "80%", mx: "auto" }}>
             <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-              找資源、找合作，從這裡開始！
-            </Typography>
+                  找資源、找合作，從這裡開始！
+                </Typography>
             <Typography variant="body1" sx={{ mt: 1.5, mb: 2 }}>
               {" "}
               {/* 減少文字間的間距 */}
-              一站式媒合平台，串聯企業與社團，共創雙贏
-            </Typography>
+                  一站式媒合平台，串聯企業與社團，共創雙贏
+                </Typography>
             <Box
               sx={{ mt: 2, display: "flex", justifyContent: "center", gap: 2 }}
             >
-              <Button
-                variant="contained"
-                color="primary"
-                component={Link}
-                href="/Artical/DemandList"
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    component={Link}
+                    href="/Artical/DemandList"
                 sx={{ px: 3, py: 1 }}
-              >
+                  >
                 需求牆
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                component={Link}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    component={Link}
                 href="/Profile"
                 sx={{ px: 3, py: 1 }}
-              >
+                  >
                 個人資料
-              </Button>
+                  </Button>
             </Box>
           </Box>
         </Box>
@@ -174,27 +174,27 @@ export default function Index() {
             {/* 最新需求牆文章 */}
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 3 }}>
-                <Typography
+            <Typography
                   variant="h5"
                   fontWeight="bold"
                   sx={{ display: "flex", alignItems: "center", mb: 2 }}
                 >
                   <ArticleIcon sx={{ mr: 1 }} />
-                  最新需求
-                </Typography>
+                      最新需求
+                    </Typography>
                 <Divider />
-              </Box>
-
-              {loading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : recentDemands.length > 0 ? (
+                  </Box>
+                  
+                  {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : recentDemands.length > 0 ? (
                 recentDemands.map((demand) => (
                   <Card
-                    key={demand.id}
+                          key={demand.id}
                     variant="outlined"
-                    sx={{
+                          sx={{
                       mb: 3,
                       transition: "0.3s",
                       "&:hover": { boxShadow: 3 },
@@ -203,8 +203,8 @@ export default function Index() {
                       display: "flex",
                       flexDirection: "column",
                       maxWidth: "100%", // 確保卡片不會超出容器
-                    }}
-                  >
+                          }}
+                        >
                     <CardContent
                       sx={{
                         flexGrow: 1,
@@ -213,9 +213,9 @@ export default function Index() {
                         pt: 1.5, // 減少頂部內邊距
                       }}
                     >
-                      <Typography
-                        variant="h6"
-                        sx={{
+                            <Typography
+                              variant="h6"
+                              sx={{
                           mb: 0.5, // 減少標題下方間距
                           fontSize: "1.1rem", // 稍微縮小標題字體
                           overflow: "hidden",
@@ -223,10 +223,10 @@ export default function Index() {
                           display: "-webkit-box",
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {demand.title}
-                      </Typography>
+                              }}
+                            >
+                              {demand.title}
+                            </Typography>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -234,7 +234,7 @@ export default function Index() {
                         sx={{ mb: 0.5 }} // 減少段落間距
                       >
                         {demand.organizationName ?? "未知組織"}
-                      </Typography>
+                            </Typography>
                       <Box
                         sx={{
                           mt: 0.5, // 減少上方間距
@@ -246,15 +246,15 @@ export default function Index() {
                         {(demand.selectedDemands ?? [])
                           .slice(0, 3)
                           .map((item: string, i: number) => (
-                            <Chip
+                              <Chip
                               key={i}
-                              label={item}
-                              size="small"
-                              color="primary"
+                                label={item}
+                                size="small"
+                                color="primary"
                               variant="outlined"
                               sx={{ maxWidth: "100%", overflow: "hidden" }}
-                            />
-                          ))}
+                              />
+                            ))}
                         {(demand.selectedDemands ?? []).length > 3 && (
                           <Chip
                             label={`+${demand.selectedDemands.length - 3}`}
@@ -262,37 +262,37 @@ export default function Index() {
                             variant="outlined"
                           />
                         )}
-                      </Box>
+                          </Box>
                     </CardContent>
                     <CardActions sx={{ p: 1.5, pt: 0 }}>
-                      <Button
+                            <Button
                         size="small"
-                        component={Link}
-                        href={`/Artical/${demand.id}`}
+                              component={Link}
+                              href={`/Artical/${demand.id}`}
                         sx={{ ml: 0.5 }}
-                      >
-                        查看詳情
-                      </Button>
+                            >
+                              查看詳情
+                            </Button>
                     </CardActions>
                   </Card>
                 ))
-              ) : (
-                <Typography sx={{ p: 2, textAlign: "center" }}>
-                  目前沒有需求文章
-                </Typography>
-              )}
+                  ) : (
+                    <Typography sx={{ p: 2, textAlign: "center" }}>
+                      目前沒有需求文章
+                    </Typography>
+                  )}
 
               <Box sx={{ mt: 2, textAlign: "right" }}>
-                <Button
+                    <Button
                   variant="text"
-                  color="primary"
-                  component={Link}
-                  href="/Artical/DemandList"
-                >
+                      color="primary"
+                      component={Link}
+                      href="/Artical/DemandList"
+                    >
                   查看更多 ›
-                </Button>
-              </Box>
-            </Grid>
+                    </Button>
+                  </Box>
+              </Grid>
             {/* 即將到來的活動 */}
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 3 }}>
@@ -302,21 +302,21 @@ export default function Index() {
                   sx={{ display: "flex", alignItems: "center", mb: 2 }}
                 >
                   <EventIcon sx={{ mr: 1 }} />
-                  近期活動
-                </Typography>
+                      近期活動
+                    </Typography>
                 <Divider />
-              </Box>
-
-              {loading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : upcomingActivities.length > 0 ? (
+                  </Box>
+                  
+                  {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : upcomingActivities.length > 0 ? (
                 upcomingActivities.map((activity) => (
                   <Card
-                    key={activity.id}
+                          key={activity.id}
                     variant="outlined"
-                    sx={{
+                          sx={{
                       mb: 3,
                       transition: "0.3s",
                       "&:hover": { boxShadow: 3 },
@@ -325,8 +325,8 @@ export default function Index() {
                       display: "flex",
                       flexDirection: "column",
                       maxWidth: "100%", // 確保卡片不會超出容器
-                    }}
-                  >
+                          }}
+                        >
                     <CardContent
                       sx={{
                         flexGrow: 1,
@@ -335,9 +335,9 @@ export default function Index() {
                         pt: 1.5, // 減少頂部內邊距
                       }}
                     >
-                      <Typography
-                        variant="h6"
-                        sx={{
+                            <Typography
+                              variant="h6"
+                              sx={{
                           mb: 0.5, // 減少標題下方間距
                           fontSize: "1.1rem", // 稍微縮小標題字體
                           overflow: "hidden",
@@ -345,10 +345,10 @@ export default function Index() {
                           display: "-webkit-box",
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {activity.name}
-                      </Typography>
+                              }}
+                            >
+                              {activity.name}
+                            </Typography>
                       <Box
                         sx={{
                           display: "flex",
@@ -359,18 +359,18 @@ export default function Index() {
                           gap: 0.5, // 減少間隙
                         }}
                       >
-                        <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary">
                           日期:{" "}
                           {activity.date && activity.date.toDate
                             ? activity.date.toDate().toLocaleDateString()
                             : "未知日期"}
-                        </Typography>
-                        <Chip
+                              </Typography>
+                              <Chip
                           label={activity.type ?? "活動"}
-                          size="small"
-                          color="primary"
-                        />
-                      </Box>
+                                size="small"
+                                color="primary"
+                              />
+                          </Box>
                       <Typography
                         variant="body2"
                         sx={{
@@ -383,39 +383,39 @@ export default function Index() {
                         }}
                       >
                         參與人數: {activity.participants ?? "未知"}
-                      </Typography>
+                          </Typography>
                     </CardContent>
                     <CardActions sx={{ p: 1.5, pt: 0 }}>
-                      <Button
+                            <Button
                         size="small"
-                        component={Link}
-                        href={`/Activities/${activity.id}`}
+                              component={Link}
+                              href={`/Activities/${activity.id}`}
                         sx={{ ml: 0.5 }}
-                      >
-                        查看詳情
-                      </Button>
+                            >
+                              查看詳情
+                            </Button>
                     </CardActions>
                   </Card>
                 ))
-              ) : (
-                <Typography sx={{ p: 2, textAlign: "center" }}>
-                  目前沒有近期活動
-                </Typography>
-              )}
+                  ) : (
+                    <Typography sx={{ p: 2, textAlign: "center" }}>
+                      目前沒有近期活動
+                    </Typography>
+                  )}
 
               <Box sx={{ mt: 2, textAlign: "right" }}>
-                <Button
+                    <Button
                   variant="text"
-                  color="primary"
-                  component={Link}
-                  href="/Activities"
-                >
+                      color="primary"
+                      component={Link}
+                      href="/Activities"
+                    >
                   查看更多 ›
-                </Button>
-              </Box>
+                    </Button>
+                  </Box>
+              </Grid>
             </Grid>
-          </Grid>
-        </Container>
+          </Container>
       </main>
     </Box>
   );
