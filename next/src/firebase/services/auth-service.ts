@@ -1,5 +1,6 @@
 // Authentication services
 import {
+  onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -91,5 +92,10 @@ export const authServices = {
   // Get current user
   getCurrentUser: (): User | null => {
     return auth.currentUser;
+  },
+
+  // Add auth state listener
+  onAuthStateChanged: (callback: (user: User | null) => void) => {
+    return onAuthStateChanged(auth, callback);
   },
 };

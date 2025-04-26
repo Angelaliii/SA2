@@ -5,6 +5,7 @@ import {
   Button,
   FormHelperText,
   Grid,
+  MenuItem,
   Paper,
   TextField,
   Typography,
@@ -17,6 +18,19 @@ interface ClubProfileFormProps {
   onSubmit: (updatedData: Partial<Club>, logoFile?: File) => Promise<void>;
 }
 
+// 社團類型選項
+const clubTypes = [
+  "學術研究",
+  "體育競技",
+  "音樂表演",
+  "藝術文化",
+  "社會服務",
+  "職涯發展",
+  "科技創新",
+  "國際交流",
+  "其他",
+];
+
 const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
   clubData,
   onSubmit,
@@ -24,6 +38,7 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
   const [formData, setFormData] = useState<Partial<Club>>({
     clubName: clubData.clubName || "",
     schoolName: clubData.schoolName || "",
+    clubType: clubData.clubType || "",
     contactName: clubData.contactName || "",
     contactPhone: clubData.contactPhone || "",
     email: clubData.email || "",
@@ -65,21 +80,29 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
     const newErrors: Partial<Record<keyof Club, string>> = {};
 
     if (!formData.clubName?.trim()) {
-      newErrors.clubName = "請輸入社團名稱";
+      newErrors.clubName = "此欄位為必填";
+    }
+
+    if (!formData.schoolName?.trim()) {
+      newErrors.schoolName = "此欄位為必填";
+    }
+
+    if (!formData.clubType) {
+      newErrors.clubType = "此欄位為必填";
     }
 
     if (!formData.contactName?.trim()) {
-      newErrors.contactName = "請輸入聯絡人姓名";
+      newErrors.contactName = "此欄位為必填";
     }
 
     if (!formData.contactPhone?.trim()) {
-      newErrors.contactPhone = "請輸入聯絡電話";
+      newErrors.contactPhone = "此欄位為必填";
     } else if (!/^[0-9]{8,10}$/.test(formData.contactPhone.trim())) {
       newErrors.contactPhone = "請輸入有效的電話號碼";
     }
 
     if (!formData.email?.trim()) {
-      newErrors.email = "請輸入電子郵件";
+      newErrors.email = "此欄位為必填";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = "請輸入有效的電子郵件地址";
     }
@@ -179,6 +202,27 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
               error={!!errors.schoolName}
               helperText={errors.schoolName}
             />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              label="社團類型"
+              name="clubType"
+              value={formData.clubType}
+              onChange={handleChange}
+              margin="normal"
+              required
+              error={!!errors.clubType}
+              helperText={errors.clubType || "請選擇最接近貴社團的類型"}
+            >
+              {clubTypes.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
 
           <Grid item xs={12} md={6}>
