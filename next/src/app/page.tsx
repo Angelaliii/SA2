@@ -85,6 +85,7 @@ export default function Index() {
         const demandsRef = collection(db, "posts");
         const demandQuery = query(
           demandsRef,
+          where("isDraft", "==", false),     // 🔥 加上不是草稿
           orderBy("createdAt", "desc"),
           limit(3)
         );
