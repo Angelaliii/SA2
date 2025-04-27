@@ -7,6 +7,7 @@ import {
   Button,
   Container,
   Divider,
+  MenuItem,
   Paper,
   Snackbar,
   TextField,
@@ -557,18 +558,15 @@ export default function DemandPostPage() {
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
                 sx={{ mb: 3 }}
-                // 使用slots和slotProps替代棄用的SelectProps
-                slots={{ select: "select" }}
-                slotProps={{ select: { native: true } }}
               >
-                <option value=""></option>
-                <option value="講座">講座</option>
-                <option value="工作坊">工作坊</option>
-                <option value="表演">表演</option>
-                <option value="比賽">比賽</option>
-                <option value="展覽">展覽</option>
-                <option value="營隊">營隊</option>
-                <option value="其他">其他</option>
+                <MenuItem value="">無</MenuItem>
+                <MenuItem value="講座">講座</MenuItem>
+                <MenuItem value="工作坊">工作坊</MenuItem>
+                <MenuItem value="表演">表演</MenuItem>
+                <MenuItem value="比賽">比賽</MenuItem>
+                <MenuItem value="展覽">展覽</MenuItem>
+                <MenuItem value="營隊">營隊</MenuItem>
+                <MenuItem value="其他">其他</MenuItem>
               </TextField>
               <TextField
                 fullWidth

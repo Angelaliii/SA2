@@ -338,15 +338,6 @@ export default function ClubRegister() {
                       },
                     },
                   }}
-                  InputProps={{
-                    sx: {
-                      bgcolor: "rgba(0, 0, 0, 0.03)",
-                      "& .MuiSelect-select": {
-                        pt: 1.3,
-                        pb: 1.3,
-                      },
-                    },
-                  }}
                 >
                   {clubTypes.map((type) => (
                     <MenuItem key={type} value={type}>

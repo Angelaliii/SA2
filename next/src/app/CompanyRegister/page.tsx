@@ -373,15 +373,6 @@ export default function CompanyRegister() {
                       },
                     },
                   }}
-                  InputProps={{
-                    sx: {
-                      bgcolor: "rgba(0, 0, 0, 0.03)",
-                      "& .MuiSelect-select": {
-                        pt: 1.3,
-                        pb: 1.3,
-                      },
-                    },
-                  }}
                 >
                   {industryTypes.map((type) => (
                     <MenuItem key={type} value={type}>

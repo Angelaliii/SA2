@@ -405,11 +405,23 @@ export default function Profile() {
           sx={{
             flexGrow: 1,
             p: { xs: 2, sm: 4 },
-            width: { md: `calc(100% - ${drawerWidth}px)` },
-            ml: { md: `${drawerWidth}px` },
+            width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+            ml: { xs: 0, md: `${drawerWidth}px` },
+            transition: (theme) =>
+              theme.transitions.create(["margin", "width"], {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
           }}
         >
-          <Container maxWidth="md" sx={{ pb: 5 }}>
+          <Container
+            maxWidth={false}
+            sx={{
+              pb: 5,
+              maxWidth: { xs: "100%", lg: "90%", xl: "85%" },
+              transition: "max-width 0.3s ease-in-out",
+            }}
+          >
             <Paper
               elevation={0}
               sx={{
@@ -431,7 +443,7 @@ export default function Profile() {
                     color: (theme) => theme.palette.primary.main,
                   }}
                 >
-                  用戶中心
+                  個人中心
                 </Typography>
                 <Divider sx={{ my: 2 }} />
               </Box>
