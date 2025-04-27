@@ -364,12 +364,45 @@ export default function DemandPostPage() {
   };
 
   const handleSaveDraft = async () => {
+    // 驗證表單
+    const { isValid, newErrors } = validateForm();
+  
+    if (!isValid) {
+      setErrors(newErrors);
+      setSnackbarMessage("請填寫所有必填欄位");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+  
+      // Scroll 到第一個錯誤欄位
+      if (newErrors.title && titleRef.current) {
+        titleRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      } else if (newErrors.selectedDemands && demandsRef.current) {
+        demandsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      } else if (newErrors.eventDate && eventDateRef.current) {
+        eventDateRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      }
+  
+      return; // 有錯就不繼續存草稿
+    }
+  
     setLoading(true);
-
+  
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("尚未登入");
-
+  
       const postData = {
         title,
         organizationName,
@@ -389,9 +422,9 @@ export default function DemandPostPage() {
         isDraft: true,
         email,
       };
-
+  
       const result = await postService.createPost(postData);
-
+  
       if (result.success) {
         setSnackbarMessage("草稿儲存成功");
         setSnackbarSeverity("success");
@@ -407,7 +440,7 @@ export default function DemandPostPage() {
       setLoading(false);
     }
   };
-
+  
   const handleViewDrafts = () => {
     loadDrafts();
   };
