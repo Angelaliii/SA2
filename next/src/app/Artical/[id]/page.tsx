@@ -52,10 +52,11 @@ export default function DemandPostDetailPage() {
 
         // 直接使用 clubInfo 的 email 作為聯絡信箱
         if (club && club.email) {
-          setPost((prev) => ({ ...prev, authorEmail: club.email }));
+          setPost((prev: any) => ({ ...prev, authorEmail: club.email }));
         }
       }
     };
+
     fetchPost();
 
     return () => unsubscribe();

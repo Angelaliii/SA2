@@ -31,6 +31,7 @@ export interface Company {
   businessCertificateURL?: string;
   status: string;
   registrationDate: string;
+  userId?: string; // 添加 userId 屬性
 }
 
 // Define a function to convert Firestore timestamp to string

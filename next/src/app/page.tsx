@@ -67,10 +67,13 @@ export default function Index() {
         const demandsSnapshot = await getDocs(demandsQuery);
         // Filter for demands in JavaScript instead
         const demands = demandsSnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
+          .map(
+            (doc) =>
+              ({
+                id: doc.id,
+                ...doc.data(),
+              } as Post)
+          )
           .filter((post) => post.postType === "demand")
           .slice(0, 3);
         setRecentDemands(demands);
@@ -327,10 +330,12 @@ export default function Index() {
                                 fontSize: "0.75rem",
                               }}
                             />
-                          ))}
+                          ))}{" "}
                         {(demand.selectedDemands ?? []).length > 2 && (
                           <Chip
-                            label={`+${demand.selectedDemands.length - 2}`}
+                            label={`+${
+                              (demand.selectedDemands ?? []).length - 2
+                            }`}
                             size="small"
                             variant="outlined"
                             sx={{

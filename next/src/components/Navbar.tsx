@@ -39,7 +39,6 @@ const pages = [
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
-  { name: "通知中心", path: "/messages" },
 ];
 
 const userOptions = [
@@ -246,20 +245,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                 onClick={handleCloseNavMenu}
                 sx={{ color: "white", mx: 0.5 }}
               >
-                {page.name === "通知中心" ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Badge
-                      color="error"
-                      variant="dot"
-                      overlap="circular"
-                      invisible={!hasUnread}
-                    >
-                      <NotificationsIcon sx={{ mr: 1 }} />
-                    </Badge>
-                  </Box>
-                ) : (
-                  page.name
-                )}
+                {page.name}
               </Button>
             ))}
           </Box>{" "}
