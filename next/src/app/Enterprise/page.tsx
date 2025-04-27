@@ -30,6 +30,7 @@ export default function EnterprisePostPage() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
   const [companyEmail, setCompanyEmail] = useState<string>("");
+  
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {

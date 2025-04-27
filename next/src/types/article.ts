@@ -123,4 +123,5 @@ export interface DemandPostData {
   tags: string[];
   authorId: string;
   isDraft: boolean;
+  email?: string; 
 }

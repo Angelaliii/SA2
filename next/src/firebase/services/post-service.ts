@@ -43,6 +43,8 @@ export interface DemandPostData extends PostData {
   eventDescription?: string;
   eventName?: string; // 添加活動名稱
   eventType?: string; // 添加活動類型
+  email?: string; // ✅ 在這裡加一行
+  
 }
 
 export const getOrganizationName = async (
@@ -321,6 +323,8 @@ export const getPostById = async (
       eventDescription: postData.eventDescription ?? "",
       eventName: postData.eventName ?? "", // 添加活動名稱
       eventType: postData.eventType ?? "", // 添加活動類型
+      email: postData.email ?? "",  // ⭐⭐ 補這一行！⭐⭐
+
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);
