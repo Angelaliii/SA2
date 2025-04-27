@@ -458,7 +458,7 @@ export default function DemandPostPage() {
               </Box>
               <TextField
                 fullWidth
-                label="標題 *"
+                label="標題 "
                 variant="standard"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -581,7 +581,7 @@ export default function DemandPostPage() {
             />
               <TextField
                 fullWidth
-                label="活動預估人數 *"
+                label="活動預估人數 "
                 variant="standard"
                 type="number"
                 value={estimatedParticipants}
@@ -608,7 +608,7 @@ export default function DemandPostPage() {
               />
               <TextField
                 fullWidth
-                label="活動日期 *"
+                label="活動日期 "
                 type="date"
                 // 替換棄用的 InputLabelProps
                 slotProps={{
