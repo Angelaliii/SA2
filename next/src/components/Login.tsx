@@ -26,7 +26,7 @@ interface LoginProps {
 
 export default function Login({ onSuccess }: Readonly<LoginProps>) {
   const router = useRouter();
-  const { hasMounted } = useHydration();
+  const hasMounted = useHydration();
 
   // Form state
   const [email, setEmail] = useState("");
