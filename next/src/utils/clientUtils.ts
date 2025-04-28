@@ -65,7 +65,12 @@ export const useHydration = (): boolean => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    // Using requestAnimationFrame ensures we're fully in the client rendering phase
+    const raf = requestAnimationFrame(() => {
+      setIsMounted(true);
+    });
+
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   return isMounted;
