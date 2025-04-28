@@ -43,6 +43,8 @@ export interface DemandPostData extends PostData {
   eventDescription?: string;
   eventName?: string; // 添加活動名稱
   eventType?: string; // 添加活動類型
+  email?: string; // ✅ 在這裡加一行
+  
 }
 
 export const getOrganizationName = async (
@@ -229,8 +231,11 @@ const convertTimestampToString = (timestamp: Timestamp | Date): string => {
 
 export const getAllPosts = async (): Promise<PostData[]> => {
   try {
+
+    // 這裡問題1: 沒有考慮 deleted 欄位，可能會返回已被標記為刪除的文章
     const postsQuery = query(
       collection(db, "posts"),
+      where("deleted", "!=", true), // 添加條件：排除已標記為刪除的文章
       orderBy("createdAt", "desc")
     );
 
@@ -244,6 +249,7 @@ export const getAllPosts = async (): Promise<PostData[]> => {
     const posts: PostData[] = querySnapshot.docs
       .map((doc) => {
         const data = doc.data();
+        // 問題2: 這裡只返回了 postType 沒有過濾，也許需要返回指定類型
         return {
           id: doc.id,
           title: data.title ?? "無標題",
@@ -269,6 +275,10 @@ export const getAllPosts = async (): Promise<PostData[]> => {
           selectedDemands: Array.isArray(data.selectedDemands)
             ? data.selectedDemands
             : [],
+          eventType: data.eventType ?? "", // 添加活動類型
+          estimatedParticipants: data.estimatedParticipants ?? "", // 添加估計參與人數
+          demandDescription: data.demandDescription ?? "", // 添加需求描述
+          cooperationReturn: data.cooperationReturn ?? "", // 添加合作回饋
         };
       })
       .filter((post) => !post.isDraft);
@@ -321,6 +331,8 @@ export const getPostById = async (
       eventDescription: postData.eventDescription ?? "",
       eventName: postData.eventName ?? "", // 添加活動名稱
       eventType: postData.eventType ?? "", // 添加活動類型
+      email: postData.email ?? "",  // ⭐⭐ 補這一行！⭐⭐
+
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);

@@ -62,16 +62,16 @@ export const companyServices = {
         const data = doc.data();
         return {
           id: doc.id,
-          companyName: data.companyName || "",
-          businessId: data.businessId || "",
-          industryType: data.industryType || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          email: data.email || "",
-          companyDescription: data.companyDescription || "",
+          companyName: data.companyName ?? "",
+          businessId: data.businessId ?? "",
+          industryType: data.industryType ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          email: data.email ?? "",
+          companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status || "pending",
+          status: data.status ?? "pending",
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -95,16 +95,16 @@ export const companyServices = {
         const data = docSnap.data();
         return {
           id: docSnap.id,
-          companyName: data.companyName || "",
-          businessId: data.businessId || "",
-          industryType: data.industryType || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          email: data.email || "",
-          companyDescription: data.companyDescription || "",
+          companyName: data.companyName ?? "",
+          businessId: data.businessId ?? "",
+          industryType: data.industryType ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          email: data.email ?? "",
+          companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status || "pending",
+          status: data.status ?? "pending",
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -133,16 +133,16 @@ export const companyServices = {
         const data = doc.data();
         return {
           id: doc.id,
-          companyName: data.companyName || "",
-          businessId: data.businessId || "",
-          industryType: data.industryType || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          email: data.email || "",
-          companyDescription: data.companyDescription || "",
+          companyName: data.companyName ?? "",
+          businessId: data.businessId ?? "",
+          industryType: data.industryType ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          email: data.email ?? "",
+          companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status || "pending",
+          status: data.status ?? "pending",
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -153,6 +153,25 @@ export const companyServices = {
     } catch (error) {
       console.error("Error getting companies by status:", error);
       throw error;
+    }
+  },
+
+  // Get companies by user ID
+  getCompaniesByUserId: async (userId: string): Promise<Company[]> => {
+    try {
+      const companiesQuery = query(
+        collection(db, COMPANIES_COLLECTION),
+        where("userId", "==", userId)
+      );
+
+      const querySnapshot = await getDocs(companiesQuery);
+      return querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Company[];
+    } catch (error) {
+      console.error("Error getting companies by user ID:", error);
+      return [];
     }
   },
 

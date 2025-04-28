@@ -37,6 +37,11 @@ import {
   Company,
   companyServices,
 } from "../../firebase/services/company-service";
+import { enterpriseService } from "../../firebase/services/enterprise-service";
+import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
+import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
+import ArticleEditDialog from "../../components/article/ArticleEditDialog";
+import ArticleDeleteDialog from "../../components/article/ArticleDeleteDialog";
 
 function TabPanel(props: {
   children?: React.ReactNode;
@@ -50,7 +55,7 @@ function TabPanel(props: {
       hidden={value !== index}
       id={`profile-tabpanel-${index}`}
       aria-labelledby={`profile-tab-${index}`}
-      {...other}
+      {...other }
     >
       {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
     </div>
@@ -85,22 +90,29 @@ export default function Profile() {
   const [isMounted, setIsMounted] = useState(false);
   // Track auth state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [publishedArticles, setPublishedArticles] = useState<any[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(false);
+  const [publishedEnterpriseAnnouncements, setPublishedEnterpriseAnnouncements] = useState<any[]>([]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null);
+  const [announcementEditDialogOpen, setAnnouncementEditDialogOpen] = useState(false);
+  const [announcementDeleteDialogOpen, setAnnouncementDeleteDialogOpen] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [articleEditDialogOpen, setArticleEditDialogOpen] = useState(false);
+  const [articleDeleteDialogOpen, setArticleDeleteDialogOpen] = useState(false);
 
   // Set isMounted to true when component mounts on client
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Auth state listener
+  // Combine all useEffect hooks into a single one to ensure consistent order
   useEffect(() => {
+    // Auth state listener
     const unsubscribe = authServices.onAuthStateChanged((user) => {
       setIsAuthenticated(!!user);
     });
 
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
+    // Fetch user profile
     const fetchUserProfile = async () => {
       setLoading(true);
       setError(null);
@@ -148,7 +160,89 @@ export default function Profile() {
     if (isAuthenticated) {
       fetchUserProfile();
     }
-  }, [isAuthenticated]);
+
+    // Fetch user activities
+    const fetchUserActivities = async () => {
+      if (value !== 3) return; // 只有當選擇了活動資訊標籤時才獲取數據
+
+      const currentUser = authServices.getCurrentUser();
+      if (!currentUser) return;
+
+      setActivitiesLoading(true);
+      try {
+        const q = query(
+          collection(db, "activities"),
+          where("uid", "==", currentUser.uid)
+        );
+
+        const snapshot = await getDocs(q);
+        const activitiesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setActivities(activitiesData);
+      } catch (err) {
+        console.error("Error fetching activities:", err);
+      } finally {
+        setActivitiesLoading(false);
+      }
+    };
+
+    fetchUserActivities();
+
+    // Fetch published articles
+    const fetchPublishedArticles = async () => {
+      const currentUser = authServices.getCurrentUser();
+      if (!currentUser) return;
+
+      setLoadingArticles(true);
+      try {
+        const q = query(
+          collection(db, "posts"),
+          where("authorId", "==", currentUser.uid),
+          where("isDraft", "==", false) // Only fetch published articles
+        );
+        const snapshot = await getDocs(q);
+        const articles = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPublishedArticles(articles);
+      } catch (err) {
+        console.error("Error fetching published articles:", err);
+      } finally {
+        setLoadingArticles(false);
+      }
+    };
+
+    fetchPublishedArticles();
+
+    const fetchPublishedEnterpriseAnnouncements = async () => {
+      const currentUser = authServices.getCurrentUser();
+      if (!currentUser) return;
+      
+      try {
+        // 從 Firebase 直接查詢當前用戶的企業公告
+        const q = query(
+          collection(db, "enterprisePosts"),
+          where("authorId", "==", currentUser.uid)
+        );
+        const snapshot = await getDocs(q);
+        const announcements = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPublishedEnterpriseAnnouncements(announcements);
+      } catch (err) {
+        console.error("Error fetching published enterprise announcements:", err);
+      }
+    };
+
+    fetchPublishedEnterpriseAnnouncements();
+
+    return () => unsubscribe();
+  }, [isAuthenticated, value]);
 
   // When searchTerm changes, update the tab index
   useEffect(() => {
@@ -182,38 +276,6 @@ export default function Profile() {
       setActivitiesLoading(false);
     }
   };
-
-  // 獲取用戶活動資訊
-  useEffect(() => {
-    const fetchUserActivities = async () => {
-      if (value !== 3) return; // 只有當選擇了活動資訊標籤時才獲取數據
-
-      const currentUser = authServices.getCurrentUser();
-      if (!currentUser) return;
-
-      setActivitiesLoading(true);
-      try {
-        const q = query(
-          collection(db, "activities"),
-          where("uid", "==", currentUser.uid)
-        );
-
-        const snapshot = await getDocs(q);
-        const activitiesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setActivities(activitiesData);
-      } catch (err) {
-        console.error("Error fetching activities:", err);
-      } finally {
-        setActivitiesLoading(false);
-      }
-    };
-
-    fetchUserActivities();
-  }, [value]);
 
   // 當新增活動成功後重新獲取活動列表
   const handleClubProfileUpdate = async (
@@ -290,6 +352,84 @@ export default function Profile() {
   const handleDeleteActivity = (activity: any) => {
     setSelectedActivity(activity);
     setActivityDeleteDialogOpen(true);
+  };
+
+  // Handle announcement edit
+  const handleEditAnnouncement = (announcement: any) => {
+    setSelectedAnnouncement(announcement);
+    setAnnouncementEditDialogOpen(true);
+  };
+
+  // Handle announcement delete
+  const handleDeleteAnnouncement = (announcement: any) => {
+    setSelectedAnnouncement(announcement);
+    setAnnouncementDeleteDialogOpen(true);
+  };
+
+  // 重新獲取企業公告列表
+  const refreshAnnouncements = async () => {
+    const currentUser = authServices.getCurrentUser();
+    if (!currentUser) return;
+
+    try {
+      const q = query(
+        collection(db, "enterprisePosts"),
+        where("authorId", "==", currentUser.uid)
+      );
+      const snapshot = await getDocs(q);
+      const announcements = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPublishedEnterpriseAnnouncements(announcements);
+      setSuccess("操作成功！");
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error("Error refreshing enterprise announcements:", err);
+      setError("刷新企業公告列表時發生錯誤，請稍後再試");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // 重新獲取需求文章列表
+  const refreshArticles = async () => {
+    const currentUser = authServices.getCurrentUser();
+    if (!currentUser) return;
+
+    setLoadingArticles(true);
+    try {
+      const q = query(
+        collection(db, "posts"),
+        where("authorId", "==", currentUser.uid),
+        where("isDraft", "==", false)
+      );
+      const snapshot = await getDocs(q);
+      const articles = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPublishedArticles(articles);
+      setSuccess("操作成功！");
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error("Error refreshing articles:", err);
+      setError("刷新文章列表時發生錯誤，請稍後再試");
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingArticles(false);
+    }
+  };
+
+  // 處理需求文章編輯
+  const handleEditArticle = (article: any) => {
+    setSelectedArticle(article);
+    setArticleEditDialogOpen(true);
+  };
+
+  // 處理需求文章刪除
+  const handleDeleteArticle = (article: any) => {
+    setSelectedArticle(article);
+    setArticleDeleteDialogOpen(true);
   };
 
   // Show loading state during auth check
@@ -485,10 +625,111 @@ export default function Profile() {
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     <ArticleIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                    我的文章
+                    我的文章與企業公告
                   </Typography>
                 </Box>
-                <ArticleManager />
+
+                {loadingArticles ? (
+                  <Box textAlign="center" mt={4}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <Box>
+                    {publishedArticles.length === 0 && publishedEnterpriseAnnouncements.length === 0 ? (
+                      <Typography>目前尚無已發布的文章或企業公告。</Typography>
+                    ) : (
+                      <>
+                        {publishedArticles.map((article) => (
+                          <Paper
+                            key={article.id}
+                            sx={{
+                              p: 3,
+                              mb: 2,
+                              borderRadius: 2,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            }}
+                          >
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Typography variant="h6">{article.title || "(未命名文章)"}</Typography>
+                              <Box>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEditArticle(article)}
+                                  title="編輯文章"
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteArticle(article)}
+                                  title="刪除文章"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                              {article.content || "(無內容)"}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              display="block"
+                              sx={{ mt: 2 }}
+                            >
+                              發布日期：{formatDate(article.createdAt)}
+                            </Typography>
+                          </Paper>
+                        ))}
+
+                        {publishedEnterpriseAnnouncements.map((announcement) => (
+                          <Paper
+                            key={announcement.id}
+                            sx={{
+                              p: 3,
+                              mb: 2,
+                              borderRadius: 2,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            }}
+                          >
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <Typography variant="h6">{announcement.title || "(未命名公告)"}</Typography>
+                              <Box>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEditAnnouncement(announcement)}
+                                  title="編輯公告"
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteAnnouncement(announcement)}
+                                  title="刪除公告"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                              {announcement.content || "(無內容)"}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              display="block"
+                              sx={{ mt: 2 }}
+                            >
+                              發布日期：{formatDate(announcement.createdAt)}
+                            </Typography>
+                          </Paper>
+                        ))}
+                      </>
+                    )}
+                  </Box>
+                )}
               </TabPanel>
 
               <TabPanel value={value} index={2}>
@@ -627,6 +868,48 @@ export default function Profile() {
                   refreshActivities();
                 }}
                 activity={selectedActivity}
+              />
+
+              {/* 企業公告相關對話框 */}
+              <EnterpriseEditDialog
+                open={announcementEditDialogOpen}
+                onClose={() => setAnnouncementEditDialogOpen(false)}
+                onSuccess={() => {
+                  setAnnouncementEditDialogOpen(false);
+                  refreshAnnouncements();
+                }}
+                announcement={selectedAnnouncement}
+              />
+
+              <EnterpriseDeleteDialog
+                open={announcementDeleteDialogOpen}
+                onClose={() => setAnnouncementDeleteDialogOpen(false)}
+                onSuccess={() => {
+                  setAnnouncementDeleteDialogOpen(false);
+                  refreshAnnouncements();
+                }}
+                announcement={selectedAnnouncement}
+              />
+
+              {/* 需求文章相關對話框 */}
+              <ArticleEditDialog
+                open={articleEditDialogOpen}
+                onClose={() => setArticleEditDialogOpen(false)}
+                onSuccess={() => {
+                  setArticleEditDialogOpen(false);
+                  refreshArticles();
+                }}
+                article={selectedArticle}
+              />
+
+              <ArticleDeleteDialog
+                open={articleDeleteDialogOpen}
+                onClose={() => setArticleDeleteDialogOpen(false)}
+                onSuccess={() => {
+                  setArticleDeleteDialogOpen(false);
+                  refreshArticles();
+                }}
+                article={selectedArticle}
               />
             </Paper>
           </Container>

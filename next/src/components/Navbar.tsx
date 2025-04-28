@@ -2,6 +2,7 @@
 
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
+import HomeIcon from "@mui/icons-material/Home";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -33,8 +34,9 @@ import { clubServices } from "../firebase/services/club-service";
 import { companyServices } from "../firebase/services/company-service";
 
 const pages = [
-  { name: "首頁", path: "/" },
-  { name: "企業列表", path: "/CompanyList" },
+  { name: "首頁", path: "/", icon: <HomeIcon /> },
+  { name: "發布企業公告", path: "/Enterprise" },
+  { name: "企業牆", path: "/Enterprise/EnterpriseList" },
   { name: "發布需求", path: "/Artical" },
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
@@ -47,60 +49,40 @@ const userOptions = [
   { name: "社團註冊", path: "/ClubRegister" },
 ];
 
-export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
+export default function Navbar({
+  hasUnread = false,
+}: Readonly<{ hasUnread?: boolean }>) {
   const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [greeting, setGreeting] = useState("您好，"); // Always start with a default greeting
-  const [isMounted, setIsMounted] = useState(false);
-
-  const greetings = [
-    "您好，",
-    "歡迎回來，",
-    "很高興見到您，",
-    "哈囉，",
-    "今天過得如何，",
-    "今天真是美好，",
-    "準備好探索了嗎，",
-    "嗨！",
-  ];
+  // Use a constant greeting instead of a random one to avoid hydration issues
+  const [greeting] = useState("您好，");
 
   useEffect(() => {
-    setIsMounted(true);
-    // Only set random greeting after component is mounted on client
-    if (typeof window !== "undefined") {
-      // Only run this on the client side
-      const randomIndex = Math.floor(Math.random() * greetings.length);
-      setGreeting(greetings[randomIndex]);
-    }
-
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
       if (user) {
         try {
-          // 先嘗試獲取社團名稱
           const clubs = await clubServices.getAllClubs();
           const userClub = clubs.find((club) => club.userId === user.uid);
 
           if (userClub) {
             setUserName(userClub.clubName);
-            return; // 如果找到社團名稱，就直接返回
+            return;
           }
 
-          // 嘗試獲取公司名稱
           const companies = await companyServices.getAllCompanies();
           const userCompany = companies.find(
-            (company) => company.userId === user.uid
+            (company) => company.id === user.uid
           );
 
           if (userCompany) {
             setUserName(userCompany.companyName);
-            return; // 如果找到公司名稱，就直接返回
+            return;
           }
 
-          // 若都沒找到，使用電子郵件前綴作為備用
           const displayName =
             user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
           setUserName(displayName);
@@ -137,13 +119,15 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
       console.error("登出時發生錯誤:", error);
     }
   };
-  // Only render the full component on the client side
-  if (!isMounted) {
-    return null; // Return empty during server-side rendering
-  }
 
   return (
-    <AppBar position="fixed">
+    <AppBar
+      position="fixed"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+      }}
+    >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Logo & Menu */}
@@ -163,6 +147,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
           >
             社團企業媒合平台
           </Typography>
+
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
@@ -187,6 +172,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               onClose={handleCloseNavMenu}
               sx={{
                 display: { xs: "block", md: "none" },
+                mt: 1, // 添加下拉菜單的頂部邊距
               }}
             >
               {pages.map((page) => (
@@ -217,6 +203,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               ))}
             </Menu>
           </Box>
+
           {/* Mobile Title */}
           <Typography
             variant="h5"
@@ -235,6 +222,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
           >
             媒合平台
           </Typography>
+
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {pages.map((page) => (
@@ -243,14 +231,15 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                 component={Link}
                 href={page.path}
                 onClick={handleCloseNavMenu}
-                sx={{ color: "white", mx: 0.5 }}
+                sx={{ color: "white", mx: 0.5, height: 40, minWidth: 40 }}
               >
                 {page.name}
               </Button>
             ))}
-          </Box>{" "}
+          </Box>
+
           {/* User Greeting */}
-          {isMounted && isLoggedIn && userName && (
+          {isLoggedIn && userName && (
             <Tooltip title="這是您的個人識別標誌">
               <Chip
                 icon={<EmojiPeopleIcon />}
@@ -269,6 +258,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               />
             </Tooltip>
           )}
+
           {/* 通知鈴鐺 */}
           {isLoggedIn && (
             <IconButton
@@ -286,19 +276,17 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               </Badge>
             </IconButton>
           )}
+
           {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
-            <IconButton
-              onClick={handleOpenUserMenu}
-              sx={{ p: 0 }}
-              color="inherit"
-            >
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
               <Avatar
                 sx={{ bgcolor: isLoggedIn ? "secondary.main" : "inherit" }}
               >
                 <AccountCircleIcon />
               </Avatar>
             </IconButton>
+
             <Menu
               sx={{ mt: "45px" }}
               anchorEl={anchorElUser}

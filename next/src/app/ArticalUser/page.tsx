@@ -1,37 +1,81 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
-import { Box, Container, Grid, Typography, Card, CardContent, Button, CircularProgress } from "@mui/material";
+import { Box, Container, Grid, Typography, Card, CardContent, Button, CircularProgress, Tabs, Tab, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import Link from "next/link";
 import { useAuth } from "../../hooks/useAuth"; // 假設您已經有這個自定義的 useAuth hook
 import Navbar from "../../components/Navbar";
+import { useRouter } from "next/navigation";
 
 export default function ArticalUserPage() {
-  const { user } = useAuth(); // 獲取當前用戶
+  const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0); // 新增標籤狀態
+  const [openDialog, setOpenDialog] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  const handleOpenDialog = () => setOpenDialog(true);
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setNewTitle("");
+    setNewContent("");
+  };
+
+  const handleSubmitAnnouncement = async () => {
+    if (!newTitle || !newContent) {
+      alert("請填寫所有必填欄位");
+      return;
+    }
+
+    if (!user) {
+      alert("請先登入");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, "enterprisePosts"), {
+        title: newTitle,
+        content: newContent,
+        createdAt: serverTimestamp(),
+        authorId: user.uid,
+      });
+      alert("企業公告發布成功！");
+      handleCloseDialog();
+      setTabValue(1); // 切換到企業公告標籤
+    } catch (error) {
+      console.error("發布失敗", error);
+      alert("發布失敗，請稍後再試");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!user) return; // 確保用戶已登入
-
+      if (!user) return;
       setLoading(true);
       try {
-        // 確保篩選條件是根據用戶的 authorId 查詢文章
         const q = query(
-          collection(db, "posts"),
-          where("authorId", "==", user.uid), // 篩選當前用戶的文章
-          where("postType", "==", "demand"),  // 確保是需求文章
-          where("isDraft", "==", false)       // 確保文章是已發布的
+          collection(db, tabValue === 0 ? "posts" : "enterprisePosts"), // 根據標籤選擇集合
+          where("authorId", "==", user.uid) // 篩選當前用戶的文章
         );
         const snapshot = await getDocs(q);
         const results = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setPosts(results); // 更新文章列表
+        setPosts(results);
       } catch (err) {
         console.error("讀取貼文失敗", err);
       } finally {
@@ -40,22 +84,38 @@ export default function ArticalUserPage() {
     };
 
     fetchPosts();
-  }, [user]); // 當用戶變更時重新抓取資料
+  }, [user, tabValue]); // 當標籤變更時重新抓取資料
 
   return (
     <>
       <Navbar />
       <Container maxWidth="md" sx={{ pt: 10, pb: 6 }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          我的需求文章
+          我的文章管理
         </Typography>
+
+        <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 4 }}>
+          <Tab label="需求文章" />
+          <Tab label="企業公告" />
+        </Tabs>
+
+        {tabValue === 1 && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleOpenDialog}
+            sx={{ mb: 2 }}
+          >
+            發布新企業公告
+          </Button>
+        )}
 
         {loading ? (
           <Box textAlign="center" mt={4}>
             <CircularProgress />
           </Box>
         ) : posts.length === 0 ? (
-          <Typography>目前尚無需求貼文。</Typography>
+          <Typography>目前尚無相關貼文。</Typography>
         ) : (
           <Grid container spacing={3}>
             {posts.map((post) => (
@@ -64,24 +124,18 @@ export default function ArticalUserPage() {
                   <CardContent>
                     <Typography variant="h6">{post.title || "(未命名文章)"}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {post.organizationName || "(無機構名稱)"}
+                      {post.organizationName || post.companyName || "(無機構名稱)"}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 2 }}>
-                      {post.demandDescription || "(無需求描述)"}
+                      {post.demandDescription || post.content || "(無描述)"}
                     </Typography>
 
-                    {/* 修改按鈕 */}
                     <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between" }}>
-                      <Link href={`/ArticalEdit/${post.id}`} passHref>
+                      <Link href={`/${tabValue === 0 ? "ArticalEdit" : "Enterprise"}/${post.id}`} passHref>
                         <Button variant="contained" color="primary" size="small">
-                          修改內容
+                          查看內容
                         </Button>
                       </Link>
-
-                      {/* 刪除按鈕 */}
-                      <Button variant="contained" color="error" size="small">
-                        刪除文章
-                      </Button>
                     </Box>
                   </CardContent>
                 </Card>
@@ -90,6 +144,43 @@ export default function ArticalUserPage() {
           </Grid>
         )}
       </Container>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="sm">
+        <DialogTitle>發布企業公告</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="公告標題"
+            variant="outlined"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            required
+            sx={{ mb: 3 }}
+          />
+          <TextField
+            fullWidth
+            label="公告內容"
+            variant="outlined"
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            required
+            multiline
+            rows={6}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="secondary">
+            取消
+          </Button>
+          <Button
+            onClick={handleSubmitAnnouncement}
+            color="primary"
+            disabled={submitting}
+          >
+            {submitting ? "發布中..." : "發布"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
