@@ -28,19 +28,23 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import ArticleDeleteDialog from "../../components/article/ArticleDeleteDialog";
+import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
 import Navbar from "../../components/Navbar";
 import { db } from "../../firebase/config";
-import { useAuth } from "../../hooks/useAuth"; // 假設您已經有這個自定義的 useAuth hook
+import { useAuth } from "../../hooks/useAuth";
 
 export default function ArticalUserPage() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState(0); // 新增標籤狀態
+  const [tabValue, setTabValue] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const router = useRouter();
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -52,6 +56,22 @@ export default function ArticalUserPage() {
     setOpenDialog(false);
     setNewTitle("");
     setNewContent("");
+  };
+
+  const handleDeleteClick = (post: any) => {
+    setSelectedArticle(post);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setSelectedArticle(null);
+  };
+
+  const handleDeleteSuccess = () => {
+    handleCloseDeleteDialog();
+    // 從列表中移除已刪除的文章
+    setPosts((prev) => prev.filter((post) => post.id !== selectedArticle.id));
   };
 
   const handleSubmitAnnouncement = async () => {
@@ -76,6 +96,7 @@ export default function ArticalUserPage() {
       alert("企業公告發布成功！");
       handleCloseDialog();
       setTabValue(1); // 切換到企業公告標籤
+      fetchPosts(); // 重新獲取文章列表
     } catch (error) {
       console.error("發布失敗", error);
       alert("發布失敗，請稍後再試");
@@ -84,30 +105,30 @@ export default function ArticalUserPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const q = query(
-          collection(db, tabValue === 0 ? "posts" : "enterprisePosts"), // 根據標籤選擇集合
-          where("authorId", "==", user.uid) // 篩選當前用戶的文章
-        );
-        const snapshot = await getDocs(q);
-        const results = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPosts(results);
-      } catch (err) {
-        console.error("讀取貼文失敗", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPosts = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const q = query(
+        collection(db, tabValue === 0 ? "posts" : "enterprisePosts"),
+        where("authorId", "==", user.uid)
+      );
+      const snapshot = await getDocs(q);
+      const results = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPosts(results);
+    } catch (err) {
+      console.error("讀取貼文失敗", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPosts();
-  }, [user, tabValue]); // 當標籤變更時重新抓取資料
+  }, [user, tabValue]);
 
   return (
     <>
@@ -185,6 +206,17 @@ export default function ArticalUserPage() {
                           查看內容
                         </Button>
                       </Link>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(post);
+                        }}
+                      >
+                        刪除
+                      </Button>
                     </Box>
                   </CardContent>
                 </Card>
@@ -235,6 +267,24 @@ export default function ArticalUserPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {openDeleteDialog &&
+        selectedArticle &&
+        (tabValue === 0 ? (
+          <ArticleDeleteDialog
+            open={openDeleteDialog}
+            onClose={handleCloseDeleteDialog}
+            onSuccess={handleDeleteSuccess}
+            article={selectedArticle}
+          />
+        ) : (
+          <EnterpriseDeleteDialog
+            open={openDeleteDialog}
+            onClose={handleCloseDeleteDialog}
+            onSuccess={handleDeleteSuccess}
+            announcement={selectedArticle}
+          />
+        ))}
     </>
   );
 }

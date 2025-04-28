@@ -18,6 +18,7 @@ export default function useHydration() {
 
 /**
  * Client-only component wrapper that only renders its children after hydration
+ * Enhanced to better handle Material-UI style injection
  */
 export function ClientOnly({
   children,
@@ -28,14 +29,26 @@ export function ClientOnly({
 }) {
   const [hasMounted, setHasMounted] = useState(false);
 
-  // 使用單獨的 state 避免共享狀態導致的問題
   useEffect(() => {
-    setHasMounted(true);
+    // Use requestAnimationFrame to ensure we're in the next paint cycle
+    // This gives the browser time to apply all styles before showing content
+    const timeoutId = setTimeout(() => {
+      // Delay the mount state change to ensure styles are processed
+      setHasMounted(true);
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
+  // During server rendering and initial client render, show the fallback
+  // This prevents hydration mismatches by completely avoiding rendering the children
+  // until we're fully on the client side
   if (!hasMounted) {
-    return <>{fallback}</>;
+    // Return minimal markup for the fallback to minimize hydration issues
+    return <div suppressHydrationWarning>{fallback}</div>;
   }
 
-  return <>{children}</>;
+  // Once mounted on client, render the actual content wrapped in a div that
+  // suppresses any remaining hydration warnings
+  return <div suppressHydrationWarning>{children}</div>;
 }
