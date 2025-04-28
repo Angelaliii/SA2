@@ -130,12 +130,11 @@ export default function HomePage() {
 
       setUpcomingActivities(activities);
 
-      // 3. 獲取企業公告
+      // 3. 獲取企業公告 - 修改查詢條件，放寬限制
       const enterpriseRef = collection(db, "enterprisePosts");
+      // 移除過多限制條件，僅按時間排序並取最新3筆資料
       const enterpriseQuery = query(
         enterpriseRef,
-        where("isDraft", "!=", true),
-        where("status", "==", "active"),
         orderBy("createdAt", "desc"),
         limit(3)
       );
@@ -143,14 +142,15 @@ export default function HomePage() {
       const enterpriseSnapshot = await getDocs(enterpriseQuery);
       const enterprises = enterpriseSnapshot.docs.map((doc) => {
         const data = doc.data();
+        console.log("企業公告資料:", data); // 新增日誌以查看獲取的資料
         return {
           id: doc.id,
-          title: data.title || "",
+          title: data.title || "企業公告",
           content: data.content || "",
           status: data.status,
-          companyName: data.companyName || "",
+          companyName: data.companyName || "企業",
           email: data.email || "",
-          createdAt: timestampToDate(data.createdAt),
+          createdAt: timestampToDate(data.createdAt || new Date()),
         };
       });
 
