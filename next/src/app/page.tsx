@@ -1,276 +1,560 @@
 "use client";
 
-import SearchIcon from "@mui/icons-material/Search";
+import ArticleIcon from "@mui/icons-material/Article";
+import EventIcon from "@mui/icons-material/Event";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import BusinessIcon from '@mui/icons-material/Business';
 import {
   Box,
   Button,
-  Card,
-  CardActions,
-  CardContent,
   Chip,
   CircularProgress,
   Container,
-  TextField,
+  Divider,
+  Grid,
+  Paper,
+  Stack,
   Typography,
 } from "@mui/material";
-import { motion } from "framer-motion";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "../assets/globals.module.css";
 import Navbar from "../components/Navbar";
-import { auth } from "../firebase/config";
-import {
-  getAllPosts,
-  permanentlyDeletePost,
-  PostData,
-} from "../firebase/services/post-service";
+import { db } from "../firebase/config";
+
+// 允許更寬鬆的型別定義
+interface Post {
+  id: string;
+  title?: string;
+  content?: string;
+  postType?: string;
+  author?: string;
+  authorId?: string;
+  organizationName?: string;
+  eventDate?: any;
+  estimatedParticipants?: string;
+  tags?: string[];
+  selectedDemands?: string[];
+  createdAt?: any;
+  isDraft?: boolean;
+}
+
+interface Activity {
+  id: string;
+  name?: string;
+  content?: string;
+  date?: any;
+  type?: string;
+  participants?: number;
+  createdAt?: any;
+}
+
+interface EnterprisePost {
+  id: string;
+  title?: string;
+  content?: string;
+  createdAt?: any;
+  status?: string;
+}
 
 export default function Index() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>("全部");
-  const [posts, setPosts] = useState<PostData[]>([]);
+  const [recentDemands, setRecentDemands] = useState<Post[]>([]);
+  const [upcomingActivities, setUpcomingActivities] = useState<Activity[]>([]);
+  const [recentEnterprises, setRecentEnterprises] = useState<EnterprisePost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [availableTags, setAvailableTags] = useState<string[]>(["全部"]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchRecentContent = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        const postsData = await getAllPosts();
-        setPosts(postsData);
+        console.log("Starting to fetch data...");
+        
+        // 1. 獲取需求文章 - 放寬條件
+        const demandsRef = collection(db, "posts");
+        const demandQuery = query(
+          demandsRef,
+          where("isDraft", "==", false),     // 🔥 加上不是草稿
+          orderBy("createdAt", "desc"),
+          limit(3)
+        );
+        
+        const demandsSnapshot = await getDocs(demandQuery);
+        console.log("Demands raw data:", demandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        
+        const demands = demandsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log("Processing demand doc:", doc.id, data);
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date()
+          };
+        });
+        console.log("Processed demands:", demands);
+        setRecentDemands(demands);
 
-        const tags = postsData.flatMap((post) => post.tags);
-        const uniqueTags = ["全部", ...Array.from(new Set(tags))];
-        setAvailableTags(uniqueTags);
+        // 2. 獲取活動 - 放寬條件
+        const activitiesRef = collection(db, "activities");
+        const activityQuery = query(
+          activitiesRef,
+          orderBy("createdAt", "desc"),
+          limit(3)
+        );
+        
+        const activitiesSnapshot = await getDocs(activityQuery);
+        console.log("Activities raw data:", activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        
+        const activities = activitiesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log("Processing activity doc:", doc.id, data);
+          return {
+            id: doc.id,
+            name: data.name || '',
+            content: data.content || '',
+            date: data.date,
+            type: data.type,
+            participants: data.participants,
+            createdAt: data.createdAt?.toDate?.() || new Date()
+          };
+        });
+        console.log("Processed activities:", activities);
+        setUpcomingActivities(activities);
+
+        // 3. 獲取企業公告 - 放寬條件
+        const enterpriseRef = collection(db, "enterprisePosts");
+        const enterpriseQuery = query(
+          enterpriseRef,
+          orderBy("createdAt", "desc"),
+          limit(3)
+        );
+        
+        const enterpriseSnapshot = await getDocs(enterpriseQuery);
+        console.log("Enterprise raw data:", enterpriseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        
+        const enterprises = enterpriseSnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log("Processing enterprise doc:", doc.id, data);
+          return {
+            id: doc.id,
+            title: data.title || '',
+            content: data.content || '',
+            status: data.status,
+            createdAt: data.createdAt?.toDate?.() || new Date()
+          };
+        });
+        console.log("Processed enterprises:", enterprises);
+        setRecentEnterprises(enterprises);
+
       } catch (error) {
-        console.error("Error fetching posts:", error);
+        console.error("Error fetching data:", error);
+        if (error instanceof Error) {
+          console.error("Error details:", error.message);
+          setError(error.message);
+        }
       } finally {
         setLoading(false);
       }
     };
-    fetchPosts();
+
+    fetchRecentContent();
   }, []);
 
-  const filteredPosts = posts.filter((post) => {
-    if (!post?.title ?? !post?.content) return false;
-
-    const matchSearch =
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchTag =
-      selectedTag === "全部"
-        ? true
-        : post.tags?.includes(selectedTag ?? "") ?? false;
-
-    return matchSearch && matchTag;
-  });
-
-  // 刪除文章
-  const handleDelete = async (postId: string) => {
-    const confirmDelete = confirm("你確定要刪除這篇文章嗎？此操作無法復原！");
-    if (!confirmDelete) return;
-
-    const result = await permanentlyDeletePost(postId);
-    if (result.success) {
-      alert("文章已成功刪除！");
-      setPosts((prev) => prev.filter((p) => p.id !== postId)); // 本地先更新
-    } else {
-      alert("刪除失敗，請稍後再試");
-    }
-  };
   return (
     <Box className={styles.page}>
       <Navbar />
-
       <main>
-        {/* 封面區塊 */}
+        {/* 第一區塊：Hero Section - 增加底部間距 */}
         <Box
           sx={{
             position: "relative",
             textAlign: "center",
-            mb: 4,
-            py: 4,
-            maxWidth: "100%",
-            height: 300,
+            backgroundColor: "#f5f7fa",
+            pt: { xs: 12, sm: 14 },
+            pb: { xs: 10, sm: 12 }, // 增加底部間距
+            borderBottom: "1px solid rgba(0,0,0,0.1)",
           }}
         >
-          <img
-            src="/image/index_picture.png"
-            alt="首頁封面圖"
-            style={{
-              height: "350px",
-              objectFit: "contain",
-            }}
-          />
-          <Typography variant="h4" sx={{ mt: 2, fontWeight: "bold" }}>
-            找資源、找合作，從這裡開始！
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 1 }}>
-            一站式媒合平台，串聯企業與社團，共創雙贏
-          </Typography>
-          <Box
-            sx={{ mt: 3, display: "flex", justifyContent: "center", gap: 2 }}
-          >
-            <Button
-              variant="contained"
-              color="primary"
-              href="/explore" // ⬅ 替換為實際的合作探索頁
+          <Container maxWidth="lg">
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+              }}
             >
-              找合作
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              href="/edit-home" // ⬅ 替換為實際的編輯主頁頁面
-            >
-              編輯主頁
-            </Button>
-          </Box>
+              <img
+                src="/image/index_picture.png"
+                alt="首頁封面圖"
+                style={{
+                  maxHeight: "350px",
+                  width: "auto",
+                  objectFit: "contain",
+                }}
+              />
+              <Box sx={{ maxWidth: "800px" }}>
+                <Typography variant="h3" sx={{ fontWeight: "bold", mb: 2 }}>
+                  找資源、找合作，從這裡開始！
+                </Typography>
+                <Typography variant="h6" sx={{ color: "text.secondary", mb: 4 }}>
+                  一站式媒合平台，串聯企業與社團，共創雙贏
+                </Typography>
+                <Stack direction="row" spacing={2} justifyContent="center">
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    component={Link}
+                    href="/Artical/DemandList"
+                    size="large"
+                  >
+                    瀏覽需求牆
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    component={Link}
+                    href="/Enterprise/EnterpriseList"
+                    size="large"
+                  >
+                    查看企業合作
+                  </Button>
+                </Stack>
+              </Box>
+            </Box>
+          </Container>
         </Box>
 
-        {/* Search */}
-        <Container sx={{ my: 6 }}>
-          <Box sx={{ position: "relative", width: "100%" }}>
-            <SearchIcon
+        {/* 第二區塊：最新消息 */}
+        <Box sx={{ py: { xs: 10, sm: 12 }, backgroundColor: "white" }}>
+          <Container maxWidth="lg">
+            <Typography
+              variant="h4"
+              component="h2"
               sx={{
-                position: "absolute",
-                left: 2,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "text.secondary",
-                zIndex: 1,
-                ml: 1,
+                fontWeight: "bold",
+                mb: { xs: 6, sm: 8 },
+                mt: { xs: 2, sm: 3 },
+                textAlign: "center",
+                color: "primary.main",
               }}
-            />
-            <TextField
-              fullWidth
-              placeholder="搜尋文章..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{
-                "& .MuiInputBase-root": {
-                  borderRadius: 8,
-                  backgroundColor: "#fff",
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-                  pl: 5,
-                  pr: 2,
-                },
-              }}
-            />
-          </Box>
-        </Container>
-
-        {/* Tags */}
-        <Container sx={{ mb: 2 }}>
-          <Box sx={{ px: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {availableTags.map((tag) => (
-              <motion.div key={tag} whileTap={{ scale: 0.95 }}>
-                <Chip
-                  label={tag}
-                  color={selectedTag === tag ? "primary" : "default"}
-                  onClick={() => setSelectedTag(tag)}
-                  clickable
-                  sx={{ borderRadius: 2, px: 1.5 }}
-                />
-              </motion.div>
-            ))}
-          </Box>
-        </Container>
-
-        <Container
-          sx={{ my: 3, display: "flex", flexDirection: "column", gap: 2 }}
-        >
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            filteredPosts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.4, delay: index * 0.08 }}
-              >
-                <Card
-                  variant="outlined"
+            >
+              最新消息
+            </Typography>
+            
+            <Grid container spacing={4}>
+              {/* 需求牆最新消息 */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={0}
                   sx={{
-                    borderRadius: 4,
-                    p: 2,
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
-                    transition: "transform 0.3s ease",
-                    "&:hover": {
-                      boxShadow: "0 12px 24px rgba(0,0,0,0.08)",
-                      transform: "translateY(-4px)",
-                    },
+                    p: 3,
+                    height: "100%",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
                   }}
                 >
-                  <CardContent>
-                    <Typography variant="h6">{post.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {post.content.length > 40
-                        ? post.content.slice(0, 40) + "..."
-                        : post.content}
+                  <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+                    <ArticleIcon sx={{ mr: 1, color: "primary.main" }} />
+                    <Typography variant="h5" fontWeight="bold">
+                      最新需求
                     </Typography>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 0.5,
-                        mb: 1,
-                      }}
-                    >
-                      {post.tags.map((tag) => (
-                        <Chip
-                          key={tag}
-                          label={tag}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
+                  </Box>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                      <CircularProgress />
                     </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ mt: 1, display: "block" }}
-                    >
-                      {post.location}
+                  ) : recentDemands.length > 0 ? (
+                    <Stack spacing={2}>
+                      {recentDemands.map((demand) => (
+                        <Paper
+                          key={demand.id}
+                          elevation={0}
+                          sx={{
+                            p: 2.5,
+                            borderRadius: 2,
+                            bgcolor: 'background.paper',
+                            transition: 'all 0.3s ease',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            },
+                          }}
+                        >
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                                color: 'primary.main',
+                                mb: 1,
+                              }}
+                            >
+                              {demand.title}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {demand.organizationName}
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {(demand.selectedDemands ?? []).slice(0, 3).map((item: string) => (
+                              <Chip
+                                key={item}
+                                label={item}
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                              />
+                            ))}
+                          </Box>
+
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                              component={Link}
+                              href={`/Artical/${demand.id}`}
+                              size="small"
+                              endIcon={<ArrowForwardIcon />}
+                            >
+                              查看詳情
+                            </Button>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography sx={{ p: 2, textAlign: "center" }}>
+                      目前沒有需求文章
                     </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Link href={`/post/${post.id}`}>
-                      <Button
-                        size="small"
-                        sx={{
-                          textTransform: "none",
-                          fontWeight: 500,
-                          borderRadius: 2,
-                          px: 2,
-                        }}
-                      >
-                        閱讀更多
-                      </Button>
-                    </Link>
-                    {/* 刪除按鈕（只有當前使用者是作者才顯示） */}
-                    {auth.currentUser?.uid === post.authorId && (
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(post.id!)}
-                      >
-                        刪除
-                      </Button>
-                    )}
-                  </CardActions>
-                </Card>
-              </motion.div>
-            ))
-          )}
-          {filteredPosts.length === 0 && !loading && (
-            <Typography variant="body1">找不到符合的文章</Typography>
-          )}
-        </Container>
+                  )}
+
+                  <Box sx={{ mt: 3, textAlign: "right" }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      component={Link}
+                      href="/Artical/DemandList"
+                      endIcon={<ArrowForwardIcon />}
+                    >
+                      查看更多需求
+                    </Button>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* 活動牆最新消息 */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    height: "100%",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+                    <EventIcon sx={{ mr: 1, color: "primary.main" }} />
+                    <Typography variant="h5" fontWeight="bold">
+                      近期活動
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : upcomingActivities.length > 0 ? (
+                    <Stack spacing={2}>
+                      {upcomingActivities.map((activity) => (
+                        <Paper
+                          key={activity.id}
+                          elevation={0}
+                          sx={{
+                            p: 2.5,
+                            borderRadius: 2,
+                            bgcolor: 'background.paper',
+                            transition: 'all 0.3s ease',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            },
+                          }}
+                        >
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                                color: 'primary.main',
+                                mb: 1,
+                              }}
+                            >
+                              {activity.name}
+                            </Typography>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Typography variant="body2" color="text.secondary">
+                                {activity.date?.toDate().toLocaleDateString()}
+                              </Typography>
+                              <Chip
+                                label={activity.type || "活動"}
+                                size="small"
+                                color="primary"
+                              />
+                            </Stack>
+                          </Box>
+
+                          <Typography variant="body2" color="text.secondary">
+                            參與人數: {activity.participants || "未指定"}
+                          </Typography>
+
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                              component={Link}
+                              href={`/Activities/${activity.id}`}
+                              size="small"
+                              endIcon={<ArrowForwardIcon />}
+                            >
+                              查看詳情
+                            </Button>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography sx={{ p: 2, textAlign: "center" }}>
+                      目前沒有近期活動
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mt: 3, textAlign: "right" }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      component={Link}
+                      href="/Activities"
+                      endIcon={<ArrowForwardIcon />}
+                    >
+                      查看更多活動
+                    </Button>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* 企業公告最新消息 */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    height: "100%",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+                    <BusinessIcon sx={{ mr: 1, color: "primary.main" }} />
+                    <Typography variant="h5" fontWeight="bold">
+                      企業公告
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : recentEnterprises.length > 0 ? (
+                    <Stack spacing={2}>
+                      {recentEnterprises.map((enterprise) => (
+                        <Paper
+                          key={enterprise.id}
+                          elevation={0}
+                          sx={{
+                            p: 2.5,
+                            borderRadius: 2,
+                            bgcolor: 'background.paper',
+                            transition: 'all 0.3s ease',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            },
+                          }}
+                        >
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontSize: '1.1rem',
+                                fontWeight: 600,
+                                color: 'primary.main',
+                                mb: 1,
+                              }}
+                            >
+                              {enterprise.title}
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                              component={Link}
+                              href={`/Enterprise/${enterprise.id}`}
+                              size="small"
+                              endIcon={<ArrowForwardIcon />}
+                            >
+                              查看詳情
+                            </Button>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography sx={{ p: 2, textAlign: "center" }}>
+                      目前沒有企業公告
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mt: 3, textAlign: "right" }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      component={Link}
+                      href="/Enterprise/EnterpriseList"
+                      endIcon={<ArrowForwardIcon />}
+                    >
+                      查看更多公告
+                    </Button>
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
+          </Container>
+        </Box>
       </main>
     </Box>
   );

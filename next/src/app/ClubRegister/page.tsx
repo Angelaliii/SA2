@@ -6,33 +6,55 @@ import {
   Button,
   CircularProgress,
   Container,
+  MenuItem,
   Paper,
   TextField,
   Typography,
 } from "@mui/material";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import Link from "next/link";
-import { useRouter } from 'next/navigation'; // ✅ 正確！
+import { useRouter } from "next/navigation"; // ✅ 正確！
 import { ChangeEvent, FormEvent, useState } from "react";
 import styles from "../../assets/globals.module.css";
 import { auth } from "../../firebase/config";
 import { clubServices } from "../../firebase/services";
 
+// 社團類型選項
+const clubTypes = [
+  "學術研究",
+  "體育競技",
+  "音樂表演",
+  "藝術文化",
+  "社會服務",
+  "職涯發展",
+  "科技創新",
+  "國際交流",
+  "其他",
+];
+
 // Define types for formData and errors
 interface FormData {
   clubName: string;
   schoolName: string;
+  clubType: string;
+  contactName: string;
+  contactPhone: string;
   email: string;
   password: string;
   confirmPassword: string;
+  clubDescription: string;
 }
 
 interface FormErrors {
   clubName: string;
   schoolName: string;
+  clubType: string;
+  contactName: string;
+  contactPhone: string;
   email: string;
   password: string;
   confirmPassword: string;
+  clubDescription: string;
 }
 
 export default function ClubRegister() {
@@ -42,18 +64,26 @@ export default function ClubRegister() {
   const [formData, setFormData] = useState<FormData>({
     clubName: "",
     schoolName: "",
+    clubType: "",
+    contactName: "",
+    contactPhone: "",
     email: "",
     password: "",
     confirmPassword: "",
+    clubDescription: "",
   });
 
   // Validation errors
   const [errors, setErrors] = useState<FormErrors>({
     clubName: "",
     schoolName: "",
+    clubType: "",
+    contactName: "",
+    contactPhone: "",
     email: "",
     password: "",
     confirmPassword: "",
+    clubDescription: "",
   });
 
   // Form submission state
@@ -106,6 +136,24 @@ export default function ClubRegister() {
       valid = false;
     }
 
+    if (!formData.clubType.trim()) {
+      newErrors.clubType = "此欄位為必填";
+      valid = false;
+    }
+
+    if (!formData.contactName.trim()) {
+      newErrors.contactName = "此欄位為必填";
+      valid = false;
+    }
+
+    if (!formData.contactPhone.trim()) {
+      newErrors.contactPhone = "此欄位為必填";
+      valid = false;
+    } else if (!/^[0-9]{8,10}$/.test(formData.contactPhone.trim())) {
+      newErrors.contactPhone = "請輸入有效的電話號碼";
+      valid = false;
+    }
+
     if (!formData.email.trim()) {
       newErrors.email = "此欄位為必填";
       valid = false;
@@ -129,6 +177,11 @@ export default function ClubRegister() {
       valid = false;
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "兩次輸入的密碼不一致";
+      valid = false;
+    }
+
+    if (!formData.clubDescription.trim()) {
+      newErrors.clubDescription = "此欄位為必填";
       valid = false;
     }
 
@@ -160,7 +213,11 @@ export default function ClubRegister() {
       const clubData = {
         clubName: formData.clubName,
         schoolName: formData.schoolName,
+        clubType: formData.clubType,
+        contactName: formData.contactName,
+        contactPhone: formData.contactPhone,
         email: formData.email,
+        clubDescription: formData.clubDescription,
         status: "pending", // 初始狀態為待審核
         registrationDate: new Date().toISOString(),
         userId: userCredential.user.uid, // 將Firebase用戶ID關聯到社團資料
@@ -261,6 +318,67 @@ export default function ClubRegister() {
                   required
                 />
 
+                {/* 社團類型 */}
+                <TextField
+                  name="clubType"
+                  label="社團類型"
+                  value={formData.clubType}
+                  onChange={handleInputChange}
+                  error={!!errors.clubType}
+                  helperText={errors.clubType}
+                  fullWidth
+                  required
+                  select
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        style: {
+                          maxHeight: 300,
+                        },
+                      },
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "rgba(0, 0, 0, 0.03)",
+                      "& .MuiSelect-select": {
+                        pt: 1.3,
+                        pb: 1.3,
+                      },
+                    },
+                  }}
+                >
+                  {clubTypes.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                {/* 聯絡人姓名 */}
+                <TextField
+                  name="contactName"
+                  label="聯絡人姓名"
+                  value={formData.contactName}
+                  onChange={handleInputChange}
+                  error={!!errors.contactName}
+                  helperText={errors.contactName}
+                  fullWidth
+                  required
+                />
+
+                {/* 聯絡人電話 */}
+                <TextField
+                  name="contactPhone"
+                  label="聯絡人電話"
+                  value={formData.contactPhone}
+                  onChange={handleInputChange}
+                  error={!!errors.contactPhone}
+                  helperText={errors.contactPhone}
+                  fullWidth
+                  required
+                />
+
                 {/* 電子郵件 */}
                 <TextField
                   name="email"
@@ -300,6 +418,27 @@ export default function ClubRegister() {
                   helperText={errors.confirmPassword}
                   fullWidth
                   required
+                />
+
+                {/* 社團描述 */}
+                <TextField
+                  name="clubDescription"
+                  label="社團描述"
+                  value={formData.clubDescription}
+                  onChange={handleInputChange}
+                  error={!!errors.clubDescription}
+                  helperText={
+                    errors.clubDescription || "請簡述社團宗旨、活動等資訊"
+                  }
+                  fullWidth
+                  required
+                  multiline
+                  rows={4}
+                  InputProps={{
+                    sx: {
+                      bgcolor: "rgba(0, 0, 0, 0.02)",
+                    },
+                  }}
                 />
 
                 <Box

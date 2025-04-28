@@ -88,3 +88,40 @@ export interface Draft {
   updatedAt?: string;
   [key: string]: any;
 }
+
+export interface DemandDraft {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  organizationName?: string;
+  selectedDemands?: string[];
+  demandDescription?: string;
+  cooperationReturn?: string;
+  estimatedParticipants?: string;
+  eventDate?: string;
+  eventDescription?: string;
+  eventName?: string;
+  eventType?: string;
+}
+
+// 需求貼文類型
+export interface DemandPostData {
+  title: string;
+  organizationName: string;
+  selectedDemands: string[];
+  demandDescription?: string;
+  cooperationReturn?: string;
+  estimatedParticipants?: string;
+  eventDate: string;
+  eventDescription?: string;
+  eventName?: string;
+  eventType?: string;
+  content: string;
+  location: string;
+  postType: string;
+  tags: string[];
+  authorId: string;
+  isDraft: boolean;
+  email?: string; 
+}

@@ -155,6 +155,26 @@ export const companyServices = {
     }
   },
 
+  // Get companies by user ID
+  getCompaniesByUserId: async (userId: string): Promise<Company[]> => {
+    try {
+      const companiesQuery = query(
+        collection(db, COMPANIES_COLLECTION),
+        where("userId", "==", userId)
+      );
+
+      const querySnapshot = await getDocs(companiesQuery);
+      return querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Company[];
+      
+    } catch (error) {
+      console.error("Error getting companies by user ID:", error);
+      return [];
+    }
+  },
+
   // Upload company logo
   uploadCompanyLogo: async (companyId: string, file: File): Promise<string> => {
     try {

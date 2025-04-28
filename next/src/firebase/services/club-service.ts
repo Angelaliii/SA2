@@ -22,6 +22,7 @@ export interface Club {
   id: string;
   clubName: string;
   schoolName: string;
+  clubType: string; // Added clubType field
   email: string;
   contactName?: string;
   contactPhone?: string;
@@ -62,6 +63,7 @@ export const clubServices = {
           id: doc.id,
           clubName: data.clubName || "",
           schoolName: data.schoolName || "",
+          clubType: data.clubType || "", // Added clubType field
           email: data.email || "",
           contactName: data.contactName || "",
           contactPhone: data.contactPhone || "",
@@ -94,6 +96,7 @@ export const clubServices = {
           id: docSnap.id,
           clubName: data.clubName || "",
           schoolName: data.schoolName || "",
+          clubType: data.clubType || "", // Added clubType field
           email: data.email || "",
           contactName: data.contactName || "",
           contactPhone: data.contactPhone || "",
@@ -131,6 +134,7 @@ export const clubServices = {
           id: doc.id,
           clubName: data.clubName || "",
           schoolName: data.schoolName || "",
+          clubType: data.clubType || "", // Added clubType field
           email: data.email || "",
           contactName: data.contactName || "",
           contactPhone: data.contactPhone || "",
