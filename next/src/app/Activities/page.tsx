@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Box,
   Card,
@@ -13,11 +12,6 @@ import {
   Stack,
   TextField,
   Typography,
-  Container,
-  CircularProgress,
-  Pagination,
-  Box,
-  Button,
 } from "@mui/material";
 
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
@@ -26,16 +20,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { db } from "../../firebase/config";
-import Navbar from "../../components/Navbar";
-import Link from "next/link";
 
 const activityTypes = ["迎新", "講座", "比賽", "展覽", "其他"];
-const participantOptions = [
-  { label: "全部", value: "" },
-  { label: "50 以內", value: "50" },
-  { label: "100 以內", value: "100" },
-  { label: "200 以內", value: "200" },
-];
 
 export default function ActivityListPage() {
   const [activities, setActivities] = useState<any[]>([]);
@@ -113,27 +99,9 @@ export default function ActivityListPage() {
     currentPage * itemsPerPage
   );
 
-  const handleFilterApply = () => {
-    setCurrentPage(1);
-    setActivities([]);
-    setLastVisible(null);
-    fetchActivities(true);
-  };
-
-  useEffect(() => {
-    fetchActivities();
-  }, [currentPage]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ ...filters, searchQuery: e.target.value });
-    setCurrentPage(1);
-    setActivities([]);
-    setLastVisible(null);
-    fetchActivities(true);
-  };
-
-  const handlePageChange = (e: React.ChangeEvent<unknown>, page: number) => {
-    setCurrentPage(page);
+    setCurrentPage(1); // 搜尋時重設回第 1 頁
   };
 
   const handlePageChange = (
