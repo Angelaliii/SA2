@@ -1,13 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { collection, getDocs, query, where, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase/config";
-import { Box, Container, Grid, Typography, Card, CardContent, Button, CircularProgress, Tabs, Tab, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from "@mui/material";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import Link from "next/link";
-import { useAuth } from "../../hooks/useAuth"; // 假設您已經有這個自定義的 useAuth hook
-import Navbar from "../../components/Navbar";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Navbar from "../../components/Navbar";
+import { db } from "../../firebase/config";
+import { useAuth } from "../../hooks/useAuth"; // 假設您已經有這個自定義的 useAuth hook
 
 export default function ArticalUserPage() {
   const { user } = useAuth();
@@ -120,19 +143,45 @@ export default function ArticalUserPage() {
           <Grid container spacing={3}>
             {posts.map((post) => (
               <Grid item xs={12} sm={6} key={post.id}>
-                <Card variant="outlined" sx={{ cursor: "pointer", transition: "0.3s", "&:hover": { boxShadow: 4 } }}>
+                <Card
+                  variant="outlined"
+                  sx={{
+                    cursor: "pointer",
+                    transition: "0.3s",
+                    "&:hover": { boxShadow: 4 },
+                  }}
+                >
                   <CardContent>
-                    <Typography variant="h6">{post.title || "(未命名文章)"}</Typography>
+                    <Typography variant="h6">
+                      {post.title || "(未命名文章)"}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {post.organizationName || post.companyName || "(無機構名稱)"}
+                      {post.organizationName ||
+                        post.companyName ||
+                        "(無機構名稱)"}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 2 }}>
                       {post.demandDescription || post.content || "(無描述)"}
                     </Typography>
 
-                    <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between" }}>
-                      <Link href={`/${tabValue === 0 ? "ArticalEdit" : "Enterprise"}/${post.id}`} passHref>
-                        <Button variant="contained" color="primary" size="small">
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Link
+                        href={`/${
+                          tabValue === 0 ? "ArticalEdit" : "Enterprise"
+                        }/${post.id}`}
+                        passHref
+                      >
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                        >
                           查看內容
                         </Button>
                       </Link>
@@ -145,7 +194,12 @@ export default function ArticalUserPage() {
         )}
       </Container>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="sm">
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>發布企業公告</DialogTitle>
         <DialogContent>
           <TextField
@@ -171,7 +225,7 @@ export default function ArticalUserPage() {
         <DialogActions>
           <Button onClick={handleCloseDialog} color="secondary">
             取消
-          </Button>
+          </Button>{" "}
           <Button
             onClick={handleSubmitAnnouncement}
             color="primary"

@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import BusinessIcon from "@mui/icons-material/Business";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -8,6 +7,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
   Button,
+  Card,
   CircularProgress,
   Container,
   IconButton,
@@ -27,6 +27,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
@@ -49,6 +50,7 @@ export default function EnterpriseListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [selectedTag] = useState<string>("全部");
   const itemsPerPage = 8;
 
   // 獲取收藏狀態
@@ -87,6 +89,7 @@ export default function EnterpriseListPage() {
       try {
         const q = query(
           collection(db, "enterprisePosts"),
+          where("isDraft", "!=", true),
           orderBy("createdAt", "desc") // 按创建时间降序排序
         );
         const results = await getDocs(q);
@@ -157,6 +160,11 @@ export default function EnterpriseListPage() {
     }
   };
 
+  // Add scroll effect when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
+
   const filteredPosts = posts.filter((post) => {
     return (
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -196,7 +204,6 @@ export default function EnterpriseListPage() {
               瀏覽企業合作機會，尋找適合的贊助夥伴
             </Typography>
           </Box>
-
           {/* 搜尋欄 */}
           <Paper
             elevation={0}
@@ -224,126 +231,140 @@ export default function EnterpriseListPage() {
               }}
               sx={{ bgcolor: "background.paper" }}
             />
-          </Paper>
-
+          </Paper>{" "}
           {/* 貼文列表 */}
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <Stack spacing={2}>
-              {currentPosts.map((post) => (
-                <Paper
+            <Stack spacing={3}>
+              {currentPosts.map((post, index) => (
+                <motion.div
                   key={post.id}
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    borderRadius: 2,
-                    bgcolor: "background.paper",
-                    transition: "all 0.3s ease",
-                    border: "1px solid",
-                    borderColor: "divider",
-                    "&:hover": {
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    },
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.08 }}
                 >
-                  {/* Left Section */}
-                  <Box sx={{ flex: 1 }}>
-                    {" "}
-                    <Typography
-                      variant="h6"
-                      component={Link}
-                      href={`/Enterprise/${post.id}`}
-                      sx={{
-                        color: "primary.main",
-                        mb: 1,
-                        cursor: "pointer",
-                        "&:hover": { color: "primary.dark" },
-                        textDecoration: "none",
-                      }}
-                    >
-                      {post.title}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <BusinessIcon
-                        sx={{ fontSize: 18, color: "text.secondary" }}
-                      />
-                      <Typography variant="body2" color="text.secondary">
-                        {post.companyName ?? "未知企業"}
-                      </Typography>
-                    </Box>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        mt: 2,
-                        color: "text.secondary",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {post.content}
-                    </Typography>
-                  </Box>
-
-                  {/* Right Section */}
-                  <Box
+                  <Card
                     sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 2,
+                      borderRadius: "16px",
+                      p: 3,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                      "&:hover": {
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                        transform: "translateY(-4px)",
+                        transition: "all 0.3s ease",
+                      },
                     }}
                   >
-                    <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(post);
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
                       }}
-                      color={favorites[post.id] ? "error" : "default"}
                     >
-                      {favorites[post.id] ? (
-                        <FavoriteIcon />
-                      ) : (
-                        <FavoriteBorderIcon />
-                      )}
-                    </IconButton>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      endIcon={<ArrowForwardIcon />}
-                      component={Link}
-                      href={`/Enterprise/${post.id}`}
-                      sx={{ whiteSpace: "nowrap" }}
-                    >
-                      查看詳情
-                    </Button>
-                  </Box>
-                </Paper>
+                      {/* Main information section */}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            color: "primary.main",
+                            fontWeight: "bold",
+                            mb: 1.5,
+                          }}
+                        >
+                          {post.title}
+                        </Typography>
+
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
+                          <BusinessIcon fontSize="small" sx={{ mr: 1 }} />
+                          <Typography variant="body2">
+                            {post.companyName ?? "未知企業"}
+                          </Typography>
+                        </Box>
+
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            mt: 2,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {post.content}
+                        </Typography>
+
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mt: 1 }}
+                        >
+                          發布時間：
+                          {post.createdAt
+                            ? new Date(post.createdAt).toLocaleDateString(
+                                "zh-TW"
+                              )
+                            : "未知"}
+                        </Typography>
+                      </Box>
+
+                      {/* Actions section */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "flex-end",
+                          ml: 2,
+                        }}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(post);
+                          }}
+                          sx={{ mb: 1 }}
+                          color={favorites[post.id] ? "error" : "default"}
+                        >
+                          {favorites[post.id] ? (
+                            <FavoriteIcon />
+                          ) : (
+                            <FavoriteBorderIcon />
+                          )}
+                        </IconButton>
+
+                        <Button
+                          variant="outlined"
+                          component={Link}
+                          href={`/Enterprise/${post.id}`}
+                          size="small"
+                          sx={{ whiteSpace: "nowrap" }}
+                        >
+                          查看更多
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Card>
+                </motion.div>
               ))}
             </Stack>
           )}
-
           {/* 分頁 */}
           {!loading && filteredPosts.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              {" "}
               <Pagination
                 count={Math.ceil(filteredPosts.length / itemsPerPage)}
                 page={currentPage}
-                onChange={(_, value) => {
-                  setCurrentPage(value);
-                  if (typeof window !== "undefined") {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                }}
+                onChange={(_, value) => setCurrentPage(value)}
                 color="primary"
               />
             </Box>

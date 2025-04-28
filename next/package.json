@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.8",
@@ -16,6 +17,7 @@
     "@mui/x-date-pickers": "^7.28.2",
     "@types/formidable": "^3.4.5",
     "axios": "^1.8.4",
+    "critters": "^0.0.25",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "firebase": "^11.5.0",

@@ -63,13 +63,24 @@ export default function DemandPostDetailPage() {
     fetchPost();
     return () => unsubscribe();
   }, [id]);
-
   if (!post) return null;
 
-  const formattedDate = new Date(post.createdAt).toLocaleString("zh-TW", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  // 使用一種固定格式，避免水合錯誤
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    } catch (error) {
+      return "無效日期";
+    }
+  };
+
+  const formattedDate = formatDate(post.createdAt);
 
   const handleSendMessage = async () => {
     const currentUser = auth.currentUser;

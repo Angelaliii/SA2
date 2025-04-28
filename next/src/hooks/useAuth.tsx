@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   // Use a separate state to track client-side initialization
   const [mounted, setMounted] = useState(false);
-
   // This useEffect ensures we only run the auth listener on the client side
   useEffect(() => {
     setMounted(true);
@@ -37,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return () => unsubscribe();
   }, []);
+
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => {
     return { user, loading };
@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const defaultContextValue = useMemo(() => {
     return { user: null, loading: true };
   }, []);
-
   // During first render on the server or client hydration,
   // don't show any content that depends on authentication
   if (!mounted) {

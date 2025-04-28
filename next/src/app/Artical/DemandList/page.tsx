@@ -36,6 +36,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { scrollToTop } from "../../../utils/clientUtils";
 
 // Add interfaces for proper typing
 interface Post {
@@ -246,18 +247,15 @@ export default function DemandListPage() {
 
   // Calculate pagination
   const totalItems = filteredPosts.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  // Handle page change
+  const totalPages = Math.ceil(totalItems / itemsPerPage); // Handle page change
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
     value: number
   ) => {
     setCurrentPage(value);
 
-    // Safely scroll to top only on the client side
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    // Use our client utility instead of inline window check
+    scrollToTop(true, 10);
   };
 
   // Get current page data

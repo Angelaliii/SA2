@@ -108,9 +108,12 @@ export default function ActivityListPage() {
     value: number
   ) => {
     setCurrentPage(value);
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    // Delay scrolling to prevent hydration issues
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 0);
   };
 
   return (

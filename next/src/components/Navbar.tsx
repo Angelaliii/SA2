@@ -32,12 +32,11 @@ import { auth } from "../firebase/config";
 import { authServices } from "../firebase/services/auth-service";
 import { clubServices } from "../firebase/services/club-service";
 import { companyServices } from "../firebase/services/company-service";
+import { isClient } from "../utils/clientUtils";
 
 const pages = [
   { name: "首頁", path: "/", icon: <HomeIcon /> },
-  { name: "發布企業公告", path: "/Enterprise" },
   { name: "企業牆", path: "/Enterprise/EnterpriseList" },
-  { name: "發布需求", path: "/Artical" },
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
@@ -57,48 +56,55 @@ export default function Navbar({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  // Use a constant greeting instead of a random one to avoid hydration issues
-  const [greeting] = useState("您好，");
+  const [userType, setUserType] = useState<"club" | "company" | "unknown">(
+    "unknown"
+  );
+  const greeting = "您好，";
 
+  // 使用useEffect直接處理身份驗證，不需要isClient檢查
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
       if (user) {
         try {
-          const clubs = await clubServices.getAllClubs();
-          const userClub = clubs.find((club) => club.userId === user.uid);
-
-          if (userClub) {
-            setUserName(userClub.clubName);
+          // Try to find user in clubs collection first
+          const clubData = await clubServices.getClubByUserId(user.uid);
+          if (clubData) {
+            setUserName(clubData.clubName);
+            setUserType("club");
             return;
           }
 
-          const companies = await companyServices.getAllCompanies();
-          const userCompany = companies.find(
-            (company) => company.id === user.uid
+          // If not found in clubs, try to find in companies collection
+          const companies = await companyServices.getCompaniesByUserId(
+            user.uid
           );
-
-          if (userCompany) {
-            setUserName(userCompany.companyName);
+          if (companies && companies.length > 0) {
+            setUserName(companies[0].companyName);
+            setUserType("company");
             return;
           }
 
+          // If still not found, use default display name
           const displayName =
             user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
           setUserName(displayName);
+          setUserType("unknown");
         } catch (error) {
           console.error("無法獲取組織名稱:", error);
           const displayName =
             user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
           setUserName(displayName);
+          setUserType("unknown");
         }
       } else {
         setUserName(null);
+        setUserType("unknown");
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isClient]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorElNav(event.currentTarget);
@@ -147,7 +153,6 @@ export default function Navbar({
           >
             社團企業媒合平台
           </Typography>
-
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
@@ -175,6 +180,7 @@ export default function Navbar({
                 mt: 1, // 添加下拉菜單的頂部邊距
               }}
             >
+              {" "}
               {pages.map((page) => (
                 <MenuItem
                   key={page.name}
@@ -197,13 +203,34 @@ export default function Navbar({
                       </Box>
                     ) : (
                       page.name
-                    )}
+                    )}{" "}
+                  </Typography>{" "}
+                </MenuItem>
+              ))}{" "}
+              {isLoggedIn && userType === "company" && (
+                <MenuItem
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/Enterprise"
+                >
+                  <Typography textAlign="center" component="span">
+                    發布企業公告
                   </Typography>
                 </MenuItem>
-              ))}
+              )}
+              {isClient && isLoggedIn && userType === "club" && (
+                <MenuItem
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/Artical"
+                >
+                  <Typography textAlign="center" component="span">
+                    發布需求
+                  </Typography>
+                </MenuItem>
+              )}
             </Menu>
           </Box>
-
           {/* Mobile Title */}
           <Typography
             variant="h5"
@@ -221,8 +248,7 @@ export default function Navbar({
             }}
           >
             媒合平台
-          </Typography>
-
+          </Typography>{" "}
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {pages.map((page) => (
@@ -233,13 +259,33 @@ export default function Navbar({
                 onClick={handleCloseNavMenu}
                 sx={{ color: "white", mx: 0.5, height: 40, minWidth: 40 }}
               >
+                {" "}
                 {page.name}
               </Button>
-            ))}
+            ))}{" "}
+            {isClient && isLoggedIn && userType === "company" && (
+              <Button
+                component={Link}
+                href="/Enterprise"
+                onClick={handleCloseNavMenu}
+                sx={{ color: "white", mx: 0.5, height: 40 }}
+              >
+                發布企業公告
+              </Button>
+            )}
+            {isClient && isLoggedIn && userType === "club" && (
+              <Button
+                component={Link}
+                href="/Artical"
+                onClick={handleCloseNavMenu}
+                sx={{ color: "white", mx: 0.5, height: 40 }}
+              >
+                發布需求
+              </Button>
+            )}{" "}
           </Box>
-
           {/* User Greeting */}
-          {isLoggedIn && userName && (
+          {isClient && isLoggedIn && userName && (
             <Tooltip title="這是您的個人識別標誌">
               <Chip
                 icon={<EmojiPeopleIcon />}
@@ -258,9 +304,8 @@ export default function Navbar({
               />
             </Tooltip>
           )}
-
           {/* 通知鈴鐺 */}
-          {isLoggedIn && (
+          {isClient && isLoggedIn && (
             <IconButton
               component={Link}
               href="/messages"
@@ -276,7 +321,6 @@ export default function Navbar({
               </Badge>
             </IconButton>
           )}
-
           {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>

@@ -1,34 +1,36 @@
 import {
+  Autocomplete,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField,
-  Grid,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Autocomplete,
   FormHelperText,
-  Typography,
-  Box,
-  Paper,
+  Grid,
   InputAdornment,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  TextField,
+  Typography,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
-import { getPostById } from "../../firebase/services/post-service";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase/config";
-import { 
-  cooperationTypes, 
-  postLocations, 
-  postTypes, 
-  tagOptions, 
-  visibilityOptions 
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  cooperationTypes,
+  postLocations,
+  postTypes,
+  tagOptions,
+  visibilityOptions,
 } from "../../constants/articleOptions";
-import { getDemandItems } from "../../firebase/services/post-service";
+import { db } from "../../firebase/config";
+import {
+  getDemandItems,
+  getPostById,
+} from "../../firebase/services/post-service";
 
 type ArticleEditDialogProps = {
   open: boolean;
@@ -50,29 +52,29 @@ export default function ArticleEditDialog({
   const [postType, setPostType] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [visibility, setVisibility] = useState("公開");
-  
+
   // 需求欄位
   const [organizationName, setOrganizationName] = useState("");
   const [demandItems, setDemandItems] = useState<string[]>([]);
   const [selectedDemands, setSelectedDemands] = useState<string[]>([]);
   const [demandDescription, setDemandDescription] = useState("");
-  
+
   // 合作欄位
   const [cooperationType, setCooperationType] = useState("");
   const [cooperationDeadline, setCooperationDeadline] = useState("");
   const [cooperationReturn, setCooperationReturn] = useState("");
-  
+
   // 預算相關
   const [budgetMin, setBudgetMin] = useState<number | string>("");
   const [budgetMax, setBudgetMax] = useState<number | string>("");
-  
+
   // 活動相關
   const [eventName, setEventName] = useState("");
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventDescription, setEventDescription] = useState("");
   const [estimatedParticipants, setEstimatedParticipants] = useState("");
-  
+
   // 狀態管理
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,7 +86,7 @@ export default function ArticleEditDialog({
       const items = await getDemandItems();
       setDemandItems(items);
     };
-    
+
     loadDemandItems();
   }, []);
 
@@ -92,11 +94,11 @@ export default function ArticleEditDialog({
   useEffect(() => {
     if (open && article?.id) {
       setIsLoading(true);
-      
+
       // 從 article 數據中設置初始值
       setTitle(article.title || "");
       setContent(article.content || "");
-      
+
       // 獲取完整的文章數據
       getPostById(article.id)
         .then((fullArticle) => {
@@ -108,23 +110,23 @@ export default function ArticleEditDialog({
             setPostType(fullArticle.postType || "");
             setTags(fullArticle.tags || []);
             setVisibility(fullArticle.visibility || "公開");
-            
+
             // 需求欄位
             setOrganizationName(fullArticle.organizationName || "");
             setSelectedDemands(fullArticle.selectedDemands || []);
             setDemandDescription(fullArticle.demandDescription || "");
-            
+
             // 合作欄位
             setCooperationType(fullArticle.cooperationType || "");
             setCooperationDeadline(fullArticle.cooperationDeadline || "");
             setCooperationReturn(fullArticle.cooperationReturn || "");
-            
+
             // 預算相關
             if (fullArticle.budget) {
               setBudgetMin(fullArticle.budget.min || "");
               setBudgetMax(fullArticle.budget.max || "");
             }
-            
+
             // 活動相關
             setEventName(fullArticle.eventName || "");
             setEventType(fullArticle.eventType || "");
@@ -144,24 +146,25 @@ export default function ArticleEditDialog({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!title) newErrors.title = "請輸入標題";
     if (!content) newErrors.content = "請輸入內容";
     if (!postType) newErrors.postType = "請選擇文章類型";
-    
+
     if (postType === "企業合作需求" || postType === "社團活動合作") {
       if (!cooperationType) newErrors.cooperationType = "請選擇合作類型";
-      if (!cooperationDeadline) newErrors.cooperationDeadline = "請選擇合作期限";
+      if (!cooperationDeadline)
+        newErrors.cooperationDeadline = "請選擇合作期限";
     }
-    
+
     if (postType === "企業合作需求") {
       if (!budgetMin && budgetMin !== 0) newErrors.budget = "請輸入最低預算";
     }
-    
+
     if (postType === "社團活動合作") {
       if (!eventDate) newErrors.eventDate = "請選擇活動日期";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -180,40 +183,43 @@ export default function ArticleEditDialog({
         postType,
         tags,
         visibility,
-        
+
         // 需求欄位
         organizationName,
         selectedDemands,
         demandDescription,
-        
+
         // 合作欄位
         cooperationType,
         cooperationDeadline,
         cooperationReturn,
-        
+
         // 活動相關
         eventName,
         eventType,
         eventDate,
         eventDescription,
         estimatedParticipants,
-        
+
         // 更新時間
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       };
-      
+
       // 預算相關 - 只有在企業合作需求時才設置
-      if (postType === "企業合作需求" && (budgetMin !== "" || budgetMax !== "")) {
+      if (
+        postType === "企業合作需求" &&
+        (budgetMin !== "" || budgetMax !== "")
+      ) {
         updateData.budget = {
           min: Number(budgetMin) || 0,
-          max: Number(budgetMax) || 0
+          max: Number(budgetMax) || 0,
         };
       }
-      
+
       // 使用 post-service 的 API 更新文章
       const postRef = doc(db, "posts", article.id);
       await updateDoc(postRef, updateData);
-      
+
       onSuccess();
     } catch (error) {
       console.error("更新文章失敗", error);
@@ -326,19 +332,17 @@ export default function ArticleEditDialog({
             sx={{ mb: 2 }}
             disabled={isLoading}
           />
-          
+
           <Autocomplete
             multiple
             options={demandItems}
             value={selectedDemands}
             onChange={(_, newValue) => setSelectedDemands(newValue)}
-            renderInput={(params) => (
-              <TextField {...params} label="需求項目" />
-            )}
+            renderInput={(params) => <TextField {...params} label="需求項目" />}
             disabled={isLoading}
             sx={{ mb: 2 }}
           />
-          
+
           <TextField
             fullWidth
             label="需求描述"
@@ -398,7 +402,7 @@ export default function ArticleEditDialog({
                   disabled={isLoading}
                 />
               </Grid>
-              
+
               {/* 合作回饋 */}
               <Grid item xs={12}>
                 <TextField
@@ -492,7 +496,7 @@ export default function ArticleEditDialog({
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="預計參與人數"
+                      label="參與人數"
                       variant="outlined"
                       value={estimatedParticipants}
                       onChange={(e) => setEstimatedParticipants(e.target.value)}
@@ -539,9 +543,9 @@ export default function ArticleEditDialog({
         <Button onClick={onClose} color="inherit">
           取消
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          color="primary" 
+        <Button
+          onClick={handleSubmit}
+          color="primary"
           disabled={loading || isLoading}
         >
           {loading ? "更新中..." : "更新文章"}

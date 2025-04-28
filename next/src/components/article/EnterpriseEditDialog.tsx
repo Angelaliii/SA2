@@ -1,6 +1,13 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
-import React, { useState, useEffect } from "react";
-import { enterpriseService } from "../../firebase/services/enterprise-service";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import enterpriseService from "../../firebase/services/enterprise-service";
 
 type EnterpriseEditDialogProps = {
   open: boolean;
