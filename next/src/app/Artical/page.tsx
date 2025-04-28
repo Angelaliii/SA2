@@ -45,7 +45,7 @@ interface DemandPostData {
   tags: string[];
   authorId: string;
   isDraft: boolean;
-  email?: string; 
+  email?: string;
 }
 
 export default function DemandPostPage() {
@@ -100,9 +100,8 @@ export default function DemandPostPage() {
 
         const organization = await postService.getOrganizationName(user.uid);
         setOrganizationName(organization ?? "未知組織");
-        setEmail(user.email || "");
-  
-        
+        setEmail(user.email ?? "");
+
         const defaultItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
         try {
           const items = await postService.getDemandItems();
@@ -366,13 +365,13 @@ export default function DemandPostPage() {
   const handleSaveDraft = async () => {
     // 驗證表單
     const { isValid, newErrors } = validateForm();
-  
+
     if (!isValid) {
       setErrors(newErrors);
       setSnackbarMessage("請填寫所有必填欄位");
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
-  
+
       // Scroll 到第一個錯誤欄位
       if (newErrors.title && titleRef.current) {
         titleRef.current.scrollIntoView({
@@ -393,16 +392,16 @@ export default function DemandPostPage() {
         });
         return;
       }
-  
+
       return; // 有錯就不繼續存草稿
     }
-  
+
     setLoading(true);
-  
+
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("尚未登入");
-  
+
       const postData = {
         title,
         organizationName,
@@ -422,9 +421,9 @@ export default function DemandPostPage() {
         isDraft: true,
         email,
       };
-  
+
       const result = await postService.createPost(postData);
-  
+
       if (result.success) {
         setSnackbarMessage("草稿儲存成功");
         setSnackbarSeverity("success");
@@ -440,7 +439,7 @@ export default function DemandPostPage() {
       setLoading(false);
     }
   };
-  
+
   const handleViewDrafts = () => {
     loadDrafts();
   };
@@ -510,15 +509,15 @@ export default function DemandPostPage() {
                 sx={{ mb: 3 }}
               />
               <TextField
-              fullWidth
-              label="聯絡信箱"
-              variant="standard"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              sx={{ mb: 3 }}
-              helperText="此信箱將作為合作洽談的聯絡方式"
-            />
+                fullWidth
+                label="聯絡信箱"
+                variant="standard"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                sx={{ mb: 3 }}
+                helperText="此信箱將作為合作洽談的聯絡方式"
+              />
             </Box>
 
             {/* ➤ 需求物資區塊 */}
@@ -599,19 +598,20 @@ export default function DemandPostPage() {
                 onChange={(e) => setEventName(e.target.value)}
                 sx={{ mb: 3 }}
               />
+
               <Autocomplete
-              options={eventTypes}
-              value={eventType}
-              onChange={(_, newValue) => setEventType(newValue ?? "")}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="活動性質"
-                  variant="standard"
-                  sx={{ mb: 3 }}
-                />
-              )}
-            />
+                options={eventTypes}
+                value={eventType}
+                onChange={(_, newValue) => setEventType(newValue ?? "")}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="活動性質"
+                    variant="standard"
+                    sx={{ mb: 3 }}
+                  />
+                )}
+              />
               <TextField
                 fullWidth
                 label="活動預估人數 "

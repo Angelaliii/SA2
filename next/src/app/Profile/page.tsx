@@ -23,7 +23,10 @@ import React, { useEffect, useRef, useState } from "react";
 import ActivityDeleteDialog from "../../components/activities/ActivityDeleteDialog";
 import ActivityEditDialog from "../../components/activities/ActivityEditDialog";
 import ActivityFormDialog from "../../components/activities/ActivityFormDialog";
-import ArticleManager from "../../components/article/ArticleManager";
+import ArticleDeleteDialog from "../../components/article/ArticleDeleteDialog";
+import ArticleEditDialog from "../../components/article/ArticleEditDialog";
+import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
+import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
 import FavoriteArticlesManager from "../../components/article/FavoriteArticlesManager";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
@@ -37,11 +40,6 @@ import {
   Company,
   companyServices,
 } from "../../firebase/services/company-service";
-import { enterpriseService } from "../../firebase/services/enterprise-service";
-import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
-import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
-import ArticleEditDialog from "../../components/article/ArticleEditDialog";
-import ArticleDeleteDialog from "../../components/article/ArticleDeleteDialog";
 
 function TabPanel(props: {
   children?: React.ReactNode;
@@ -55,7 +53,7 @@ function TabPanel(props: {
       hidden={value !== index}
       id={`profile-tabpanel-${index}`}
       aria-labelledby={`profile-tab-${index}`}
-      {...other }
+      {...other}
     >
       {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
     </div>
@@ -92,10 +90,15 @@ export default function Profile() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [publishedArticles, setPublishedArticles] = useState<any[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
-  const [publishedEnterpriseAnnouncements, setPublishedEnterpriseAnnouncements] = useState<any[]>([]);
+  const [
+    publishedEnterpriseAnnouncements,
+    setPublishedEnterpriseAnnouncements,
+  ] = useState<any[]>([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null);
-  const [announcementEditDialogOpen, setAnnouncementEditDialogOpen] = useState(false);
-  const [announcementDeleteDialogOpen, setAnnouncementDeleteDialogOpen] = useState(false);
+  const [announcementEditDialogOpen, setAnnouncementEditDialogOpen] =
+    useState(false);
+  const [announcementDeleteDialogOpen, setAnnouncementDeleteDialogOpen] =
+    useState(false);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [articleEditDialogOpen, setArticleEditDialogOpen] = useState(false);
   const [articleDeleteDialogOpen, setArticleDeleteDialogOpen] = useState(false);
@@ -221,7 +224,7 @@ export default function Profile() {
     const fetchPublishedEnterpriseAnnouncements = async () => {
       const currentUser = authServices.getCurrentUser();
       if (!currentUser) return;
-      
+
       try {
         // 從 Firebase 直接查詢當前用戶的企業公告
         const q = query(
@@ -235,7 +238,10 @@ export default function Profile() {
         }));
         setPublishedEnterpriseAnnouncements(announcements);
       } catch (err) {
-        console.error("Error fetching published enterprise announcements:", err);
+        console.error(
+          "Error fetching published enterprise announcements:",
+          err
+        );
       }
     };
 
@@ -545,11 +551,23 @@ export default function Profile() {
           sx={{
             flexGrow: 1,
             p: { xs: 2, sm: 4 },
-            width: { md: `calc(100% - ${drawerWidth}px)` },
-            ml: { md: `${drawerWidth}px` },
+            width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+            ml: { xs: 0, md: `${drawerWidth}px` },
+            transition: (theme) =>
+              theme.transitions.create(["margin", "width"], {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
           }}
         >
-          <Container maxWidth="md" sx={{ pb: 5 }}>
+          <Container
+            maxWidth={false}
+            sx={{
+              pb: 5,
+              maxWidth: { xs: "100%", lg: "90%", xl: "85%" },
+              transition: "max-width 0.3s ease-in-out",
+            }}
+          >
             <Paper
               elevation={0}
               sx={{
@@ -571,7 +589,7 @@ export default function Profile() {
                     color: (theme) => theme.palette.primary.main,
                   }}
                 >
-                  用戶中心
+                  個人中心
                 </Typography>
                 <Divider sx={{ my: 2 }} />
               </Box>
@@ -623,7 +641,8 @@ export default function Profile() {
                   </Box>
                 ) : (
                   <Box>
-                    {publishedArticles.length === 0 && publishedEnterpriseAnnouncements.length === 0 ? (
+                    {publishedArticles.length === 0 &&
+                    publishedEnterpriseAnnouncements.length === 0 ? (
                       <Typography>目前尚無已發布的文章或企業公告。</Typography>
                     ) : (
                       <>
@@ -637,8 +656,16 @@ export default function Profile() {
                               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                             }}
                           >
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                              <Typography variant="h6">{article.title || "(未命名文章)"}</Typography>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                              }}
+                            >
+                              <Typography variant="h6">
+                                {article.title || "(未命名文章)"}
+                              </Typography>
                               <Box>
                                 <IconButton
                                   size="small"
@@ -658,7 +685,11 @@ export default function Profile() {
                                 </IconButton>
                               </Box>
                             </Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mt: 1 }}
+                            >
                               {article.content || "(無內容)"}
                             </Typography>
                             <Typography
@@ -671,49 +702,67 @@ export default function Profile() {
                           </Paper>
                         ))}
 
-                        {publishedEnterpriseAnnouncements.map((announcement) => (
-                          <Paper
-                            key={announcement.id}
-                            sx={{
-                              p: 3,
-                              mb: 2,
-                              borderRadius: 2,
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                            }}
-                          >
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                              <Typography variant="h6">{announcement.title || "(未命名公告)"}</Typography>
-                              <Box>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditAnnouncement(announcement)}
-                                  title="編輯公告"
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleDeleteAnnouncement(announcement)}
-                                  title="刪除公告"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              {announcement.content || "(無內容)"}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              display="block"
-                              sx={{ mt: 2 }}
+                        {publishedEnterpriseAnnouncements.map(
+                          (announcement) => (
+                            <Paper
+                              key={announcement.id}
+                              sx={{
+                                p: 3,
+                                mb: 2,
+                                borderRadius: 2,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                              }}
                             >
-                              發布日期：{formatDate(announcement.createdAt)}
-                            </Typography>
-                          </Paper>
-                        ))}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <Typography variant="h6">
+                                  {announcement.title || "(未命名公告)"}
+                                </Typography>
+                                <Box>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() =>
+                                      handleEditAnnouncement(announcement)
+                                    }
+                                    title="編輯公告"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() =>
+                                      handleDeleteAnnouncement(announcement)
+                                    }
+                                    title="刪除公告"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 1 }}
+                              >
+                                {announcement.content || "(無內容)"}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ mt: 2 }}
+                              >
+                                發布日期：{formatDate(announcement.createdAt)}
+                              </Typography>
+                            </Paper>
+                          )
+                        )}
                       </>
                     )}
                   </Box>
@@ -803,7 +852,7 @@ export default function Profile() {
                           活動類型：{activity.type ?? "未指定"}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          預計參與人數：{activity.participants ?? "未指定"}
+                          參與人數：{activity.participants ?? "未指定"}
                         </Typography>
                         {activity.partnerCompany && (
                           <Typography variant="body2" sx={{ mt: 0.5 }}>
