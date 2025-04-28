@@ -45,6 +45,7 @@ interface DemandPostData {
   tags: string[];
   authorId: string;
   isDraft: boolean;
+  email?: string; 
 }
 
 export default function DemandPostPage() {
@@ -61,6 +62,8 @@ export default function DemandPostPage() {
   const [eventName, setEventName] = useState("");
   const [eventType, setEventType] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
+  const [email, setEmail] = useState("");
 
   // 表單錯誤狀態
   const [errors, setErrors] = useState({
@@ -97,7 +100,9 @@ export default function DemandPostPage() {
 
         const organization = await postService.getOrganizationName(user.uid);
         setOrganizationName(organization ?? "未知組織");
-
+        setEmail(user.email || "");
+  
+        
         const defaultItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
         try {
           const items = await postService.getDemandItems();
@@ -332,6 +337,7 @@ export default function DemandPostPage() {
         tags: [],
         authorId: currentUser.uid,
         isDraft: false,
+        email,
       };
 
       // 如果是編輯現有草稿，則直接發布該草稿
@@ -358,12 +364,45 @@ export default function DemandPostPage() {
   };
 
   const handleSaveDraft = async () => {
+    // 驗證表單
+    const { isValid, newErrors } = validateForm();
+  
+    if (!isValid) {
+      setErrors(newErrors);
+      setSnackbarMessage("請填寫所有必填欄位");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+  
+      // Scroll 到第一個錯誤欄位
+      if (newErrors.title && titleRef.current) {
+        titleRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      } else if (newErrors.selectedDemands && demandsRef.current) {
+        demandsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      } else if (newErrors.eventDate && eventDateRef.current) {
+        eventDateRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      }
+  
+      return; // 有錯就不繼續存草稿
+    }
+  
     setLoading(true);
-
+  
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("尚未登入");
-
+  
       const postData = {
         title,
         organizationName,
@@ -381,10 +420,11 @@ export default function DemandPostPage() {
         tags: [],
         authorId: currentUser.uid,
         isDraft: true,
+        email,
       };
-
+  
       const result = await postService.createPost(postData);
-
+  
       if (result.success) {
         setSnackbarMessage("草稿儲存成功");
         setSnackbarSeverity("success");
@@ -400,7 +440,7 @@ export default function DemandPostPage() {
       setLoading(false);
     }
   };
-
+  
   const handleViewDrafts = () => {
     loadDrafts();
   };
@@ -451,7 +491,7 @@ export default function DemandPostPage() {
               </Box>
               <TextField
                 fullWidth
-                label="標題 *"
+                label="標題 "
                 variant="standard"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -469,6 +509,16 @@ export default function DemandPostPage() {
                 disabled
                 sx={{ mb: 3 }}
               />
+              <TextField
+              fullWidth
+              label="聯絡信箱"
+              variant="standard"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              sx={{ mb: 3 }}
+              helperText="此信箱將作為合作洽談的聯絡方式"
+            />
             </Box>
 
             {/* ➤ 需求物資區塊 */}
@@ -549,30 +599,22 @@ export default function DemandPostPage() {
                 onChange={(e) => setEventName(e.target.value)}
                 sx={{ mb: 3 }}
               />
-              <TextField
-                select
-                fullWidth
-                label="活動性質"
-                variant="standard"
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value)}
-                sx={{ mb: 3 }}
-                // 使用slots和slotProps替代棄用的SelectProps
-                slots={{ select: "select" }}
-                slotProps={{ select: { native: true } }}
-              >
-                <option value=""></option>
-                <option value="講座">講座</option>
-                <option value="工作坊">工作坊</option>
-                <option value="表演">表演</option>
-                <option value="比賽">比賽</option>
-                <option value="展覽">展覽</option>
-                <option value="營隊">營隊</option>
-                <option value="其他">其他</option>
-              </TextField>
+              <Autocomplete
+              options={eventTypes}
+              value={eventType}
+              onChange={(_, newValue) => setEventType(newValue ?? "")}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="活動性質"
+                  variant="standard"
+                  sx={{ mb: 3 }}
+                />
+              )}
+            />
               <TextField
                 fullWidth
-                label="活動預估人數 *"
+                label="活動預估人數 "
                 variant="standard"
                 type="number"
                 value={estimatedParticipants}
@@ -599,7 +641,7 @@ export default function DemandPostPage() {
               />
               <TextField
                 fullWidth
-                label="活動日期 *"
+                label="活動日期 "
                 type="date"
                 // 替換棄用的 InputLabelProps
                 slotProps={{
