@@ -15,9 +15,10 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // ✅ 正確！
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { authServices } from "../firebase/services";
+import useHydration from "../hooks/useHydration";
 
 interface LoginProps {
   readonly onSuccess?: () => void;
@@ -25,6 +26,7 @@ interface LoginProps {
 
 export default function Login({ onSuccess }: Readonly<LoginProps>) {
   const router = useRouter();
+  const { hasMounted } = useHydration();
 
   // Form state
   const [email, setEmail] = useState("");
@@ -86,6 +88,26 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
       setLoading(false);
     }
   };
+
+  // Show a simpler container during server rendering
+  if (!hasMounted) {
+    return (
+      <div
+        style={{
+          padding: "2rem",
+          margin: "2rem auto",
+          maxWidth: "100%",
+          borderRadius: "8px",
+        }}
+        suppressHydrationWarning
+      >
+        <div style={{ textAlign: "center" }}>
+          <h2 suppressHydrationWarning>登入</h2>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Paper
       elevation={3}
@@ -105,12 +127,12 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}{" "}
+      )}
       {resetPasswordSent && (
         <Alert severity="success" sx={{ mb: 2 }}>
           重設密碼鏈接已發送至您的電子郵件
         </Alert>
-      )}{" "}
+      )}
       <Box
         component="form"
         onSubmit={handleSubmit}

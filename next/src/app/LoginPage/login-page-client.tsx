@@ -2,25 +2,21 @@
 
 import { Box, Button, Container, Typography } from "@mui/material";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import styles from "../../assets/globals.module.css";
 import Login from "../../components/Login";
+import useHydration from "../../hooks/useHydration";
 
 export default function LoginPageClient() {
-  const [mounted, setMounted] = useState(false);
+  // Use our custom hydration hook instead of manual mounting state
+  const { hasMounted } = useHydration();
 
-  // Use effect to handle hydration
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Show a simple initial state during server rendering and hydration
-  if (!mounted) {
+  // Show a simplified view during server rendering to avoid hydration mismatch
+  if (!hasMounted) {
     return (
       <div className={styles.page} suppressHydrationWarning>
         <Container maxWidth="xs" sx={{ px: { xs: 2, sm: 3 } }}>
           <Box sx={{ my: 4, textAlign: "center" }}>
-            <Typography variant="h3" gutterBottom>
+            <Typography variant="h3" gutterBottom suppressHydrationWarning>
               歡迎回來
             </Typography>
             <Box sx={{ height: "300px" }}></Box>
@@ -32,7 +28,7 @@ export default function LoginPageClient() {
 
   // Once mounted on client, show the full component
   return (
-    <div className={styles.page} suppressHydrationWarning>
+    <div className={styles.page}>
       <Container maxWidth="xs" sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ my: 4 }}>
           <Typography variant="h3" component="h1" align="center" gutterBottom>

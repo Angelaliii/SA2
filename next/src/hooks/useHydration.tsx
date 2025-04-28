@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
 
 /**
- * A hook that returns true when the component is mounted on the client.
+ * A hook that returns information about component hydration state.
  * Used to prevent hydration mismatches between server and client rendering.
  */
-export function useHydration() {
-  const [isMounted, setIsMounted] = useState(false);
+export default function useHydration() {
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
     // Using requestAnimationFrame ensures we're fully in the client rendering phase
     // after the initial DOM has been painted
-    const raf = requestAnimationFrame(() => {
-      setIsMounted(true);
-    });
-
-    return () => cancelAnimationFrame(raf);
+    setHasMounted(true);
   }, []);
 
-  return isMounted;
+  return hasMounted;
 }
 
 /**
@@ -30,10 +26,15 @@ export function ClientOnly({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) {
-  const isMounted = useHydration();
+  const [hasMounted, setHasMounted] = useState(false);
 
-  if (!isMounted) {
-    return fallback;
+  // 使用單獨的 state 避免共享狀態導致的問題
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return <>{fallback}</>;
   }
 
   return <>{children}</>;

@@ -22,7 +22,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  orderBy,
   query,
   setDoc,
   where,
@@ -32,6 +31,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { enterpriseService } from "../../../firebase/services/enterprise-service";
 
 interface EnterprisePost {
   id: string;
@@ -42,6 +42,7 @@ interface EnterprisePost {
   createdAt?: string;
   status?: string;
   authorId?: string;
+  isDraft?: boolean;
 }
 
 export default function EnterpriseListPage() {
@@ -87,17 +88,9 @@ export default function EnterpriseListPage() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const q = query(
-          collection(db, "enterprisePosts"),
-          where("isDraft", "!=", true),
-          orderBy("createdAt", "desc") // 按创建时间降序排序
-        );
-        const results = await getDocs(q);
-        const postsData = results.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as EnterprisePost[];
-        setPosts(postsData);
+        // 使用 enterpriseService 獲取資料以確保資料處理一致性
+        const postsData = await enterpriseService.getAllPosts();
+        setPosts(postsData as EnterprisePost[]);
       } catch (error) {
         console.error("Error fetching posts:", error);
       } finally {
@@ -165,11 +158,19 @@ export default function EnterpriseListPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage]);
 
+  // 搜索过滤
   const filteredPosts = posts.filter((post) => {
+    // 過濾掉 null 或 undefined 值和草稿文章
+    if (!post || post.isDraft === true) return false;
+
+    // 如果搜尋詞為空，顯示所有非草稿文章
+    if (!searchTerm.trim()) return true;
+
+    // 搜尋邏輯，確保即使屬性為空也能正確處理
     return (
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.companyName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+      (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.companyName || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -177,6 +178,16 @@ export default function EnterpriseListPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // 格式化日期
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "未知日期";
+    try {
+      return new Date(dateStr).toLocaleDateString("zh-TW");
+    } catch (e) {
+      return "日期格式錯誤";
+    }
+  };
 
   return (
     <>
@@ -236,6 +247,12 @@ export default function EnterpriseListPage() {
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
               <CircularProgress />
+            </Box>
+          ) : filteredPosts.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 8 }}>
+              <Typography variant="h6" color="text.secondary">
+                目前沒有符合條件的企業公告
+              </Typography>
             </Box>
           ) : (
             <Stack spacing={3}>
@@ -306,12 +323,7 @@ export default function EnterpriseListPage() {
                           color="text.secondary"
                           sx={{ display: "block", mt: 1 }}
                         >
-                          發布時間：
-                          {post.createdAt
-                            ? new Date(post.createdAt).toLocaleDateString(
-                                "zh-TW"
-                              )
-                            : "未知"}
+                          發布時間：{formatDate(post.createdAt?.toString())}
                         </Typography>
                       </Box>
 
