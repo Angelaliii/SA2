@@ -464,6 +464,10 @@ export default function DemandListPage() {
                 value={filters.startDate}
                 onChange={handleFilterChange}
                 name="startDate"
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
                 // We can use sx to replace InputLabelProps
                 sx={{
                   "& .MuiInputLabel-root": {
@@ -478,6 +482,10 @@ export default function DemandListPage() {
                 value={filters.endDate}
                 onChange={handleFilterChange}
                 name="endDate"
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
                 sx={{
                   "& .MuiInputLabel-root": {
                     transform: "translate(14px, -9px) scale(0.75)",
