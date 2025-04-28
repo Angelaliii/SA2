@@ -4,6 +4,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -24,12 +28,18 @@ export default function EnterpriseEditDialog({
 }: EnterpriseEditDialogProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<string>("active");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open && announcement) {
       setTitle(announcement.title || "");
       setContent(announcement.content || "");
+      setCompanyName(announcement.companyName || "");
+      setEmail(announcement.email || "");
+      setStatus(announcement.status || "active");
     }
   }, [open, announcement]);
 
@@ -44,6 +54,9 @@ export default function EnterpriseEditDialog({
       await enterpriseService.updatePost(announcement.id, {
         title,
         content,
+        companyName,
+        email,
+        status,
       });
       onSuccess();
     } catch (error) {
@@ -67,6 +80,35 @@ export default function EnterpriseEditDialog({
           required
           sx={{ mb: 3, mt: 2 }}
         />
+        <TextField
+          fullWidth
+          label="企業名稱"
+          variant="outlined"
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+          sx={{ mb: 3 }}
+        />
+        <TextField
+          fullWidth
+          label="聯絡電子郵件"
+          variant="outlined"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          sx={{ mb: 3 }}
+        />
+        <FormControl fullWidth sx={{ mb: 3 }}>
+          <InputLabel id="status-label">公告狀態</InputLabel>
+          <Select
+            labelId="status-label"
+            value={status}
+            label="公告狀態"
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <MenuItem value="active">啟用</MenuItem>
+            <MenuItem value="closed">關閉</MenuItem>
+          </Select>
+        </FormControl>
         <TextField
           fullWidth
           label="公告內容"

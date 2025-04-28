@@ -102,17 +102,35 @@ export const enterpriseService = {
 
   getAllPosts: async () => {
     try {
-      // 移除 status 篩選條件，僅按創建時間排序
-      const q = query(
-        collection(db, ENTERPRISE_COLLECTION),
-        where("isDraft", "!=", true),
-        orderBy("createdAt", "desc")
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      // 修正查詢方式，確保能獲取到所有企業公告
+      // 如果 isDraft 欄位不存在，也應顯示這些文章
+      const postsRef = collection(db, ENTERPRISE_COLLECTION);
+      const snapshot = await getDocs(postsRef);
+
+      const posts = snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          // 過濾掉草稿
+          if (data.isDraft === true) return null;
+
+          return {
+            id: doc.id,
+            ...data,
+            // 確保 createdAt 是可序列化的格式
+            createdAt:
+              data.createdAt instanceof Timestamp
+                ? data.createdAt.toDate().toISOString()
+                : data.createdAt,
+          };
+        })
+        .filter((post) => post !== null);
+
+      // 根據創建時間進行排序
+      return posts.sort((a, b) => {
+        const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
     } catch (error) {
       console.error("Error getting enterprise posts:", error);
       return [];
@@ -124,9 +142,15 @@ export const enterpriseService = {
       const postDoc = await getDoc(doc(db, ENTERPRISE_COLLECTION, id));
       if (!postDoc.exists()) return null;
 
+      const data = postDoc.data();
       return {
         id: postDoc.id,
-        ...postDoc.data(),
+        ...data,
+        // 確保 createdAt 是可序列化的格式
+        createdAt:
+          data.createdAt instanceof Timestamp
+            ? data.createdAt.toDate().toISOString()
+            : data.createdAt,
       } as EnterprisePost;
     } catch (error) {
       console.error("Error getting enterprise post:", error);

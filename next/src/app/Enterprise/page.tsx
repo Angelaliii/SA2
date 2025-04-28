@@ -245,7 +245,7 @@ export default function EnterprisePostPage() {
                   alt="enterprise post"
                   sx={{ width: 80, height: 80, mb: 1 }}
                 />
-                <Typography variant="h5" fontWeight="bold">
+                <Typography variant="h5" fontWeight="bold" color="black">
                   發布企業公告
                 </Typography>
               </Box>

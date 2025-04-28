@@ -3,22 +3,24 @@
 import BusinessIcon from "@mui/icons-material/Business";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EmailIcon from "@mui/icons-material/Email";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
   Container,
+  Divider,
+  Link,
   Paper,
   Snackbar,
   Typography,
 } from "@mui/material";
-import Link from "@mui/material/Link";
 import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   query,
   setDoc,
@@ -28,6 +30,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import enterpriseService from "../../../firebase/services/enterprise-service";
 
 interface EnterprisePost {
   id: string;
@@ -37,10 +40,12 @@ interface EnterprisePost {
   content?: string;
   createdAt?: string | Date;
   status?: string;
+  authorId?: string;
 }
 
 export default function EnterpriseDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [post, setPost] = useState<EnterprisePost | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -74,26 +79,26 @@ export default function EnterpriseDetailPage() {
     checkFavoriteStatus();
   }, [id]);
 
-  // 獲取文章詳情
+  // 獲取文章詳情 - 使用 enterpriseService 來獲取資料
   useEffect(() => {
     const fetchPost = async () => {
       if (!id) return;
       setLoading(true);
       try {
-        const docRef = doc(db, "enterprisePosts", id as string);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+        const postData = await enterpriseService.getPostById(id);
+        if (postData) {
           setPost({
-            id: docSnap.id,
-            title: data.title || "無標題",
-            companyName: data.companyName || "未知企業",
-            email: data.email || "",
-            content: data.content || "",
-            createdAt: data.createdAt,
-            status: data.status,
+            id: postData.id || id,
+            title: postData.title || "無標題",
+            companyName: postData.companyName || "未知企業",
+            email: postData.email || "",
+            content: postData.content || "",
+            createdAt: postData.createdAt || new Date(),
+            status: postData.status || "active",
+            authorId: postData.authorId,
           });
+        } else {
+          console.error("Post not found");
         }
       } catch (error) {
         console.error("Error fetching post:", error);
@@ -169,14 +174,18 @@ export default function EnterpriseDetailPage() {
 
   const formatDate = (timestamp: string | Date | null | undefined) => {
     if (!timestamp) return "無日期";
-    const date = new Date(timestamp);
-    return date.toLocaleString("zh-TW", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString("zh-TW", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return "日期格式錯誤";
+    }
   };
 
   if (loading) {
@@ -202,7 +211,20 @@ export default function EnterpriseDetailPage() {
       <>
         <Navbar />
         <Container>
-          <Typography>找不到文章</Typography>
+          <Box sx={{ pt: "84px", textAlign: "center", py: 8 }}>
+            <Typography variant="h5" color="text.secondary" gutterBottom>
+              找不到文章
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              component={Link}
+              href="/Enterprise/EnterpriseList"
+              sx={{ mt: 2 }}
+            >
+              返回列表
+            </Button>
+          </Box>
         </Container>
       </>
     );
@@ -255,10 +277,10 @@ export default function EnterpriseDetailPage() {
                     {post.companyName}
                   </Typography>
                 </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <EmailIcon color="primary" />
-                  <Typography variant="subtitle1">
-                    {post.email ? (
+                {post.email && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <EmailIcon color="primary" />
+                    <Typography variant="subtitle1">
                       <Link
                         href={`mailto:${post.email}`}
                         underline="hover"
@@ -271,16 +293,32 @@ export default function EnterpriseDetailPage() {
                       >
                         {post.email}
                       </Link>
-                    ) : (
-                      "無提供信箱"
-                    )}
-                  </Typography>
-                </Box>
+                    </Typography>
+                  </Box>
+                )}
               </Box>
               <Typography variant="body2" color="text.secondary">
                 發布時間：{formatDate(post.createdAt)}
               </Typography>
             </Box>
+
+            {/* 收藏按鈕 */}
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+              <Button
+                variant={isFavorite ? "contained" : "outlined"}
+                color={isFavorite ? "error" : "primary"}
+                startIcon={
+                  isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
+                }
+                onClick={handleToggleFavorite}
+                disabled={favoriteLoading}
+                size="small"
+              >
+                {isFavorite ? "已收藏" : "加入收藏"}
+              </Button>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
 
             {/* 內容區 */}
             <Box
@@ -316,18 +354,30 @@ export default function EnterpriseDetailPage() {
               </Typography>
             </Box>
 
-            {/* 聯絡按鈕 */}
-            <Box sx={{ textAlign: "center", mt: 4 }}>
+            {/* 聯絡按鈕和返回列表按鈕 */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 4,
+              }}
+            >
+              <Button
+                variant="outlined"
+                color="primary"
+                component={Link}
+                href="/Enterprise/EnterpriseList"
+              >
+                返回列表
+              </Button>
+
               {post.email ? (
                 <Button
                   variant="contained"
                   color="primary"
                   startIcon={<EmailIcon />}
                   href={`mailto:${post.email}`}
-                  sx={{
-                    minWidth: 200,
-                    mb: 2,
-                  }}
                 >
                   聯絡企業
                 </Button>
@@ -335,8 +385,7 @@ export default function EnterpriseDetailPage() {
                 <Typography color="text.secondary">
                   此企業尚未提供聯絡方式
                 </Typography>
-              )}{" "}
-              <Box sx={{ mt: 2 }}>{/* Removed favorite button */}</Box>
+              )}
             </Box>
           </Paper>
         </Container>

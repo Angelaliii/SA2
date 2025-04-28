@@ -64,6 +64,9 @@ interface EnterprisePost {
   content?: string;
   createdAt?: any;
   status?: string;
+  companyName?: string;
+  authorId?: string;
+  email?: string;
 }
 
 export default function HomePage() {
@@ -132,6 +135,7 @@ export default function HomePage() {
       const enterpriseQuery = query(
         enterpriseRef,
         where("isDraft", "!=", true),
+        where("status", "==", "active"),
         orderBy("createdAt", "desc"),
         limit(3)
       );
@@ -144,11 +148,14 @@ export default function HomePage() {
           title: data.title || "",
           content: data.content || "",
           status: data.status,
+          companyName: data.companyName || "",
+          email: data.email || "",
           createdAt: timestampToDate(data.createdAt),
         };
       });
 
       setRecentEnterprises(enterprises);
+      console.log("獲取到企業公告:", enterprises.length, "筆");
     } catch (error) {
       console.error("Error fetching data:", error);
       if (error instanceof Error) {
@@ -167,7 +174,7 @@ export default function HomePage() {
     // 設置一個更長的延遲，以確保水合完成後再獲取數據
     const timer = setTimeout(() => {
       fetchRecentContent();
-    }, 300); // 增加延遲時間以確保完全水合
+    }, 500); // 增加延遲時間以確保完全水合
 
     return () => clearTimeout(timer);
   }, []);
@@ -177,7 +184,7 @@ export default function HomePage() {
     return (
       <Box className={styles.page} suppressHydrationWarning>
         <Navbar />
-        <main>
+        <main suppressHydrationWarning>
           <Box
             sx={{
               position: "relative",
@@ -724,6 +731,7 @@ export default function HomePage() {
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               {enterprise.companyName || "未知企業"}
+                              {enterprise.email ? ` · ${enterprise.email}` : ""}
                             </Typography>
                           </Box>
 
@@ -746,9 +754,16 @@ export default function HomePage() {
                             sx={{
                               mt: 2,
                               display: "flex",
-                              justifyContent: "flex-end",
+                              justifyContent: "space-between",
+                              alignItems: "center",
                             }}
                           >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {formatDate(enterprise.createdAt)}
+                            </Typography>
                             <Button
                               component={Link}
                               href={`/Enterprise/${enterprise.id}`}
