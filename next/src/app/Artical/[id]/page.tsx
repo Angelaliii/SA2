@@ -27,15 +27,12 @@ export default function DemandPostDetailPage() {
   const { id } = useParams();
   const [post, setPost] = useState<any>(null);
   const [clubInfo, setClubInfo] = useState<any>(null);
-  const [messageSent, setMessageSent] = useState(false); // 控制訊息是否已發送
+  const [messageSent, setMessageSent] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
-  // 新增Snackbar相關狀態
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
-    "success"
-  );
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -44,20 +41,19 @@ export default function DemandPostDetailPage() {
 
     const fetchPost = async () => {
       const data = await postService.getPostById(id as string);
-      setPost(data);
 
       if (data?.authorId) {
         const club = await clubServices.getClubById(data.authorId);
-        setClubInfo(club);
-
-        // 直接使用 clubInfo 的 email 作為聯絡信箱
-        if (club && club.email) {
-          setPost((prev) => ({ ...prev, authorEmail: club.email }));
+        if (club) {
+          setClubInfo(club);
         }
       }
-    };
-    fetchPost();
+      
 
+      setPost(data);
+    };
+
+    fetchPost();
     return () => unsubscribe();
   }, [id]);
 
@@ -76,14 +72,13 @@ export default function DemandPostDetailPage() {
       const messageContent = `我這個組織有意願和你這篇文章合作。`;
       await addDoc(collection(db, "messages"), {
         senderId: currentUser.uid,
-        receiverId: post.authorId, // 文章作者的 UID
+        receiverId: post.authorId,
         messageContent: messageContent,
         postId: id,
         timestamp: new Date(),
       });
 
-      setMessageSent(true); // 訊息發送成功後，設置狀態
-      // 顯示成功訊息
+      setMessageSent(true);
       setSnackbarMessage("已成功發送合作訊息！");
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
@@ -106,12 +101,8 @@ export default function DemandPostDetailPage() {
               {post.title}
             </Typography>
 
-            {/* 🔗 社團名稱 + 學校連結 */}
-            <Typography
-              variant="subtitle1"
-              color="text.secondary"
-              sx={{ mb: 1 }}
-            >
+            {/* 社團名稱 */}
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
               發布社團：
               {clubInfo ? (
                 <MuiLink
@@ -126,22 +117,20 @@ export default function DemandPostDetailPage() {
               )}
             </Typography>
 
-            {/* 🕒 發文時間 */}
+            {/* 發文時間 */}
             <Typography variant="body2" color="text.secondary">
               發文時間：{formattedDate}
             </Typography>
 
-            {/* 📧 社團信箱 */}
+            {/* 聯絡信箱 */}
             <Typography variant="body2" color="text.secondary">
               聯絡信箱：
-              {post.authorEmail ?? "未提供"}
+              {post.email ?? "未提供"}
             </Typography>
           </Box>
 
           {/* 需求物資 */}
-          <Box
-            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
-          >
+          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">需求物資</Typography>
@@ -164,9 +153,7 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 活動資訊 */}
-          <Box
-            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
-          >
+          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">活動資訊</Typography>
@@ -203,22 +190,20 @@ export default function DemandPostDetailPage() {
             </Typography>
           </Box>
 
-          {/* 按鈕區塊：發送訊息 */}
+          {/* 發送訊息按鈕 */}
           {isLoggedIn && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              {/* 發送訊息按鈕 */}
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleSendMessage}
                 disabled={messageSent}
-                sx={{ width: 200 }} // 按鈕變長
+                sx={{ width: 200 }}
               >
                 {messageSent ? "已發送訊息" : "發送合作訊息"}
               </Button>
             </Box>
           )}
-
           {!isLoggedIn && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>

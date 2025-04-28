@@ -73,7 +73,6 @@ export default function FavoriteArticlesManager() {
 
     setLoading(true);
     try {
-      // Get user favorites
       const favoritesQuery = query(
         collection(db, "favorites"),
         where("userId", "==", user.uid)
@@ -85,7 +84,6 @@ export default function FavoriteArticlesManager() {
         ...doc.data(),
       })) as Favorite[];
 
-      // Get related article details
       const articleIds = favoritesData.map((fav) => fav.articleId);
 
       if (articleIds.length === 0) {
@@ -94,10 +92,8 @@ export default function FavoriteArticlesManager() {
         return;
       }
 
-      // First try to fetch posts collection
       let allArticles: Article[] = [];
 
-      // Try to fetch from posts collection first
       try {
         if (articleIds.length > 0) {
           const batchSize = 10;
@@ -105,11 +101,13 @@ export default function FavoriteArticlesManager() {
           for (let i = 0; i < articleIds.length; i += batchSize) {
             const batch = articleIds.slice(i, i + batchSize);
 
-            // Check if any posts match these IDs
             for (const id of batch) {
               try {
                 const postDoc = await getDocs(
-                  query(collection(db, "posts"), where("__name__", "==", id))
+                  query(
+                    collection(db, "posts"),
+                    where("__name__", "==", id)
+                  )
                 );
 
                 if (!postDoc.empty) {
@@ -119,6 +117,22 @@ export default function FavoriteArticlesManager() {
                     ...post.data(),
                     collection: "posts",
                   });
+                } else {
+                  const enterpriseDoc = await getDocs(
+                    query(
+                      collection(db, "enterprisePosts"),
+                      where("__name__", "==", id)
+                    )
+                  );
+
+                  if (!enterpriseDoc.empty) {
+                    const enterprisePost = enterpriseDoc.docs[0];
+                    allArticles.push({
+                      id: enterprisePost.id,
+                      ...enterprisePost.data(),
+                      collection: "enterprisePosts",
+                    });
+                  }
                 }
               } catch (err) {
                 console.error(`Error fetching post with ID ${id}:`, err);
@@ -127,39 +141,9 @@ export default function FavoriteArticlesManager() {
           }
         }
       } catch (err) {
-        console.error("Error fetching from posts collection:", err);
+        console.error("Error fetching from posts or enterprisePosts collection:", err);
       }
 
-      // Then fetch from articles collection for any remaining IDs
-      try {
-        const foundIds = allArticles.map((article) => article.id);
-        const remainingIds = articleIds.filter((id) => !foundIds.includes(id));
-
-        if (remainingIds.length > 0) {
-          const batchSize = 10;
-
-          for (let i = 0; i < remainingIds.length; i += batchSize) {
-            const batch = remainingIds.slice(i, i + batchSize);
-            const batchQuery = query(
-              collection(db, "articles"),
-              where("__name__", "in", batch)
-            );
-
-            const batchSnapshot = await getDocs(batchQuery);
-            const articlesFromBatch = batchSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-              collection: "articles",
-            }));
-
-            allArticles = [...allArticles, ...articlesFromBatch];
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching from articles collection:", err);
-      }
-
-      // Combine with favorite data to keep track of the favorite ID
       const articlesWithFavoriteInfo = allArticles.map((article) => {
         const favorite = favoritesData.find(
           (fav) => fav.articleId === article.id
