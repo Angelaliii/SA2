@@ -1,5 +1,3 @@
-"use client";
-
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
 import HomeIcon from "@mui/icons-material/Home";
@@ -32,7 +30,7 @@ import { auth } from "../firebase/config";
 import { authServices } from "../firebase/services/auth-service";
 import { clubServices } from "../firebase/services/club-service";
 import { companyServices } from "../firebase/services/company-service";
-import useHydration from "../hooks/useHydration";
+import { ClientOnly } from "../hooks/useHydration";
 
 const pages = [
   { name: "首頁", path: "/", icon: <HomeIcon /> },
@@ -61,14 +59,7 @@ export default function Navbar({
   );
   const greeting = "您好，";
 
-  // Use the hydration hook to safely handle client-side rendering
-  const isMounted = useHydration();
-
-  // 使用useEffect直接處理身份驗證，不需要isClient檢查
   useEffect(() => {
-    // Only run authentication logic after component is mounted on client
-    if (!isMounted) return;
-
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
       if (user) {
@@ -110,7 +101,7 @@ export default function Navbar({
     });
 
     return () => unsubscribe();
-  }, [isMounted]);
+  }, []);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorElNav(event.currentTarget);
@@ -132,40 +123,38 @@ export default function Navbar({
     }
   };
 
-  // 初始載入時展示最基本的靜態內容，避免水合不匹配
-  if (!isMounted) {
-    return (
-      <Box sx={{ flexGrow: 1, position: "fixed", width: "100%", zIndex: 1201 }}>
-        <AppBar
-          position="static"
-          sx={{ boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}
-        >
-          <Container maxWidth="xl">
-            <Toolbar disableGutters>
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{
-                  flexGrow: 1,
-                  fontWeight: 700,
-                  letterSpacing: ".1rem",
-                  color: "inherit",
-                }}
-              >
-                社團企業媒合平台
-              </Typography>
-              <IconButton color="inherit" sx={{ ml: 1, p: 1 }}>
-                <AccountCircleIcon />
-              </IconButton>
-            </Toolbar>
-          </Container>
-        </AppBar>
-      </Box>
-    );
-  }
+  // Basic navbar layout that will be rendered both on server and client
+  const baseNavbar = (
+    <Box sx={{ flexGrow: 1, position: "fixed", width: "100%", zIndex: 1201 }}>
+      <AppBar
+        position="static"
+        sx={{ boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}
+      >
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                flexGrow: 1,
+                fontWeight: 700,
+                letterSpacing: ".1rem",
+                color: "inherit",
+              }}
+            >
+              社團企業媒合平台
+            </Typography>
+            <IconButton color="inherit" sx={{ ml: 1, p: 1 }}>
+              <AccountCircleIcon />
+            </IconButton>
+          </Toolbar>
+        </Container>
+      </AppBar>
+    </Box>
+  );
 
-  // 完全客戶端渲染的內容
-  return (
+  // Full interactive navbar for the client
+  const fullNavbar = (
     <AppBar
       position="fixed"
       sx={{
@@ -422,4 +411,6 @@ export default function Navbar({
       </Dialog>
     </AppBar>
   );
+
+  return <ClientOnly fallback={baseNavbar}>{fullNavbar}</ClientOnly>;
 }

@@ -664,6 +664,24 @@ export default function DemandListPage() {
                           來自：{post.organizationName ?? "未知組織"}
                         </Typography>
 
+                        {/* 新增物資需求說明 */}
+                        {post.demandDescription && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              mb: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                            }}
+                          >
+                            物資需求說明：{post.demandDescription}
+                          </Typography>
+                        )}
+
                         <Typography variant="caption" color="text.secondary">
                           發布時間：
                           {post.createdAt
