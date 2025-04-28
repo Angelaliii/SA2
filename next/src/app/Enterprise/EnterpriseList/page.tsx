@@ -120,11 +120,17 @@ export default function EnterpriseListPage() {
           userId,
           articleId: postId,
           createdAt: new Date().toISOString(),
-          postType: "enterprise"
+          postType: "enterprise",
+          title: post.title,
+          content: post.content,
+          companyName: post.companyName || "未知企業"
         };
 
         await setDoc(doc(collection(db, "favorites")), favoriteData);
         setFavorites((prev) => ({ ...prev, [postId]: true }));
+        
+        // 顯示簡短提示而不跳轉頁面
+        alert("已成功加入收藏！");
       } else {
         // 取消收藏
         const favoriteDoc = snapshot.docs[0];

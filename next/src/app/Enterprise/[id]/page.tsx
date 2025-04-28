@@ -1,15 +1,17 @@
 "use client";
 
-import { Box, Container, Paper, Typography, CircularProgress, Button } from "@mui/material";
+import { Box, Container, Paper, Typography, CircularProgress, Button, IconButton, Tooltip, Snackbar, Alert } from "@mui/material";
 import BusinessIcon from '@mui/icons-material/Business';
 import EmailIcon from '@mui/icons-material/Email';
 import DescriptionIcon from '@mui/icons-material/Description';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import Link from '@mui/material/Link';
 import Navbar from "../../../components/Navbar";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../../firebase/config";
+import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../../../firebase/config";
 
 interface EnterprisePost {
   id: string;
@@ -25,7 +27,36 @@ export default function EnterpriseDetailPage() {
   const { id } = useParams();
   const [post, setPost] = useState<EnterprisePost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const router = useRouter();
 
+  // 檢查用戶是否已收藏該文章
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!auth.currentUser || !id) return;
+      
+      try {
+        const q = query(
+          collection(db, "favorites"),
+          where("userId", "==", auth.currentUser.uid),
+          where("articleId", "==", id)
+        );
+        
+        const snapshot = await getDocs(q);
+        setIsFavorite(!snapshot.empty);
+      } catch (error) {
+        console.error("Error checking favorite status:", error);
+      }
+    };
+    
+    checkFavoriteStatus();
+  }, [id]);
+
+  // 獲取文章詳情
   useEffect(() => {
     const fetchPost = async () => {
       if (!id) return;
@@ -55,6 +86,68 @@ export default function EnterpriseDetailPage() {
 
     fetchPost();
   }, [id]);
+
+  // 處理收藏功能
+  const handleToggleFavorite = async () => {
+    if (!auth.currentUser) {
+      setSnackbarMessage("請先登入後再進行收藏");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    if (!id || !post) return;
+    
+    setFavoriteLoading(true);
+    
+    try {
+      const userId = auth.currentUser.uid;
+      
+      // 檢查是否已收藏
+      const q = query(
+        collection(db, "favorites"),
+        where("userId", "==", userId),
+        where("articleId", "==", id)
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      // 目前未收藏，進行收藏
+      if (snapshot.empty) {
+        const favoriteData = {
+          userId,
+          articleId: id,
+          postType: "enterprise",
+          title: post.title,
+          companyName: post.companyName,
+          content: post.content,
+          createdAt: new Date().toISOString(),
+        };
+        
+        await setDoc(doc(collection(db, "favorites")), favoriteData);
+        setIsFavorite(true);
+        setSnackbarMessage("已成功加入收藏！");
+        setSnackbarSeverity("success");
+        setSnackbarOpen(true);
+      } 
+      // 已收藏，取消收藏
+      else {
+        const docToDelete = snapshot.docs[0];
+        await deleteDoc(doc(db, "favorites", docToDelete.id));
+        setIsFavorite(false);
+        setSnackbarMessage("已取消收藏");
+        setSnackbarSeverity("success");
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error("收藏操作失敗:", error);
+      setSnackbarMessage("操作失敗，請稍後再試");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   const formatDate = (timestamp: string | Date | null | undefined) => {
     if (!timestamp) return "無日期";
@@ -195,12 +288,33 @@ export default function EnterpriseDetailPage() {
                 </Typography>
               )}
               <Box sx={{ mt: 2 }}>
-              
+                <Tooltip title={isFavorite ? "取消收藏" : "加入收藏"}>
+                  <IconButton 
+                    color="primary" 
+                    onClick={handleToggleFavorite} 
+                    disabled={favoriteLoading}
+                  >
+                    {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                  </IconButton>
+                </Tooltip>
               </Box>
             </Box>
           </Paper>
         </Container>
       </Box>
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={6000} 
+        onClose={() => setSnackbarOpen(false)}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
