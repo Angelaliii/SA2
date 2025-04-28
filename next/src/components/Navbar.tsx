@@ -136,7 +136,13 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
   };
 
   return (
-    <AppBar position="fixed">
+    <AppBar 
+      position="fixed" 
+      sx={{ 
+        zIndex: (theme) => theme.zIndex.drawer + 1, 
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)' 
+      }}
+    >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Logo & Menu */}
@@ -181,6 +187,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               onClose={handleCloseNavMenu}
               sx={{
                 display: { xs: "block", md: "none" },
+                mt: 1, // 添加下拉菜單的頂部邊距
               }}
             >
               {pages.map((page) => (
