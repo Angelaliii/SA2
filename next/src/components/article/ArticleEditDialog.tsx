@@ -79,7 +79,7 @@ export default function ArticleEditDialog({
       setIsLoading(true);
 
       // 從 article 數據中設置初始值
-      setTitle(article.title || "");
+      setTitle(article.title ?? "");
 
       // 獲取完整的文章數據
       getPostById(article.id)
@@ -87,20 +87,20 @@ export default function ArticleEditDialog({
           if (fullArticle) {
             // 基本欄位
             setTitle(fullArticle.title || "");
-            setOrganizationName(fullArticle.organizationName || "");
-            setEmail(fullArticle.email || "");
+            setOrganizationName(fullArticle.organizationName ?? "");
+            setEmail(fullArticle.email ?? "");
 
             // 需求欄位
             setSelectedDemands(fullArticle.selectedDemands || []);
-            setDemandDescription(fullArticle.demandDescription || "");
-            setCooperationReturn(fullArticle.cooperationReturn || "");
+            setDemandDescription(fullArticle.demandDescription ?? "");
+            setCooperationReturn(fullArticle.cooperationReturn ?? "");
 
             // 活動相關
-            setEventName(fullArticle.eventName || "");
-            setEventType(fullArticle.eventType || "");
-            setEventDate(fullArticle.eventDate || "");
-            setEventDescription(fullArticle.eventDescription || "");
-            setEstimatedParticipants(fullArticle.estimatedParticipants || "");
+            setEventName(fullArticle.eventName ?? "");
+            setEventType(fullArticle.eventType ?? "");
+            setEventDate(fullArticle.eventDate ?? "");
+            setEventDescription(fullArticle.eventDescription ?? "");
+            setEstimatedParticipants(fullArticle.estimatedParticipants ?? "");
           }
         })
         .catch((error) => {

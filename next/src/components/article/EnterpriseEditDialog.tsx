@@ -29,9 +29,9 @@ export default function EnterpriseEditDialog({
 
   useEffect(() => {
     if (open && announcement) {
-      setTitle(announcement.title || "");
-      setContent(announcement.content || "");
-      setEmail(announcement.email || "");
+      setTitle(announcement.title ?? "");
+      setContent(announcement.content ?? "");
+      setEmail(announcement.email ?? "");
     }
   }, [open, announcement]);
 

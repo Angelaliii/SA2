@@ -45,7 +45,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(
-    companyData.logoURL || null
+    companyData.logoURL ?? null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof Company, string>>>(
@@ -182,7 +182,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               margin="normal"
               required
               error={!!errors.industryType}
-              helperText={errors.industryType || "請選擇最接近貴公司的產業類型"}
+              helperText={errors.industryType ?? "請選擇最接近貴公司的產業類型"}
             >
               {industryTypes.map((option) => (
                 <MenuItem key={option} value={option}>

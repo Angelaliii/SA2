@@ -59,7 +59,7 @@ export default function NotificationsPage() {
         const messagesQuery = query(
           collection(db, "messages"),
           where("receiverId", "==", user.uid),
-          orderBy("timestamp", "desc") // 依照時間遞減排序
+          orderBy("timestamp", "desc")
         );
         const querySnapshot = await getDocs(messagesQuery);
 
@@ -71,7 +71,6 @@ export default function NotificationsPage() {
             let postTitle = "";
 
             try {
-              // 先查詢社團資料
               const clubSnap = await getDocs(
                 query(
                   collection(db, "clubs"),
@@ -81,7 +80,6 @@ export default function NotificationsPage() {
               if (!clubSnap.empty) {
                 senderName = clubSnap.docs[0].data().clubName;
               } else {
-                // 如果不是社團，查詢企業資料
                 const companySnap = await getDocs(
                   query(
                     collection(db, "companies"),
@@ -91,7 +89,6 @@ export default function NotificationsPage() {
                 if (!companySnap.empty) {
                   senderName = companySnap.docs[0].data().companyName;
                 } else {
-                  // 如果都沒找到，使用寄件者 ID
                   senderName = data.senderId;
                 }
               }
@@ -300,7 +297,7 @@ export default function NotificationsPage() {
                             <Typography
                               fontWeight={msg.isRead ? "normal" : "bold"}
                             >
-                              {msg.senderName || msg.senderId}
+                              {msg.senderName ?? msg.senderId}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               {formatDate(msg.timestamp)}

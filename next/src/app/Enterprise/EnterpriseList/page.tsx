@@ -232,13 +232,10 @@ export default function EnterpriseListPage() {
               placeholder="搜尋企業名稱或合作內容..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              // Use modern approach instead of deprecated InputProps
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />
-                  ),
-                },
+              InputProps={{
+                startAdornment: (
+                  <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />
+                ),
               }}
               sx={{ bgcolor: "background.paper" }}
             />
