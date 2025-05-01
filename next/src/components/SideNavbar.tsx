@@ -155,7 +155,7 @@ export default function SideNavbar({
             position: "fixed",
             top: { xs: "56px", sm: "64px" }, // 根據 MUI AppBar 的高度調整
             height: "calc(100% - 64px)",
-            overflowY: "auto",
+            overflowY: "hidden", // Changed from 'auto' to 'hidden' to remove scrollbar
             backgroundColor: theme.palette.background.default,
             zIndex: theme.zIndex.drawer,
           },

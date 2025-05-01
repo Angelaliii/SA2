@@ -61,6 +61,7 @@ export default function FavoriteArticlesManager() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string>("全部");
 
   // Only render on the client side to prevent hydration errors
   useEffect(() => {
@@ -104,10 +105,7 @@ export default function FavoriteArticlesManager() {
             for (const id of batch) {
               try {
                 const postDoc = await getDocs(
-                  query(
-                    collection(db, "posts"),
-                    where("__name__", "==", id)
-                  )
+                  query(collection(db, "posts"), where("__name__", "==", id))
                 );
 
                 if (!postDoc.empty) {
@@ -141,7 +139,10 @@ export default function FavoriteArticlesManager() {
           }
         }
       } catch (err) {
-        console.error("Error fetching from posts or enterprisePosts collection:", err);
+        console.error(
+          "Error fetching from posts or enterprisePosts collection:",
+          err
+        );
       }
 
       const articlesWithFavoriteInfo = allArticles.map((article) => {
@@ -213,11 +214,36 @@ export default function FavoriteArticlesManager() {
 
   return (
     <>
+      {" "}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
           我的收藏
         </Typography>
         <Divider sx={{ mb: 2 }} />
+
+        {/* Add tag filter buttons */}
+        <Box sx={{ display: "flex", gap: 1, my: 2, flexWrap: "wrap" }}>
+          <Chip
+            label="全部"
+            color={selectedTag === "全部" ? "primary" : "default"}
+            onClick={() => setSelectedTag("全部")}
+            sx={{ fontWeight: selectedTag === "全部" ? "bold" : "normal" }}
+          />
+          <Chip
+            label="需求文章"
+            color={selectedTag === "demand" ? "primary" : "default"}
+            onClick={() => setSelectedTag("demand")}
+            sx={{ fontWeight: selectedTag === "demand" ? "bold" : "normal" }}
+          />
+          <Chip
+            label="企業公告"
+            color={selectedTag === "enterprise" ? "primary" : "default"}
+            onClick={() => setSelectedTag("enterprise")}
+            sx={{
+              fontWeight: selectedTag === "enterprise" ? "bold" : "normal",
+            }}
+          />
+        </Box>
 
         {articles.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 4 }}>
@@ -237,127 +263,137 @@ export default function FavoriteArticlesManager() {
               sx={{ mt: 3 }}
             >
               瀏覽需求牆
-            </Button>
+            </Button>{" "}
           </Box>
         ) : (
           <Stack spacing={2}>
-            {articles.map((article, index) => (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                key={article.id}
-              >
-                <Card
-                  sx={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    borderRadius: 2,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
-                    },
-                  }}
+            {articles
+              .filter(
+                (article) =>
+                  selectedTag === "全部" || article.postType === selectedTag
+              )
+              .map((article, index) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  key={article.id}
                 >
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography
-                      variant="h6"
-                      component="div"
-                      gutterBottom
-                      sx={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        lineHeight: 1.3,
-                        height: "2.6em",
-                      }}
-                    >
-                      {article.title ?? "(未命名文章)"}
-                    </Typography>
-
-                    <Box sx={{ mb: 1.5 }}>
-                      <Chip
-                        size="small"
-                        label={
-                          article.postType === "demand"
-                            ? "需求文章"
-                            : article.postType ?? "一般文章"
-                        }
-                        color="primary"
-                        variant="outlined"
-                      />
-                      {article.tags && article.tags.length > 0 && (
+                  <Card
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      borderRadius: 2,
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
+                      },
+                    }}
+                  >
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Typography
+                        variant="h6"
+                        component="div"
+                        gutterBottom
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          lineHeight: 1.3,
+                          height: "2.6em",
+                        }}
+                      >
+                        {article.title ?? "(未命名文章)"}
+                      </Typography>
+                      <Box sx={{ mb: 1.5 }}>
                         <Chip
                           size="small"
-                          label={article.tags[0]}
-                          sx={{ ml: 0.5 }}
+                          label={
+                            article.postType === "demand"
+                              ? "需求文章"
+                              : article.postType ?? "一般文章"
+                          }
+                          color="primary"
+                          variant="outlined"
                         />
-                      )}
-                    </Box>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        mb: 1,
-                        height: "2.5em",
-                      }}
-                    >
-                      {article.content ?? "無內容預覽"}
-                    </Typography>
-
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        作者:{" "}
-                        {article.authorName ?? article.author ?? "未知作者"}
-                      </Typography>
+                        {article.tags && article.tags.length > 0 && (
+                          <Chip
+                            size="small"
+                            label={article.tags[0]}
+                            sx={{ ml: 0.5 }}
+                          />
+                        )}
+                      </Box>
                       <Typography
-                        variant="caption"
+                        variant="body2"
                         color="text.secondary"
-                        display="block"
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          mb: 1,
+                          height: "2.5em",
+                        }}
                       >
-                        發布日期: {formatDate(article.createdAt)}
-                      </Typography>
-                    </Box>
-                  </CardContent>
+                        {article.content ?? "無內容預覽"}
+                      </Typography>{" "}
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          作者:{" "}
+                          {article.companyName ||
+                            article.authorName ||
+                            article.organizationName ||
+                            article.author ||
+                            "未知作者"}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
+                          發布日期: {formatDate(article.createdAt)}
+                        </Typography>
+                      </Box>
+                    </CardContent>
 
-                  <CardActions
-                    sx={{ justifyContent: "space-between", p: 1.5, pt: 0 }}
-                  >
-                    <Button
-                      size="small"
-                      color="primary"
-                      component={Link}
-                      href={`/Artical/${article.id}`}
-                      startIcon={<VisibilityIcon />}
+                    <CardActions
+                      sx={{ justifyContent: "space-between", p: 1.5, pt: 0 }}
                     >
-                      查看
-                    </Button>
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => handleRemoveFavorite(article)}
-                      title="移除收藏"
-                    >
-                      <BookmarkIcon fontSize="small" />
-                    </IconButton>
-                  </CardActions>
-                </Card>
-              </motion.div>
-            ))}
+                      {" "}
+                      <Button
+                        size="small"
+                        color="primary"
+                        component={Link}
+                        href={
+                          article.collection === "enterprisePosts"
+                            ? `/Enterprise/${article.id}`
+                            : `/Artical/${article.id}`
+                        }
+                        startIcon={<VisibilityIcon />}
+                      >
+                        查看
+                      </Button>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleRemoveFavorite(article)}
+                        title="移除收藏"
+                      >
+                        <BookmarkIcon fontSize="small" />
+                      </IconButton>
+                    </CardActions>
+                  </Card>
+                </motion.div>
+              ))}
           </Stack>
         )}
       </Box>
-
       {/* Success/Error Snackbar */}
       <Snackbar
         open={!!success}
@@ -368,7 +404,6 @@ export default function FavoriteArticlesManager() {
           {success}
         </Alert>
       </Snackbar>
-
       <Snackbar
         open={!!error}
         autoHideDuration={3000}

@@ -1,11 +1,9 @@
-"use client";
-
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
+import HomeIcon from "@mui/icons-material/Home";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import HomeIcon from '@mui/icons-material/Home';
 import {
   AppBar,
   Avatar,
@@ -32,17 +30,14 @@ import { auth } from "../firebase/config";
 import { authServices } from "../firebase/services/auth-service";
 import { clubServices } from "../firebase/services/club-service";
 import { companyServices } from "../firebase/services/company-service";
+import { ClientOnly } from "../hooks/useHydration";
 
 const pages = [
   { name: "首頁", path: "/", icon: <HomeIcon /> },
-  { name: "發布企業公告", path: "/Enterprise" },
   { name: "企業牆", path: "/Enterprise/EnterpriseList" },
-  { name: "企業列表", path: "/CompanyList" },
-  { name: "發布需求", path: "/Artical" },
   { name: "需求牆", path: "/Artical/DemandList" },
   { name: "個人資料", path: "/Profile" },
   { name: "活動資訊", path: "/Activities" },
-  { name: "通知中心", path: "/messages" },
 ];
 
 const userOptions = [
@@ -51,64 +46,57 @@ const userOptions = [
   { name: "社團註冊", path: "/ClubRegister" },
 ];
 
-export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
+export default function Navbar({
+  hasUnread = false,
+}: Readonly<{ hasUnread?: boolean }>) {
   const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [greeting, setGreeting] = useState("您好，");
+  const [userType, setUserType] = useState<"club" | "company" | "unknown">(
+    "unknown"
+  );
+  const greeting = "您好，";
 
   useEffect(() => {
-    const greetings = [
-      "您好，",
-      "歡迎回來，",
-      "很高興見到您，",
-      "哈囉，",
-      "今天過得如何，",
-      "今天真是美好，",
-      "準備好探索了嗎，",
-      "嗨！",
-    ];
-
-    if (typeof window !== "undefined") {
-      const randomIndex = Math.floor(Math.random() * greetings.length);
-      setGreeting(greetings[randomIndex]);
-    }
-
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
       if (user) {
         try {
-          const clubs = await clubServices.getAllClubs();
-          const userClub = clubs.find((club) => club.userId === user.uid);
-
-          if (userClub) {
-            setUserName(userClub.clubName);
+          // Try to find user in clubs collection first
+          const clubData = await clubServices.getClubByUserId(user.uid);
+          if (clubData) {
+            setUserName(clubData.clubName);
+            setUserType("club");
             return;
           }
 
-          const companies = await companyServices.getAllCompanies();
-          const userCompany = companies.find(
-            (company) => company.id === user.uid
+          // If not found in clubs, try to find in companies collection
+          const companies = await companyServices.getCompaniesByUserId(
+            user.uid
           );
-
-          if (userCompany) {
-            setUserName(userCompany.companyName);
+          if (companies && companies.length > 0) {
+            setUserName(companies[0].companyName);
+            setUserType("company");
             return;
           }
 
+          // If still not found, use default display name
           const displayName =
             user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
           setUserName(displayName);
+          setUserType("unknown");
         } catch (error) {
           console.error("無法獲取組織名稱:", error);
           const displayName =
             user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
           setUserName(displayName);
+          setUserType("unknown");
         }
       } else {
         setUserName(null);
+        setUserType("unknown");
       }
     });
 
@@ -135,12 +123,43 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
     }
   };
 
-  return (
-    <AppBar 
-      position="fixed" 
-      sx={{ 
-        zIndex: (theme) => theme.zIndex.drawer + 1, 
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)' 
+  // Basic navbar layout that will be rendered both on server and client
+  const baseNavbar = (
+    <Box sx={{ flexGrow: 1, position: "fixed", width: "100%", zIndex: 1201 }}>
+      <AppBar
+        position="static"
+        sx={{ boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}
+      >
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                flexGrow: 1,
+                fontWeight: 700,
+                letterSpacing: ".1rem",
+                color: "inherit",
+              }}
+            >
+              社團企業媒合平台
+            </Typography>
+            <IconButton color="inherit" sx={{ ml: 1, p: 1 }}>
+              <AccountCircleIcon />
+            </IconButton>
+          </Toolbar>
+        </Container>
+      </AppBar>
+    </Box>
+  );
+
+  // Full interactive navbar for the client
+  const fullNavbar = (
+    <AppBar
+      position="fixed"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
       }}
     >
       <Container maxWidth="xl">
@@ -162,7 +181,6 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
           >
             社團企業媒合平台
           </Typography>
-
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
@@ -187,7 +205,7 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
               onClose={handleCloseNavMenu}
               sx={{
                 display: { xs: "block", md: "none" },
-                mt: 1, // 添加下拉菜單的頂部邊距
+                mt: 1,
               }}
             >
               {pages.map((page) => (
@@ -216,6 +234,28 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                   </Typography>
                 </MenuItem>
               ))}
+              {isLoggedIn && userType === "company" && (
+                <MenuItem
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/Enterprise"
+                >
+                  <Typography textAlign="center" component="span">
+                    發布企業公告
+                  </Typography>
+                </MenuItem>
+              )}
+              {isLoggedIn && userType === "club" && (
+                <MenuItem
+                  onClick={handleCloseNavMenu}
+                  component={Link}
+                  href="/Artical"
+                >
+                  <Typography textAlign="center" component="span">
+                    發布需求
+                  </Typography>
+                </MenuItem>
+              )}
             </Menu>
           </Box>
 
@@ -248,24 +288,29 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
                 onClick={handleCloseNavMenu}
                 sx={{ color: "white", mx: 0.5, height: 40, minWidth: 40 }}
               >
-                {page.name === "通知中心" ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Badge
-                      color="error"
-                      variant="dot"
-                      overlap="circular"
-                      invisible={!hasUnread}
-                    >
-                      <NotificationsIcon />
-                    </Badge>
-                  </Box>
-                ) : page.name === "首頁" ? (
-                  <HomeIcon />
-                ) : (
-                  page.name
-                )}
+                {page.name}
               </Button>
             ))}
+            {isLoggedIn && userType === "company" && (
+              <Button
+                component={Link}
+                href="/Enterprise"
+                onClick={handleCloseNavMenu}
+                sx={{ color: "white", mx: 0.5, height: 40 }}
+              >
+                發布企業公告
+              </Button>
+            )}
+            {isLoggedIn && userType === "club" && (
+              <Button
+                component={Link}
+                href="/Artical"
+                onClick={handleCloseNavMenu}
+                sx={{ color: "white", mx: 0.5, height: 40 }}
+              >
+                發布需求
+              </Button>
+            )}
           </Box>
 
           {/* User Greeting */}
@@ -309,17 +354,11 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
 
           {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
-            <IconButton
-              onClick={handleOpenUserMenu}
-              sx={{ p: 0 }}
-            >
-              <Avatar
-                sx={{ bgcolor: isLoggedIn ? "secondary.main" : "inherit" }}
-              >
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+              <Avatar sx={{ bgcolor: "secondary.main" }}>
                 <AccountCircleIcon />
               </Avatar>
             </IconButton>
-
             <Menu
               sx={{ mt: "45px" }}
               anchorEl={anchorElUser}
@@ -372,4 +411,6 @@ export default function Navbar({ hasUnread = false }: { hasUnread?: boolean }) {
       </Dialog>
     </AppBar>
   );
+
+  return <ClientOnly fallback={baseNavbar}>{fullNavbar}</ClientOnly>;
 }

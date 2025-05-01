@@ -31,6 +31,7 @@ export interface Company {
   businessCertificateURL?: string;
   status: string;
   registrationDate: string;
+  userId?: string; // 添加 userId 屬性
 }
 
 // Define a function to convert Firestore timestamp to string
@@ -61,16 +62,16 @@ export const companyServices = {
         const data = doc.data();
         return {
           id: doc.id,
-          companyName: data.companyName || "",
-          businessId: data.businessId || "",
-          industryType: data.industryType || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          email: data.email || "",
-          companyDescription: data.companyDescription || "",
+          companyName: data.companyName ?? "",
+          businessId: data.businessId ?? "",
+          industryType: data.industryType ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          email: data.email ?? "",
+          companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status || "pending",
+          status: data.status ?? "pending",
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -94,16 +95,16 @@ export const companyServices = {
         const data = docSnap.data();
         return {
           id: docSnap.id,
-          companyName: data.companyName || "",
-          businessId: data.businessId || "",
-          industryType: data.industryType || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          email: data.email || "",
-          companyDescription: data.companyDescription || "",
+          companyName: data.companyName ?? "",
+          businessId: data.businessId ?? "",
+          industryType: data.industryType ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          email: data.email ?? "",
+          companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status || "pending",
+          status: data.status ?? "pending",
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -132,16 +133,16 @@ export const companyServices = {
         const data = doc.data();
         return {
           id: doc.id,
-          companyName: data.companyName || "",
-          businessId: data.businessId || "",
-          industryType: data.industryType || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          email: data.email || "",
-          companyDescription: data.companyDescription || "",
+          companyName: data.companyName ?? "",
+          businessId: data.businessId ?? "",
+          industryType: data.industryType ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          email: data.email ?? "",
+          companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status || "pending",
+          status: data.status ?? "pending",
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -166,9 +167,8 @@ export const companyServices = {
       const querySnapshot = await getDocs(companiesQuery);
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       })) as Company[];
-      
     } catch (error) {
       console.error("Error getting companies by user ID:", error);
       return [];

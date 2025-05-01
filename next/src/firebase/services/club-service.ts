@@ -194,7 +194,6 @@ export const clubServices = {
       throw error;
     }
   },
-
   // Delete club
   deleteClub: async (id: string): Promise<void> => {
     try {
@@ -203,6 +202,44 @@ export const clubServices = {
     } catch (error) {
       console.error("Error deleting club:", error);
       throw error;
+    }
+  },
+
+  // Get club by user ID
+  getClubByUserId: async (userId: string): Promise<Club | null> => {
+    try {
+      const clubsQuery = query(
+        collection(db, CLUBS_COLLECTION),
+        where("userId", "==", userId)
+      );
+      const querySnapshot = await getDocs(clubsQuery);
+
+      if (querySnapshot.empty) {
+        return null;
+      }
+
+      const doc = querySnapshot.docs[0];
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        clubName: data.clubName || "",
+        schoolName: data.schoolName || "",
+        clubType: data.clubType || "",
+        email: data.email || "",
+        contactName: data.contactName || "",
+        contactPhone: data.contactPhone || "",
+        clubDescription: data.clubDescription || "",
+        logoURL: data.logoURL || "",
+        status: data.status || "pending",
+        registrationDate: data.registrationDate
+          ? convertTimestampToString(data.registrationDate)
+          : new Date().toISOString(),
+        userId: data.userId || "",
+      };
+    } catch (error) {
+      console.error("Error getting club by user ID:", error);
+      return null;
     }
   },
 };

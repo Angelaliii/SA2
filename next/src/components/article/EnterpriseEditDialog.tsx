@@ -1,6 +1,13 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
-import React, { useState, useEffect } from "react";
-import { enterpriseService } from "../../firebase/services/enterprise-service";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import enterpriseService from "../../firebase/services/enterprise-service";
 
 type EnterpriseEditDialogProps = {
   open: boolean;
@@ -17,12 +24,14 @@ export default function EnterpriseEditDialog({
 }: EnterpriseEditDialogProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open && announcement) {
       setTitle(announcement.title || "");
       setContent(announcement.content || "");
+      setEmail(announcement.email || "");
     }
   }, [open, announcement]);
 
@@ -34,9 +43,11 @@ export default function EnterpriseEditDialog({
 
     setLoading(true);
     try {
+      // 只更新標題、內容和電子郵件
       await enterpriseService.updatePost(announcement.id, {
         title,
         content,
+        email,
       });
       onSuccess();
     } catch (error) {
@@ -59,6 +70,15 @@ export default function EnterpriseEditDialog({
           onChange={(e) => setTitle(e.target.value)}
           required
           sx={{ mb: 3, mt: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="聯絡電子郵件"
+          variant="outlined"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          sx={{ mb: 3 }}
         />
         <TextField
           fullWidth

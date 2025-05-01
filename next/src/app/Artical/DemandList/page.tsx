@@ -26,17 +26,17 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  orderBy,
   query,
   setDoc,
   where,
-  orderBy,
 } from "firebase/firestore";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { scrollToTop } from "../../../utils/clientUtils";
 
 // Add interfaces for proper typing
 interface Post {
@@ -54,9 +54,13 @@ interface Post {
   location?: string;
   isDraft?: boolean;
   cooperationReturn?: string;
-  createdAt?: string;
-  eventType?: string; // 添加缺失的 eventType 欄位
-  deleted?: boolean; // 添加缺失的 deleted 欄位
+  createdAt: string;
+  eventType?: string;
+  deleted?: boolean;
+  demandDescription?: string;
+  eventName?: string;
+  eventDescription?: string;
+  email?: string;
 }
 
 const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
@@ -73,7 +77,8 @@ export default function DemandListPage() {
     minParticipants: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>("全部");
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  const [selectedTag] = useState<string>("全部");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每頁顯示8筆資料
@@ -106,265 +111,98 @@ export default function DemandListPage() {
 
     fetchFavorites();
   }, []);
-
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        // 使用直接的 orderBy 查詢，避免手動排序的不一致性
-        // 注意：這需要 Firestore 索引支持
+        // First try - Using compound index
         try {
-          // 嘗試使用複合索引查詢（如果已建立索引）
           const indexedQuery = query(
             collection(db, "posts"),
             where("postType", "==", "demand"),
             where("isDraft", "==", false),
             orderBy("createdAt", "desc")
           );
-          
+
           const indexedSnapshot = await getDocs(indexedQuery);
-          console.log(`使用索引查詢成功獲取 ${indexedSnapshot.docs.length} 篇文章`);
-          
-          // 轉換資料並設定到狀態
-          const results = indexedSnapshot.docs
-            .filter(doc => !doc.data().deleted) // 過濾掉已刪除的文章
-            .map(doc => {
+          console.log(
+            `使用索引查詢成功獲取 ${indexedSnapshot.docs.length} 篇文章`
+          );
+
+          // Convert document data to Post objects
+          const results: Post[] = indexedSnapshot.docs
+            .filter((doc) => !doc.data().deleted)
+            .map((doc) => {
               const data = doc.data();
               return {
                 id: doc.id,
-                title: data.title || "(無標題)", // 確保 title 屬性存在
+                title: data.title ?? "(無標題)",
                 ...data,
-                // 確保 createdAt 是字串格式
-                createdAt: data.createdAt ? 
-                  (data.createdAt.toDate ? 
-                    data.createdAt.toDate().toISOString() : 
-                    typeof data.createdAt === 'string' ? 
-                      data.createdAt : 
-                      new Date(data.createdAt).toISOString()
-                  ) : 
-                  new Date().toISOString()
-              } as Post; // Explicitly type the object as Post
+                createdAt: formatCreatedAt(data),
+              } as Post;
             });
-          
-          console.log("使用索引直接排序的結果:");
-          results.forEach((post, idx) => 
-            console.log(`${idx + 1}. ${(post as Post).title} (${post.createdAt})`));
-          
-          // 應用額外的篩選條件
-          let filteredResults = [...results];
-          
-          // 需求物資類型篩選
-          if (filters.selectedDemand) {
-            filteredResults = filteredResults.filter(post => {
-              const typedPost = post as Post;
-              return Array.isArray(typedPost.selectedDemands) && 
-                typedPost.selectedDemands?.includes(filters.selectedDemand);
-            });
-            console.log(`過濾需求類型 "${filters.selectedDemand}" 後剩餘 ${filteredResults.length} 篇`);
-          }
-          
-          // 活動類型篩選
-          if (filters.selectedEventType) {
-            filteredResults = filteredResults.filter(post => 
-              (post as Post).eventType === filters.selectedEventType
-            );
-            console.log(`過濾活動類型 "${filters.selectedEventType}" 後剩餘 ${filteredResults.length} 篇`);
-          }
-          
-          // 日期範圍篩選
-          if (filters.startDate || filters.endDate) {
-            filteredResults = filteredResults.filter(post => {
-              if (!(post as Post).eventDate) return false;
-              
-              try {
-                const postDate = (post as Post).eventDate ? new Date(post.eventDate as string) : new Date(NaN);
-                if (isNaN(postDate.getTime())) return false;
-                
-                if (filters.startDate && filters.endDate) {
-                  const start = new Date(filters.startDate);
-                  const end = new Date(filters.endDate);
-                  end.setHours(23, 59, 59, 999); // 設為當天最後一毫秒
-                  return postDate >= start && postDate <= end;
-                } else if (filters.startDate) {
-                  const start = new Date(filters.startDate);
-                  return postDate >= start;
-                } else if (filters.endDate) {
-                  const end = new Date(filters.endDate);
-                  end.setHours(23, 59, 59, 999);
-                  return postDate <= end;
-                }
-              } catch (e) {
-                console.error("日期篩選出錯:", e);
-                return false;
-              }
-              
-              return false;
-            });
-            console.log(`過濾日期範圍後剩餘 ${filteredResults.length} 篇`);
-          }
-          
-          // 參與人數篩選
-          if (filters.minParticipants && filters.minParticipants !== "0") {
-            filteredResults = filteredResults.filter(post => {
-              try {
-                const minRequired = parseInt(filters.minParticipants);
-                const actual = parseInt((post as Post).estimatedParticipants || "0");
-                return !isNaN(actual) && actual >= minRequired;
-              } catch (e) {
-                return false;
-              }
-            });
-            console.log(`過濾最低參與人數 ${filters.minParticipants} 後剩餘 ${filteredResults.length} 篇`);
-          }
-          
-          // 搜尋詞篩選 (如果有)
-          if (searchTerm) {
-            filteredResults = filteredResults.filter(post => 
-              (post.title && post.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-              (post.content && post.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
-              (post.organizationName && post.organizationName.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-            console.log(`搜尋「${searchTerm}」後剩餘 ${filteredResults.length} 篇`);
-          }
-          
+
+          // Apply filters
+          const filteredResults = applyFilters(results);
+
           setPosts(filteredResults);
-          return; // 如果索引查詢成功，就不執行後續的備用查詢
+          setLoading(false);
+          return;
         } catch (indexError) {
           console.warn("索引查詢失敗，將使用備用查詢方法:", indexError);
         }
-        
-        // 備用查詢：不使用複合索引
+
+        // Backup query method
         console.log("使用備用查詢方法...");
         const backupQuery = query(
           collection(db, "posts"),
           where("postType", "==", "demand")
         );
-        
+
         const snapshot = await getDocs(backupQuery);
         console.log(`備用查詢獲取到 ${snapshot.docs.length} 篇需求文章`);
-        
-        // 將文檔資料轉換為文章物件
-        let results = snapshot.docs
-          .filter(doc => !doc.data().isDraft && !doc.data().deleted)
+
+        // Convert to Post objects
+        let results: Post[] = snapshot.docs
+          .filter((doc) => !doc.data().isDraft && !doc.data().deleted)
           .map((doc) => {
             const data = doc.data();
-            // 處理 createdAt 欄位，確保日期格式統一
-            let createdAtStr = null;
-            if (data.createdAt) {
-              if (data.createdAt.toDate) { // Firestore Timestamp
-                createdAtStr = data.createdAt.toDate().toISOString();
-              } else if (typeof data.createdAt === 'string') { // 已經是字串
-                createdAtStr = data.createdAt;
-              } else if (data.createdAt instanceof Date) { // Date 物件
-                createdAtStr = data.createdAt.toISOString();
-              } else {
-                // 嘗試轉換其他可能的格式
-                try {
-                  createdAtStr = new Date(data.createdAt).toISOString();
-                } catch (e) {
-                  console.error(`無法轉換文章 ${doc.id} 的日期:`, e);
-                }
-              }
-            }
-            
             return {
               id: doc.id,
               ...data,
-              createdAt: createdAtStr || new Date().toISOString() // 確保每篇文章都有 createdAt
-            };
+              createdAt: formatCreatedAt(data),
+            } as Post;
           });
-        
-        console.log(`過濾與轉換後的文章數: ${results.length}`);
-        
-        // 確保按創建時間排序（新的在上面）
+
+        // Sort by creation time (newest first)
         results.sort((a, b) => {
           if (!a.createdAt) return 1;
           if (!b.createdAt) return -1;
-          
+
           try {
             const dateA = new Date(a.createdAt).getTime();
             const dateB = new Date(b.createdAt).getTime();
-            
+
             if (isNaN(dateA)) return 1;
             if (isNaN(dateB)) return -1;
-            
+
             return dateB - dateA;
-          } catch (e) {
-            console.error("排序出錯:", e);
+          } catch (error) {
+            console.error("排序出錯:", error);
             return 0;
           }
         });
-        
-        console.log("排序後前5篇文章:");
-        results.slice(0, 5).forEach((post, idx) => 
-          console.log(`${idx + 1}. ${(post as Post).title} (${post.createdAt})`));
-        
-        // 應用篩選條件
-        let filteredResults = [...results];
-        
-        // 需求物資類型篩選
-        if (filters.selectedDemand) {
-          filteredResults = filteredResults.filter((post: Post) => 
-            Array.isArray(post.selectedDemands) && 
-            post.selectedDemands?.includes(filters.selectedDemand)
-          );
-        }
-        
-        // 活動類型篩選
-        if (filters.selectedEventType) {
-          filteredResults = filteredResults.filter(post => 
-            (post as Post).eventType === filters.selectedEventType
-          );
-        }
-        
-        // 日期範圍篩選
-        if (filters.startDate || filters.endDate) {
-          filteredResults = filteredResults.filter(post => {
-            if (!(post as Post).eventDate) return false;
-            
-            try {
-              const postDate = new Date((post as Post).eventDate ?? NaN);
-              if (isNaN(postDate.getTime())) return false;
-              
-              if (filters.startDate && filters.endDate) {
-                const start = new Date(filters.startDate);
-                const end = new Date(filters.endDate);
-                end.setHours(23, 59, 59, 999);
-                return postDate >= start && postDate <= end;
-              } else if (filters.startDate) {
-                const start = new Date(filters.startDate);
-                return postDate >= start;
-              } else if (filters.endDate) {
-                const end = new Date(filters.endDate);
-                end.setHours(23, 59, 59, 999);
-                return postDate <= end;
-              }
-            } catch (e) {
-              return false;
-            }
-            
-            return false;
-          });
-        }
-        
-        // 參與人數篩選
-        if (filters.minParticipants && filters.minParticipants !== "0") {
-          filteredResults = filteredResults.filter(post => {
-            try {
-              const minRequired = parseInt(filters.minParticipants);
-              const actual = parseInt((post as Post).estimatedParticipants || "0");
-              return !isNaN(actual) && actual >= minRequired;
-            } catch (e) {
-              return false;
-            }
-          });
-        }
-        
+
+        // Apply filters
+        const filteredResults = applyFilters(results);
+
         setPosts(filteredResults);
-        
-        // 重置頁碼（如果必要）
-        if (filteredResults.length > 0 && 
-            Math.ceil(filteredResults.length / itemsPerPage) < currentPage) {
+
+        // Reset page number if needed
+        if (
+          filteredResults.length > 0 &&
+          Math.ceil(filteredResults.length / itemsPerPage) < currentPage
+        ) {
           setCurrentPage(1);
         }
       } catch (err) {
@@ -385,48 +223,49 @@ export default function DemandListPage() {
     });
   };
 
-  // 篩選貼文
-  const filteredPosts = posts.filter((post: Post) => {
-    // 必須有標題或內容
+  // Filter posts (this is actually already done in the useEffect above, but kept for consistency)
+  const filteredPosts = posts.filter((post) => {
+    // Must have title or content
     if (!post?.title && !post?.content) return false;
 
-    // 搜尋詞篩選 - 更精確的字串匹配
-    const matchSearch = !searchTerm || (
-      (post.title && post.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (post.content && post.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (post.organizationName && post.organizationName.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // Filter by search term - more accurate string matching
+    const matchSearch =
+      !searchTerm ||
+      post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.organizationName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // 標籤篩選
-    const matchTag = selectedTag === "全部" ? true : (
-      Array.isArray(post.selectedDemands) && 
-      post.selectedDemands.includes(selectedTag || "")
-    );
+    // Filter by tag
+    const matchTag =
+      selectedTag === "全部"
+        ? true
+        : Array.isArray(post.selectedDemands) &&
+          post.selectedDemands.includes(selectedTag ?? "");
 
     return matchSearch && matchTag;
   });
 
-  // 計算分頁
+  // Calculate pagination
   const totalItems = filteredPosts.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  // 處理頁碼變更
+  const totalPages = Math.ceil(totalItems / itemsPerPage); // Handle page change
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
     value: number
   ) => {
     setCurrentPage(value);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Use our client utility instead of inline window check
+    scrollToTop(true, 10);
   };
 
-  // 獲取當前頁的資料
+  // Get current page data
   const currentPosts = filteredPosts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // 收藏文章
-  const toggleFavorite = async (post: any) => {
+  // Toggle favorite
+  const toggleFavorite = async (post: Post) => {
     if (!auth.currentUser) {
       alert("請先登入");
       return;
@@ -436,7 +275,7 @@ export default function DemandListPage() {
       const postId = post.id;
       const userId = auth.currentUser.uid;
 
-      // 檢查是否已收藏
+      // Check if already favorited
       const q = query(
         collection(db, "favorites"),
         where("userId", "==", userId),
@@ -446,7 +285,7 @@ export default function DemandListPage() {
       const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
-        // 未收藏 -> 收藏
+        // Not favorited -> Add to favorites
         const favoriteData = {
           userId,
           articleId: postId,
@@ -456,7 +295,7 @@ export default function DemandListPage() {
         await setDoc(doc(collection(db, "favorites")), favoriteData);
         setFavorites((prev) => ({ ...prev, [postId]: true }));
       } else {
-        // 已收藏 -> 取消收藏
+        // Already favorited -> Remove from favorites
         const favoriteDoc = snapshot.docs[0];
         await deleteDoc(doc(db, "favorites", favoriteDoc.id));
         setFavorites((prev) => {
@@ -471,15 +310,112 @@ export default function DemandListPage() {
     }
   };
 
+  // Helper function to format createdAt date
+  const formatCreatedAt = (data: any): string => {
+    if (data.createdAt) {
+      if (data.createdAt.toDate) {
+        return data.createdAt.toDate().toISOString();
+      } else if (typeof data.createdAt === "string") {
+        return data.createdAt;
+      } else {
+        return new Date(data.createdAt).toISOString();
+      }
+    }
+    return new Date().toISOString();
+  };
+
+  // Helper function to apply filters to posts
+  const applyFilters = (posts: Post[]): Post[] => {
+    let filteredResults = [...posts];
+
+    // Filter by demand type
+    if (filters.selectedDemand) {
+      filteredResults = filteredResults.filter((post) => {
+        return (
+          Array.isArray(post.selectedDemands) &&
+          post.selectedDemands?.includes(filters.selectedDemand)
+        );
+      });
+    }
+
+    // Filter by event type
+    if (filters.selectedEventType) {
+      filteredResults = filteredResults.filter(
+        (post) => post.eventType === filters.selectedEventType
+      );
+    }
+
+    // Filter by date range
+    if (filters.startDate || filters.endDate) {
+      filteredResults = filteredResults.filter((post) => {
+        if (!post.eventDate) return false;
+
+        try {
+          const postDate = new Date(post.eventDate);
+          if (isNaN(postDate.getTime())) return false;
+
+          if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            return postDate >= start && postDate <= end;
+          } else if (filters.startDate) {
+            const start = new Date(filters.startDate);
+            return postDate >= start;
+          } else if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            return postDate <= end;
+          }
+          return true;
+        } catch (error) {
+          console.error("日期篩選出錯:", error);
+          return false;
+        }
+      });
+    }
+
+    // Filter by participant count
+    if (filters.minParticipants && filters.minParticipants !== "0") {
+      filteredResults = filteredResults.filter((post) => {
+        try {
+          const minRequired = parseInt(filters.minParticipants);
+          const actual = parseInt(post.estimatedParticipants ?? "0");
+          return !isNaN(actual) && actual >= minRequired;
+        } catch (error) {
+          console.error("參與人數篩選出錯:", error);
+          return false;
+        }
+      });
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filteredResults = filteredResults.filter(
+        (post) =>
+          post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.organizationName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filteredResults;
+  };
+
   return (
     <>
       <Navbar />
-      <Box sx={{ 
-        backgroundColor: "#f5f7fa", 
-        width: "100%",
-        pt: "84px",
-        pb: "40px"
-      }}>
+      <Box
+        sx={{
+          backgroundColor: "#f5f7fa",
+          width: "100%",
+          pt: "84px",
+          pb: "40px",
+          minHeight: "100vh",
+        }}
+      >
         <Container maxWidth="md">
           {/* 頁首區塊 */}
           <Box sx={{ textAlign: "center", mb: 3 }}>
@@ -492,14 +428,15 @@ export default function DemandListPage() {
           </Box>
 
           {/* 篩選條件區塊 */}
-          <Paper 
-            elevation={1} 
-            sx={{ 
-              p: 3, 
-              mb: 4, 
-              borderRadius: "12px" 
+          <Paper
+            elevation={1}
+            sx={{
+              p: 3,
+              mb: 4,
+              borderRadius: "12px",
             }}
           >
+            {" "}
             {/* 搜尋欄位 */}
             <TextField
               fullWidth
@@ -507,15 +444,17 @@ export default function DemandListPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               sx={{ mb: 2 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
+              // Using slotProps instead of deprecated InputProps
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
-
             {/* 日期篩選區域 */}
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <TextField
@@ -525,7 +464,16 @@ export default function DemandListPage() {
                 value={filters.startDate}
                 onChange={handleFilterChange}
                 name="startDate"
-                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                // We can use sx to replace InputLabelProps
+                sx={{
+                  "& .MuiInputLabel-root": {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                  },
+                }}
               />
               <TextField
                 fullWidth
@@ -534,10 +482,17 @@ export default function DemandListPage() {
                 value={filters.endDate}
                 onChange={handleFilterChange}
                 name="endDate"
-                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                sx={{
+                  "& .MuiInputLabel-root": {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                  },
+                }}
               />
             </Box>
-
             {/* 活動類型和需求物資篩選 */}
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <TextField
@@ -571,7 +526,6 @@ export default function DemandListPage() {
                 ))}
               </TextField>
             </Box>
-            
             {/* 參與人數篩選 */}
             <Box>
               <TextField
@@ -606,17 +560,27 @@ export default function DemandListPage() {
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   找不到符合的文章
                 </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  {searchTerm || filters.selectedDemand || filters.selectedEventType || filters.startDate || filters.endDate || filters.minParticipants ? 
-                    "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件" : 
-                    "目前還沒有任何需求文章"}
+                <Typography variant="body2" color="text.secondary">
+                  {searchTerm ||
+                  filters.selectedDemand ||
+                  filters.selectedEventType ||
+                  filters.startDate ||
+                  filters.endDate ||
+                  filters.minParticipants
+                    ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
+                    : "目前還沒有任何需求文章"}
                 </Typography>
-                {(searchTerm || filters.selectedDemand || filters.selectedEventType || filters.startDate || filters.endDate || filters.minParticipants) && (
-                  <Button 
-                    variant="outlined" 
-                    color="primary" 
+                {(searchTerm ||
+                  filters.selectedDemand ||
+                  filters.selectedEventType ||
+                  filters.startDate ||
+                  filters.endDate ||
+                  filters.minParticipants) && (
+                  <Button
+                    variant="outlined"
+                    color="primary"
                     onClick={() => {
-                      setSearchTerm('');
+                      setSearchTerm("");
                       setFilters({
                         selectedDemand: "",
                         selectedEventType: "",
@@ -651,80 +615,131 @@ export default function DemandListPage() {
                       },
                     }}
                   >
-                    <Box 
-                      sx={{ 
-                        display: "flex", 
+                    <Box
+                      sx={{
+                        display: "flex",
                         justifyContent: "space-between",
                       }}
                     >
                       {/* 卡片中間區域（主資訊區） */}
                       <Box sx={{ flex: 1 }}>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            color: "primary.main", 
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            color: "primary.main",
                             fontWeight: "bold",
-                            mb: 1.5 
+                            mb: 1.5,
                           }}
                         >
                           {post.title ?? "(無標題)"}
                         </Typography>
-                        
-                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
                           <EventIcon fontSize="small" sx={{ mr: 1 }} />
                           <Typography variant="body2">
-                            {post.eventDate ? new Date(post.eventDate).toISOString().split('T')[0] : "未設定日期"}
+                            {post.eventDate
+                              ? new Date(post.eventDate)
+                                  .toISOString()
+                                  .split("T")[0]
+                              : "未設定日期"}
                           </Typography>
                         </Box>
-                        
-                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
                           <GroupIcon fontSize="small" sx={{ mr: 1 }} />
                           <Typography variant="body2">
                             {post.estimatedParticipants ?? "0"}人
                           </Typography>
                         </Box>
-                        
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mb: 0.5 }}
+                        >
                           來自：{post.organizationName ?? "未知組織"}
                         </Typography>
-                        
+
+                        {/* 新增物資需求說明 */}
+                        {post.demandDescription && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              mb: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                            }}
+                          >
+                            物資需求說明：{post.demandDescription}
+                          </Typography>
+                        )}
+
                         <Typography variant="caption" color="text.secondary">
-                          發布時間：{post.createdAt ? new Date(post.createdAt).toLocaleDateString("zh-TW") : "未知"}
+                          發布時間：
+                          {post.createdAt
+                            ? new Date(post.createdAt).toLocaleDateString(
+                                "zh-TW"
+                              )
+                            : "未知"}
                         </Typography>
                       </Box>
-                      
+
                       {/* 卡片右側區域（補充資訊區） */}
-                      <Box sx={{ 
-                        display: "flex", 
-                        flexDirection: "column", 
-                        alignItems: "flex-start",
-                        ml: 2,
-                        width: "30%" 
-                      }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          ml: 2,
+                          width: "30%",
+                        }}
+                      >
                         <Box sx={{ mb: 2 }}>
-                          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 1,
+                            }}
+                          >
                             <InventoryIcon fontSize="small" sx={{ mr: 1 }} />
                             <Typography variant="body2">需求物資</Typography>
                           </Box>
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
                             {(post.selectedDemands ?? []).map((item) => (
-                              <Chip 
-                                key={`${post.id}-${item}`} 
-                                label={item} 
-                                size="small" 
+                              <Chip
+                                key={`${post.id}-${item}`}
+                                label={item}
+                                size="small"
                                 color="primary"
                               />
                             ))}
                           </Box>
                         </Box>
-                        
+
                         <Box>
-                          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 1,
+                            }}
+                          >
                             <RedeemIcon fontSize="small" sx={{ mr: 1 }} />
                             <Typography variant="body2">回饋方式</Typography>
                           </Box>
-                          <Typography 
-                            variant="body2" 
+                          <Typography
+                            variant="body2"
                             sx={{
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -736,19 +751,21 @@ export default function DemandListPage() {
                               maxWidth: "100%",
                             }}
                           >
-                            {post.cooperationReturn || "未提供回饋方式"}
+                            {post.cooperationReturn ?? "未提供回饋方式"}
                           </Typography>
                         </Box>
                       </Box>
-                      
+
                       {/* 卡片右邊操作區 */}
-                      <Box sx={{ 
-                        display: "flex", 
-                        flexDirection: "column", 
-                        justifyContent: "center",
-                        alignItems: "flex-end", 
-                        ml: 2
-                      }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "flex-end",
+                          ml: 2,
+                        }}
+                      >
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -759,7 +776,7 @@ export default function DemandListPage() {
                         >
                           {favorites[post.id] ? "❤️" : "🤍"}
                         </IconButton>
-                        
+
                         <Button
                           variant="outlined"
                           component={Link}
@@ -776,7 +793,7 @@ export default function DemandListPage() {
               ))
             )}
           </Stack>
-          
+
           {/* 分頁控制 */}
           {totalPages > 1 && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -785,6 +802,7 @@ export default function DemandListPage() {
                 page={currentPage}
                 onChange={handlePageChange}
                 color="primary"
+                size="large"
               />
             </Box>
           )}
