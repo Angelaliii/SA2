@@ -103,13 +103,17 @@ export default function ActivityListPage() {
     setFilters({ ...filters, searchQuery: e.target.value });
     setCurrentPage(1); // 搜尋時重設回第 1 頁
   };
-
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
     value: number
   ) => {
     setCurrentPage(value);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Delay scrolling to prevent hydration issues
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 0);
   };
 
   return (

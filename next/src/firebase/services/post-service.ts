@@ -44,7 +44,6 @@ export interface DemandPostData extends PostData {
   eventName?: string; // 添加活動名稱
   eventType?: string; // 添加活動類型
   email?: string; // ✅ 在這裡加一行
-  
 }
 
 export const getOrganizationName = async (
@@ -198,10 +197,7 @@ export const publishDraft = async (draftId: string, userEmail?: string) => {
 export const deletePost = async (postId: string) => {
   try {
     const postRef = doc(db, "posts", postId);
-    await updateDoc(postRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-    });
+    await deleteDoc(postRef); // 修改：直接刪除文章而不是標記
     return { success: true };
   } catch (error) {
     console.error("Error deleting post:", error);
@@ -231,7 +227,6 @@ const convertTimestampToString = (timestamp: Timestamp | Date): string => {
 
 export const getAllPosts = async (): Promise<PostData[]> => {
   try {
-
     // 這裡問題1: 沒有考慮 deleted 欄位，可能會返回已被標記為刪除的文章
     const postsQuery = query(
       collection(db, "posts"),
@@ -331,8 +326,7 @@ export const getPostById = async (
       eventDescription: postData.eventDescription ?? "",
       eventName: postData.eventName ?? "", // 添加活動名稱
       eventType: postData.eventType ?? "", // 添加活動類型
-      email: postData.email ?? "",  // ⭐⭐ 補這一行！⭐⭐
-
+      email: postData.email ?? "", // ⭐⭐ 補這一行！⭐⭐
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);

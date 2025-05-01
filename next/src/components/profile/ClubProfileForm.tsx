@@ -1,9 +1,6 @@
 import SaveIcon from "@mui/icons-material/Save";
-import UploadIcon from "@mui/icons-material/Upload";
 import {
-  Avatar,
   Button,
-  FormHelperText,
   Grid,
   MenuItem,
   Paper,
@@ -138,42 +135,6 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Logo Upload Section */}
-          <Grid
-            item
-            xs={12}
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            sx={{ mb: 2 }}
-          >
-            <Typography variant="subtitle1" gutterBottom>
-              社團標誌
-            </Typography>
-
-            <Avatar
-              src={logoPreview || undefined}
-              alt={formData.clubName || "社團標誌"}
-              sx={{ width: 120, height: 120, mb: 2 }}
-            />
-
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={<UploadIcon />}
-              size="small"
-            >
-              上傳標誌
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={handleLogoChange}
-              />
-            </Button>
-            <FormHelperText>
-              建議尺寸: 400x400像素，檔案大小不超過2MB
-            </FormHelperText>
-          </Grid>
 
           {/* Club Information Fields */}
           <Grid item xs={12} md={6}>

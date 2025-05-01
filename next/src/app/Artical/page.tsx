@@ -26,6 +26,7 @@ import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import { auth } from "../../firebase/config";
 import * as postService from "../../firebase/services/post-service";
+import { ClientOnly } from "../../hooks/useHydration";
 
 interface DemandPostData {
   id?: string;
@@ -45,7 +46,7 @@ interface DemandPostData {
   tags: string[];
   authorId: string;
   isDraft: boolean;
-  email?: string; 
+  email?: string;
 }
 
 export default function DemandPostPage() {
@@ -100,9 +101,8 @@ export default function DemandPostPage() {
 
         const organization = await postService.getOrganizationName(user.uid);
         setOrganizationName(organization ?? "未知組織");
-        setEmail(user.email || "");
-  
-        
+        setEmail(user.email ?? "");
+
         const defaultItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
         try {
           const items = await postService.getDemandItems();
@@ -366,13 +366,13 @@ export default function DemandPostPage() {
   const handleSaveDraft = async () => {
     // 驗證表單
     const { isValid, newErrors } = validateForm();
-  
+
     if (!isValid) {
       setErrors(newErrors);
       setSnackbarMessage("請填寫所有必填欄位");
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
-  
+
       // Scroll 到第一個錯誤欄位
       if (newErrors.title && titleRef.current) {
         titleRef.current.scrollIntoView({
@@ -393,16 +393,16 @@ export default function DemandPostPage() {
         });
         return;
       }
-  
+
       return; // 有錯就不繼續存草稿
     }
-  
+
     setLoading(true);
-  
+
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("尚未登入");
-  
+
       const postData = {
         title,
         organizationName,
@@ -422,9 +422,9 @@ export default function DemandPostPage() {
         isDraft: true,
         email,
       };
-  
+
       const result = await postService.createPost(postData);
-  
+
       if (result.success) {
         setSnackbarMessage("草稿儲存成功");
         setSnackbarSeverity("success");
@@ -440,7 +440,7 @@ export default function DemandPostPage() {
       setLoading(false);
     }
   };
-  
+
   const handleViewDrafts = () => {
     loadDrafts();
   };
@@ -448,278 +448,314 @@ export default function DemandPostPage() {
   return (
     <>
       <Navbar />
+      <ClientOnly
+        fallback={
+          <Box sx={{ pt: 10, pb: 8 }}>
+            <Container maxWidth="md">
+              <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom>
+                  載入中...
+                </Typography>
+              </Paper>
+            </Container>
+          </Box>
+        }
+      >
+        <Box sx={{ pt: 10, pb: 8 }}>
+          <Container maxWidth="md">
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center", // 垂直方向置中
+                    mb: 3,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src="/image/findsponsor.png"
+                    alt="find sponsor"
+                    sx={{ width: 80, height: 80, mb: 1 }} // 更大圖，並與文字留一點距離
+                  />
+                  <Typography variant="h5" fontWeight="bold">
+                    發布需求文章
+                  </Typography>
+                </Box>
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
 
-      <Box sx={{ pt: 10, pb: 8 }}>
-        <Container maxWidth="md">
-          <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              <Box sx={{ mb: 3, px: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  * 表示必填欄位
+                </Typography>
+              </Box>
+
+              {/* ➤ 基本資訊區塊 */}
               <Box
+                ref={titleRef}
                 sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center", // 垂直方向置中
+                  backgroundColor: "#f9f9f9",
+                  p: 2,
+                  borderRadius: 2,
                   mb: 3,
                 }}
               >
-                <Box
-                  component="img"
-                  src="/image/findsponsor.png"
-                  alt="find sponsor"
-                  sx={{ width: 80, height: 80, mb: 1 }} // 更大圖，並與文字留一點距離
-                />
-                <Typography variant="h5" fontWeight="bold">
-                  發布需求文章
-                </Typography>
-              </Box>
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
-
-            <Box sx={{ mb: 3, px: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                * 表示必填欄位
-              </Typography>
-            </Box>
-
-            {/* ➤ 基本資訊區塊 */}
-            <Box
-              ref={titleRef}
-              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <AssignmentIcon sx={{ mr: 1, color: "#1976d2" }} />
-                <Typography variant="h6">填寫基本資訊</Typography>
-              </Box>
-              <TextField
-                fullWidth
-                label="標題 "
-                variant="standard"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                inputProps={{ maxLength: 80 }}
-                sx={{ mb: 3 }}
-                error={errors.title}
-                helperText={errors.title ? "標題為必填項目" : ""}
-                required
-              />
-              <TextField
-                fullWidth
-                label="組織名稱"
-                variant="standard"
-                value={organizationName}
-                disabled
-                sx={{ mb: 3 }}
-              />
-              <TextField
-              fullWidth
-              label="聯絡信箱"
-              variant="standard"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              sx={{ mb: 3 }}
-              helperText="此信箱將作為合作洽談的聯絡方式"
-            />
-            </Box>
-
-            {/* ➤ 需求物資區塊 */}
-            <Box
-              ref={demandsRef}
-              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
-                <Typography variant="h6">選擇你需要的資源</Typography>
-              </Box>
-              <Autocomplete
-                multiple
-                options={demandItems}
-                value={selectedDemands}
-                onChange={(_, newValue) => setSelectedDemands(newValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="請選擇需求物資"
-                    placeholder="選擇需求物資"
-                    error={errors.selectedDemands}
-                    helperText={
-                      errors.selectedDemands ? "請選擇至少一項需求物資" : ""
-                    }
-                  />
-                )}
-                sx={{ mb: 3 }}
-              />
-              <TextField
-                fullWidth
-                label="需求物資說明"
-                placeholder="請輸入需求物資的詳細說明"
-                multiline
-                rows={4}
-                variant="outlined"
-                value={demandDescription}
-                onChange={(e) => setDemandDescription(e.target.value)}
-              />
-            </Box>
-
-            {/* ➤ 回饋方案 */}
-
-            <Box
-              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <RedeemIcon sx={{ mr: 1, color: "#1976d2" }} />
-                <Typography variant="h6">說明你的回饋方式</Typography>
-              </Box>
-              <TextField
-                fullWidth
-                label="回饋方案"
-                placeholder="請輸入回饋方案（可換行）"
-                multiline
-                rows={4}
-                variant="outlined"
-                value={cooperationReturn}
-                onChange={(e) => setCooperationReturn(e.target.value)}
-              />
-            </Box>
-
-            {/* ➤ 活動資訊 */}
-            <Box
-              ref={eventDateRef}
-              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
-
-                <Typography variant="h6">活動資訊</Typography>
-              </Box>
-              <TextField
-                fullWidth
-                label="活動名稱"
-                variant="standard"
-                value={eventName}
-                onChange={(e) => setEventName(e.target.value)}
-                sx={{ mb: 3 }}
-              />
-              <Autocomplete
-              options={eventTypes}
-              value={eventType}
-              onChange={(_, newValue) => setEventType(newValue ?? "")}
-              renderInput={(params) => (
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <AssignmentIcon sx={{ mr: 1, color: "#1976d2" }} />
+                  <Typography variant="h6">填寫基本資訊</Typography>
+                </Box>
                 <TextField
-                  {...params}
-                  label="活動性質"
+                  fullWidth
+                  label="標題 "
                   variant="standard"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  inputProps={{ maxLength: 80 }}
+                  sx={{ mb: 3 }}
+                  error={errors.title}
+                  helperText={errors.title ? "標題為必填項目" : ""}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="組織名稱"
+                  variant="standard"
+                  value={organizationName}
+                  disabled
                   sx={{ mb: 3 }}
                 />
-              )}
-            />
-              <TextField
-                fullWidth
-                label="活動預估人數 "
-                variant="standard"
-                type="number"
-                value={estimatedParticipants}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (value > 0 || e.target.value === "") {
-                    setEstimatedParticipants(e.target.value);
-                  }
-                }}
-                // 使用標準 HTML input 屬性限制最小值
-                inputProps={{ min: 1 }}
-                sx={{ mb: 3 }}
-                required
-                error={
-                  parseInt(estimatedParticipants) <= 0 &&
-                  estimatedParticipants !== ""
-                }
-                helperText={
-                  parseInt(estimatedParticipants) <= 0 &&
-                  estimatedParticipants !== ""
-                    ? "人數必須大於0"
-                    : ""
-                }
-              />
-              <TextField
-                fullWidth
-                label="活動日期 "
-                type="date"
-                // 替換棄用的 InputLabelProps
-                slotProps={{
-                  inputLabel: { shrink: true },
-                }}
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                sx={{ mb: 3 }}
-                error={errors.eventDate}
-                helperText={errors.eventDate ? "活動日期為必填項目" : ""}
-                required
-              />
-            </Box>
-
-            {/* ➤ 活動說明 */}
-
-            <Box
-              sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
-                <Typography variant="h6">補充說明</Typography>
+                <TextField
+                  fullWidth
+                  label="聯絡信箱"
+                  variant="standard"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  sx={{ mb: 3 }}
+                  helperText="此信箱將作為合作洽談的聯絡方式"
+                />
               </Box>
-              <TextField
-                fullWidth
-                label="說明"
-                placeholder="請輸入補充資料"
-                multiline
-                rows={4}
-                variant="outlined"
-                value={eventDescription}
-                onChange={(e) => setEventDescription(e.target.value)}
-              />
-            </Box>
 
-            {/* ➤ 按鈕區塊 */}
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
-            >
-              {/* 左側：草稿操作 */}
-              <Box sx={{ display: "flex", gap: 2 }}>
+              {/* ➤ 需求物資區塊 */}
+              <Box
+                ref={demandsRef}
+                sx={{
+                  backgroundColor: "#f9f9f9",
+                  p: 2,
+                  borderRadius: 2,
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
+                  <Typography variant="h6">選擇你需要的資源</Typography>
+                </Box>
+                <Autocomplete
+                  multiple
+                  options={demandItems}
+                  value={selectedDemands}
+                  onChange={(_, newValue) => setSelectedDemands(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="請選擇需求物資"
+                      placeholder="選擇需求物資"
+                      error={errors.selectedDemands}
+                      helperText={
+                        errors.selectedDemands ? "請選擇至少一項需求物資" : ""
+                      }
+                    />
+                  )}
+                  sx={{ mb: 3 }}
+                />
+                <TextField
+                  fullWidth
+                  label="需求物資說明"
+                  placeholder="請輸入需求物資的詳細說明"
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  value={demandDescription}
+                  onChange={(e) => setDemandDescription(e.target.value)}
+                />
+              </Box>
+
+              {/* ➤ 回饋方案 */}
+              <Box
+                sx={{
+                  backgroundColor: "#f9f9f9",
+                  p: 2,
+                  borderRadius: 2,
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <RedeemIcon sx={{ mr: 1, color: "#1976d2" }} />
+                  <Typography variant="h6">說明你的回饋方式</Typography>
+                </Box>
+                <TextField
+                  fullWidth
+                  label="回饋方案"
+                  placeholder="請輸入回饋方案（可換行）"
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  value={cooperationReturn}
+                  onChange={(e) => setCooperationReturn(e.target.value)}
+                />
+              </Box>
+
+              {/* ➤ 活動資訊 */}
+              <Box
+                ref={eventDateRef}
+                sx={{
+                  backgroundColor: "#f9f9f9",
+                  p: 2,
+                  borderRadius: 2,
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
+                  <Typography variant="h6">活動資訊</Typography>
+                </Box>
+                <TextField
+                  fullWidth
+                  label="活動名稱"
+                  variant="standard"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  sx={{ mb: 3 }}
+                />
+
+                <Autocomplete
+                  options={eventTypes}
+                  value={eventType}
+                  onChange={(_, newValue) => setEventType(newValue ?? "")}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="活動性質"
+                      variant="standard"
+                      sx={{ mb: 3 }}
+                    />
+                  )}
+                />
+                <TextField
+                  fullWidth
+                  label="活動預估人數 "
+                  variant="standard"
+                  type="number"
+                  value={estimatedParticipants}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value > 0 || e.target.value === "") {
+                      setEstimatedParticipants(e.target.value);
+                    }
+                  }}
+                  // 使用標準 HTML input 屬性限制最小值
+                  inputProps={{ min: 1 }}
+                  sx={{ mb: 3 }}
+                  required
+                  error={
+                    parseInt(estimatedParticipants) <= 0 &&
+                    estimatedParticipants !== ""
+                  }
+                  helperText={
+                    parseInt(estimatedParticipants) <= 0 &&
+                    estimatedParticipants !== ""
+                      ? "人數必須大於0"
+                      : ""
+                  }
+                />
+                <TextField
+                  fullWidth
+                  label="活動日期 "
+                  type="date"
+                  // 替換棄用的 InputLabelProps
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                  }}
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  sx={{ mb: 3 }}
+                  error={errors.eventDate}
+                  helperText={errors.eventDate ? "活動日期為必填項目" : ""}
+                  required
+                />
+              </Box>
+
+              {/* ➤ 活動說明 */}
+              <Box
+                sx={{
+                  backgroundColor: "#f9f9f9",
+                  p: 2,
+                  borderRadius: 2,
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
+                  <Typography variant="h6">補充說明</Typography>
+                </Box>
+                <TextField
+                  fullWidth
+                  label="說明"
+                  placeholder="請輸入補充資料"
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  value={eventDescription}
+                  onChange={(e) => setEventDescription(e.target.value)}
+                />
+              </Box>
+
+              {/* ➤ 按鈕區塊 */}
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
+              >
+                {/* 左側：草稿操作 */}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveDraft}
+                    sx={{
+                      backgroundColor: "#e0f2f1",
+                      color: "#004d40",
+                      "&:hover": { backgroundColor: "#b2dfdb" },
+                    }}
+                  >
+                    儲存草稿
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={handleViewDrafts}
+                    sx={{
+                      color: "gray",
+                      borderColor: "gray",
+                      "&:hover": { borderColor: "#888" },
+                    }}
+                  >
+                    查看草稿
+                  </Button>
+                </Box>
+
+                {/* 右側：發布按鈕 */}
                 <Button
                   variant="contained"
-                  onClick={handleSaveDraft}
-                  sx={{
-                    backgroundColor: "#e0f2f1",
-                    color: "#004d40",
-                    "&:hover": { backgroundColor: "#b2dfdb" },
-                  }}
+                  color="primary"
+                  onClick={handleSubmit}
+                  disabled={loading}
                 >
-                  儲存草稿
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleViewDrafts}
-                  sx={{
-                    color: "gray",
-                    borderColor: "gray",
-                    "&:hover": { borderColor: "#888" },
-                  }}
-                >
-                  查看草稿
+                  {loading ? "發布中..." : "發布文章"}
                 </Button>
               </Box>
-
-              {/* 右側：發布按鈕 */}
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? "發布中..." : "發布文章"}
-              </Button>
-            </Box>
-          </Paper>
-        </Container>
-      </Box>
+            </Paper>
+          </Container>
+        </Box>
+      </ClientOnly>
 
       <Snackbar
         open={openSnackbar}

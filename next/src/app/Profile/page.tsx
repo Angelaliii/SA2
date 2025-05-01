@@ -23,7 +23,10 @@ import React, { useEffect, useRef, useState } from "react";
 import ActivityDeleteDialog from "../../components/activities/ActivityDeleteDialog";
 import ActivityEditDialog from "../../components/activities/ActivityEditDialog";
 import ActivityFormDialog from "../../components/activities/ActivityFormDialog";
-import ArticleManager from "../../components/article/ArticleManager";
+import ArticleDeleteDialog from "../../components/article/ArticleDeleteDialog";
+import ArticleEditDialog from "../../components/article/ArticleEditDialog";
+import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
+import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
 import FavoriteArticlesManager from "../../components/article/FavoriteArticlesManager";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
@@ -37,11 +40,7 @@ import {
   Company,
   companyServices,
 } from "../../firebase/services/company-service";
-import { enterpriseService } from "../../firebase/services/enterprise-service";
-import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
-import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
-import ArticleEditDialog from "../../components/article/ArticleEditDialog";
-import ArticleDeleteDialog from "../../components/article/ArticleDeleteDialog";
+import { ClientOnly } from "../../hooks/useHydration";
 
 function TabPanel(props: {
   children?: React.ReactNode;
@@ -55,7 +54,7 @@ function TabPanel(props: {
       hidden={value !== index}
       id={`profile-tabpanel-${index}`}
       aria-labelledby={`profile-tab-${index}`}
-      {...other }
+      {...other}
     >
       {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
     </div>
@@ -86,24 +85,22 @@ export default function Profile() {
   const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
   const [activityDeleteDialogOpen, setActivityDeleteDialogOpen] =
     useState(false);
-  // Add client-side only rendering state
-  const [isMounted, setIsMounted] = useState(false);
   // Track auth state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [publishedArticles, setPublishedArticles] = useState<any[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
-  const [publishedEnterpriseAnnouncements, setPublishedEnterpriseAnnouncements] = useState<any[]>([]);
+  const [
+    publishedEnterpriseAnnouncements,
+    setPublishedEnterpriseAnnouncements,
+  ] = useState<any[]>([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null);
-  const [announcementEditDialogOpen, setAnnouncementEditDialogOpen] = useState(false);
-  const [announcementDeleteDialogOpen, setAnnouncementDeleteDialogOpen] = useState(false);
+  const [announcementEditDialogOpen, setAnnouncementEditDialogOpen] =
+    useState(false);
+  const [announcementDeleteDialogOpen, setAnnouncementDeleteDialogOpen] =
+    useState(false);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [articleEditDialogOpen, setArticleEditDialogOpen] = useState(false);
   const [articleDeleteDialogOpen, setArticleDeleteDialogOpen] = useState(false);
-
-  // Set isMounted to true when component mounts on client
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Combine all useEffect hooks into a single one to ensure consistent order
   useEffect(() => {
@@ -221,7 +218,7 @@ export default function Profile() {
     const fetchPublishedEnterpriseAnnouncements = async () => {
       const currentUser = authServices.getCurrentUser();
       if (!currentUser) return;
-      
+
       try {
         // 從 Firebase 直接查詢當前用戶的企業公告
         const q = query(
@@ -235,7 +232,10 @@ export default function Profile() {
         }));
         setPublishedEnterpriseAnnouncements(announcements);
       } catch (err) {
-        console.error("Error fetching published enterprise announcements:", err);
+        console.error(
+          "Error fetching published enterprise announcements:",
+          err
+        );
       }
     };
 
@@ -432,78 +432,6 @@ export default function Profile() {
     setArticleDeleteDialogOpen(true);
   };
 
-  // Show loading state during auth check
-  if (isAuthenticated === null) {
-    return (
-      <>
-        <Navbar />
-        <Box
-          sx={{
-            pt: "64px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "calc(100vh - 64px)",
-            backgroundColor: "#f2f2f7",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      </>
-    );
-  }
-
-  // Redirect if not authenticated
-  if (isAuthenticated === false) {
-    return (
-      <>
-        <Navbar />
-        <LoginPrompt />
-      </>
-    );
-  }
-
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <Box
-          sx={{
-            pt: "64px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "calc(100vh - 64px)",
-            backgroundColor: "#f2f2f7",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      </>
-    );
-  }
-
-  // Only render complete UI on client-side to prevent hydration errors
-  if (!isMounted) {
-    return (
-      <>
-        <Navbar />
-        <Box
-          sx={{
-            pt: "64px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "calc(100vh - 64px)",
-            backgroundColor: "#f2f2f7",
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      </>
-    );
-  }
-
   // 格式化日期顯示
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "未知日期";
@@ -521,388 +449,482 @@ export default function Profile() {
     }
   };
 
+  // Basic loading fallback for server-side rendering and initial load
+  const loadingFallback = (
+    <Box
+      sx={{
+        pt: "64px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "calc(100vh - 64px)",
+        backgroundColor: "#f2f2f7",
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  );
+
+  // Show loading state during auth check
+  if (isAuthenticated === null) {
+    return (
+      <>
+        <Navbar />
+        {loadingFallback}
+      </>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (isAuthenticated === false) {
+    return (
+      <>
+        <Navbar />
+        <LoginPrompt />
+      </>
+    );
+  }
+
+  // Return a loading state when data is still being fetched
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        {loadingFallback}
+      </>
+    );
+  }
+
+  // The main UI with the client-side reactive components
   return (
     <>
       <Navbar />
-      <Box
-        sx={{
-          display: "flex",
-          pt: "64px",
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#f2f2f7",
-        }}
-      >
-        <SideNavbar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          selectedTag={selectedTag}
-          setSelectedTag={setSelectedTag}
-          drawerWidth={drawerWidth}
-        />
-
+      <ClientOnly fallback={loadingFallback}>
         <Box
-          component="main"
           sx={{
-            flexGrow: 1,
-            p: { xs: 2, sm: 4 },
-            width: { md: `calc(100% - ${drawerWidth}px)` },
-            ml: { md: `${drawerWidth}px` },
+            display: "flex",
+            pt: "64px",
+            minHeight: "calc(100vh - 64px)",
+            backgroundColor: "#f2f2f7",
           }}
         >
-          <Container maxWidth="md" sx={{ pb: 5 }}>
-            <Paper
-              elevation={0}
+          <SideNavbar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedTag={selectedTag}
+            setSelectedTag={setSelectedTag}
+            drawerWidth={drawerWidth}
+          />
+
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              p: { xs: 2, sm: 4 },
+              width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+              ml: { xs: 0, md: `${drawerWidth}px` },
+              transition: (theme) =>
+                theme.transitions.create(["margin", "width"], {
+                  easing: theme.transitions.easing.sharp,
+                  duration: theme.transitions.duration.leavingScreen,
+                }),
+            }}
+          >
+            <Container
+              maxWidth={false}
               sx={{
-                p: { xs: 2, sm: 3, md: 4 },
-                mb: 4,
-                borderRadius: 3,
-                border: "1px solid rgba(0, 0, 0, 0.05)",
-                boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
+                pb: 5,
+                maxWidth: { xs: "100%", lg: "90%", xl: "85%" },
+                transition: "max-width 0.3s ease-in-out",
               }}
             >
-              <Box ref={contentRef}>
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  gutterBottom
-                  sx={{
-                    fontWeight: 700,
-                    mb: 2,
-                    color: (theme) => theme.palette.primary.main,
-                  }}
-                >
-                  用戶中心
-                </Typography>
-                <Divider sx={{ my: 2 }} />
-              </Box>
-
-              <Snackbar
-                open={snackbarOpen && (!!error || !!success)}
-                autoHideDuration={5000}
-                onClose={() => setSnackbarOpen(false)}
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2, sm: 3, md: 4 },
+                  mb: 4,
+                  borderRadius: 3,
+                  border: "1px solid rgba(0, 0, 0, 0.05)",
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
+                }}
               >
-                <Alert
-                  severity={error ? "error" : "success"}
-                  sx={{ width: "100%", boxShadow: 3 }}
-                  onClose={() => setSnackbarOpen(false)}
-                >
-                  {error ?? success}
-                </Alert>
-              </Snackbar>
-
-              <TabPanel value={value} index={0}>
-                {userType === "club" && clubData && (
-                  <ClubProfileForm
-                    clubData={clubData}
-                    onSubmit={handleClubProfileUpdate}
-                  />
-                )}
-                {userType === "company" && companyData && (
-                  <CompanyProfileForm
-                    companyData={companyData}
-                    onSubmit={handleCompanyProfileUpdate}
-                  />
-                )}
-                {userType === "unknown" && (
-                  <Typography>請先完成註冊流程以管理您的個人資料</Typography>
-                )}
-              </TabPanel>
-
-              <TabPanel value={value} index={1}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    <ArticleIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                    我的文章與企業公告
-                  </Typography>
-                </Box>
-
-                {loadingArticles ? (
-                  <Box textAlign="center" mt={4}>
-                    <CircularProgress />
-                  </Box>
-                ) : (
-                  <Box>
-                    {publishedArticles.length === 0 && publishedEnterpriseAnnouncements.length === 0 ? (
-                      <Typography>目前尚無已發布的文章或企業公告。</Typography>
-                    ) : (
-                      <>
-                        {publishedArticles.map((article) => (
-                          <Paper
-                            key={article.id}
-                            sx={{
-                              p: 3,
-                              mb: 2,
-                              borderRadius: 2,
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                            }}
-                          >
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                              <Typography variant="h6">{article.title || "(未命名文章)"}</Typography>
-                              <Box>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditArticle(article)}
-                                  title="編輯文章"
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleDeleteArticle(article)}
-                                  title="刪除文章"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              {article.content || "(無內容)"}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              display="block"
-                              sx={{ mt: 2 }}
-                            >
-                              發布日期：{formatDate(article.createdAt)}
-                            </Typography>
-                          </Paper>
-                        ))}
-
-                        {publishedEnterpriseAnnouncements.map((announcement) => (
-                          <Paper
-                            key={announcement.id}
-                            sx={{
-                              p: 3,
-                              mb: 2,
-                              borderRadius: 2,
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                            }}
-                          >
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                              <Typography variant="h6">{announcement.title || "(未命名公告)"}</Typography>
-                              <Box>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditAnnouncement(announcement)}
-                                  title="編輯公告"
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleDeleteAnnouncement(announcement)}
-                                  title="刪除公告"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                              {announcement.content || "(無內容)"}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              display="block"
-                              sx={{ mt: 2 }}
-                            >
-                              發布日期：{formatDate(announcement.createdAt)}
-                            </Typography>
-                          </Paper>
-                        ))}
-                      </>
-                    )}
-                  </Box>
-                )}
-              </TabPanel>
-
-              <TabPanel value={value} index={2}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    <BookmarkIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                    收藏的文章
-                  </Typography>
-                </Box>
-                <FavoriteArticlesManager />
-              </TabPanel>
-
-              <TabPanel value={value} index={3}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    <EventIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                    活動管理
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => setActivityDialogOpen(true)}
-                    sx={{ mt: 2 }}
+                <Box ref={contentRef}>
+                  <Typography
+                    variant="h4"
+                    component="h1"
+                    gutterBottom
+                    sx={{
+                      fontWeight: 700,
+                      mb: 2,
+                      color: (theme) => theme.palette.primary.main,
+                    }}
                   >
-                    新增活動
-                  </Button>
+                    個人中心
+                  </Typography>
+                  <Divider sx={{ my: 2 }} />
                 </Box>
 
-                {activitiesLoading ? (
-                  <Box
-                    sx={{ display: "flex", justifyContent: "center", my: 4 }}
-                  >
-                    <CircularProgress />
+                <TabPanel value={value} index={0}>
+                  {userType === "club" && clubData && (
+                    <ClubProfileForm
+                      clubData={clubData}
+                      onSubmit={handleClubProfileUpdate}
+                    />
+                  )}
+                  {userType === "company" && companyData && (
+                    <CompanyProfileForm
+                      companyData={companyData}
+                      onSubmit={handleCompanyProfileUpdate}
+                    />
+                  )}
+                  {userType === "unknown" && (
+                    <Typography>請先完成註冊流程以管理您的個人資料</Typography>
+                  )}
+                </TabPanel>
+
+                <TabPanel value={value} index={1}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      <ArticleIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                      我的文章與企業公告
+                    </Typography>
                   </Box>
-                ) : (
-                  <Box sx={{ mt: 3 }}>
-                    {activities.map((activity) => (
-                      <Paper
-                        key={activity.id}
-                        sx={{
-                          p: 3,
-                          mb: 2,
-                          borderRadius: 2,
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                        }}
-                      >
-                        <Box
+
+                  {loadingArticles ? (
+                    <Box textAlign="center" mt={4}>
+                      <CircularProgress />
+                    </Box>
+                  ) : (
+                    <Box>
+                      {publishedArticles.length === 0 &&
+                      publishedEnterpriseAnnouncements.length === 0 ? (
+                        <Typography>
+                          目前尚無已發布的文章或企業公告。
+                        </Typography>
+                      ) : (
+                        <>
+                          {publishedArticles.map((article) => (
+                            <Paper
+                              key={article.id}
+                              sx={{
+                                p: 3,
+                                mb: 2,
+                                borderRadius: 2,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <Typography variant="h6">
+                                  {article.title || "(未命名文章)"}
+                                </Typography>
+                                <Box>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleEditArticle(article)}
+                                    title="編輯文章"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleDeleteArticle(article)}
+                                    title="刪除文章"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 1 }}
+                              >
+                                {article.content || "(無內容)"}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{ mt: 2 }}
+                              >
+                                發布日期：{formatDate(article.createdAt)}
+                              </Typography>
+                            </Paper>
+                          ))}
+
+                          {publishedEnterpriseAnnouncements.map(
+                            (announcement) => (
+                              <Paper
+                                key={announcement.id}
+                                sx={{
+                                  p: 3,
+                                  mb: 2,
+                                  borderRadius: 2,
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                  }}
+                                >
+                                  <Typography variant="h6">
+                                    {announcement.title || "(未命名公告)"}
+                                  </Typography>
+                                  <Box>
+                                    <IconButton
+                                      size="small"
+                                      color="primary"
+                                      onClick={() =>
+                                        handleEditAnnouncement(announcement)
+                                      }
+                                      title="編輯公告"
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() =>
+                                        handleDeleteAnnouncement(announcement)
+                                      }
+                                      title="刪除公告"
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{ mt: 1 }}
+                                >
+                                  {announcement.content || "(無內容)"}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  sx={{ mt: 2 }}
+                                >
+                                  發布日期：{formatDate(announcement.createdAt)}
+                                </Typography>
+                              </Paper>
+                            )
+                          )}
+                        </>
+                      )}
+                    </Box>
+                  )}
+                </TabPanel>
+
+                <TabPanel value={value} index={2}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      <BookmarkIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                      收藏的文章
+                    </Typography>
+                  </Box>
+                  <FavoriteArticlesManager />
+                </TabPanel>
+
+                <TabPanel value={value} index={3}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      <EventIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                      活動管理
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => setActivityDialogOpen(true)}
+                      sx={{ mt: 2 }}
+                    >
+                      新增活動
+                    </Button>
+                  </Box>
+
+                  {activitiesLoading ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", my: 4 }}
+                    >
+                      <CircularProgress />
+                    </Box>
+                  ) : (
+                    <Box sx={{ mt: 3 }}>
+                      {activities.map((activity) => (
+                        <Paper
+                          key={activity.id}
                           sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
+                            p: 3,
+                            mb: 2,
+                            borderRadius: 2,
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                           }}
                         >
-                          <Typography variant="h6">
-                            {activity.title ?? activity.name}
-                          </Typography>
-                          <Box>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditActivity(activity)}
-                              title="編輯活動"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteActivity(activity)}
-                              title="刪除活動"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <Typography variant="h6">
+                              {activity.title ?? activity.name}
+                            </Typography>
+                            <Box>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEditActivity(activity)}
+                                title="編輯活動"
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteActivity(activity)}
+                                title="刪除活動"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
                           </Box>
-                        </Box>
-                        <Typography color="text.secondary" sx={{ mt: 1 }}>
-                          {activity.description ?? activity.content}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          活動日期：{formatDate(activity.date)}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          活動類型：{activity.type ?? "未指定"}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          預計參與人數：{activity.participants ?? "未指定"}
-                        </Typography>
-                        {activity.partnerCompany && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            合作企業：{activity.partnerCompany}
+                          <Typography color="text.secondary" sx={{ mt: 1 }}>
+                            {activity.description ?? activity.content}
                           </Typography>
-                        )}
-                        <Typography
-                          variant="caption"
-                          display="block"
-                          sx={{ mt: 2 }}
-                        >
-                          建立日期：{formatDate(activity.createdAt)}
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            活動日期：{formatDate(activity.date)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            活動類型：{activity.type ?? "未指定"}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            參與人數：{activity.participants ?? "未指定"}
+                          </Typography>
+                          {activity.partnerCompany && (
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>
+                              合作企業：{activity.partnerCompany}
+                            </Typography>
+                          )}
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            sx={{ mt: 2 }}
+                          >
+                            建立日期：{formatDate(activity.createdAt)}
+                          </Typography>
+                        </Paper>
+                      ))}
+                      {activities.length === 0 && (
+                        <Typography color="text.secondary">
+                          目前還沒有任何活動
                         </Typography>
-                      </Paper>
-                    ))}
-                    {activities.length === 0 && (
-                      <Typography color="text.secondary">
-                        目前還沒有任何活動
-                      </Typography>
-                    )}
-                  </Box>
-                )}
-              </TabPanel>
-
-              {/* 活動相關對話框 */}
-              <ActivityFormDialog
-                open={activityDialogOpen}
-                onClose={() => setActivityDialogOpen(false)}
-                onSuccess={() => {
-                  setActivityDialogOpen(false);
-                  refreshActivities();
-                }}
-              />
-
-              <ActivityEditDialog
-                open={activityEditDialogOpen}
-                onClose={() => setActivityEditDialogOpen(false)}
-                onSuccess={() => {
-                  setActivityEditDialogOpen(false);
-                  refreshActivities();
-                }}
-                activity={selectedActivity}
-              />
-
-              <ActivityDeleteDialog
-                open={activityDeleteDialogOpen}
-                onClose={() => setActivityDeleteDialogOpen(false)}
-                onSuccess={() => {
-                  setActivityDeleteDialogOpen(false);
-                  refreshActivities();
-                }}
-                activity={selectedActivity}
-              />
-
-              {/* 企業公告相關對話框 */}
-              <EnterpriseEditDialog
-                open={announcementEditDialogOpen}
-                onClose={() => setAnnouncementEditDialogOpen(false)}
-                onSuccess={() => {
-                  setAnnouncementEditDialogOpen(false);
-                  refreshAnnouncements();
-                }}
-                announcement={selectedAnnouncement}
-              />
-
-              <EnterpriseDeleteDialog
-                open={announcementDeleteDialogOpen}
-                onClose={() => setAnnouncementDeleteDialogOpen(false)}
-                onSuccess={() => {
-                  setAnnouncementDeleteDialogOpen(false);
-                  refreshAnnouncements();
-                }}
-                announcement={selectedAnnouncement}
-              />
-
-              {/* 需求文章相關對話框 */}
-              <ArticleEditDialog
-                open={articleEditDialogOpen}
-                onClose={() => setArticleEditDialogOpen(false)}
-                onSuccess={() => {
-                  setArticleEditDialogOpen(false);
-                  refreshArticles();
-                }}
-                article={selectedArticle}
-              />
-
-              <ArticleDeleteDialog
-                open={articleDeleteDialogOpen}
-                onClose={() => setArticleDeleteDialogOpen(false)}
-                onSuccess={() => {
-                  setArticleDeleteDialogOpen(false);
-                  refreshArticles();
-                }}
-                article={selectedArticle}
-              />
-            </Paper>
-          </Container>
+                      )}
+                    </Box>
+                  )}
+                </TabPanel>
+              </Paper>
+            </Container>
+          </Box>
         </Box>
-      </Box>
+      </ClientOnly>
+
+      <Snackbar
+        open={snackbarOpen && (!!error || !!success)}
+        autoHideDuration={5000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={error ? "error" : "success"}
+          sx={{ width: "100%", boxShadow: 3 }}
+          onClose={() => setSnackbarOpen(false)}
+        >
+          {error ?? success}
+        </Alert>
+      </Snackbar>
+
+      {/* 活動相關對話框 */}
+      <ActivityFormDialog
+        open={activityDialogOpen}
+        onClose={() => setActivityDialogOpen(false)}
+        onSuccess={() => {
+          setActivityDialogOpen(false);
+          refreshActivities();
+        }}
+      />
+
+      <ActivityEditDialog
+        open={activityEditDialogOpen}
+        onClose={() => setActivityEditDialogOpen(false)}
+        onSuccess={() => {
+          setActivityEditDialogOpen(false);
+          refreshActivities();
+        }}
+        activity={selectedActivity}
+      />
+
+      <ActivityDeleteDialog
+        open={activityDeleteDialogOpen}
+        onClose={() => setActivityDeleteDialogOpen(false)}
+        onSuccess={() => {
+          setActivityDeleteDialogOpen(false);
+          refreshActivities();
+        }}
+        activity={selectedActivity}
+      />
+
+      {/* 企業公告相關對話框 */}
+      <EnterpriseEditDialog
+        open={announcementEditDialogOpen}
+        onClose={() => setAnnouncementEditDialogOpen(false)}
+        onSuccess={() => {
+          setAnnouncementEditDialogOpen(false);
+          refreshAnnouncements();
+        }}
+        announcement={selectedAnnouncement}
+      />
+
+      <EnterpriseDeleteDialog
+        open={announcementDeleteDialogOpen}
+        onClose={() => setAnnouncementDeleteDialogOpen(false)}
+        onSuccess={() => {
+          setAnnouncementDeleteDialogOpen(false);
+          refreshAnnouncements();
+        }}
+        announcement={selectedAnnouncement}
+      />
+
+      {/* 需求文章相關對話框 */}
+      <ArticleEditDialog
+        open={articleEditDialogOpen}
+        onClose={() => setArticleEditDialogOpen(false)}
+        onSuccess={() => {
+          setArticleEditDialogOpen(false);
+          refreshArticles();
+        }}
+        article={selectedArticle}
+      />
+
+      <ArticleDeleteDialog
+        open={articleDeleteDialogOpen}
+        onClose={() => setArticleDeleteDialogOpen(false)}
+        onSuccess={() => {
+          setArticleDeleteDialogOpen(false);
+          refreshArticles();
+        }}
+        article={selectedArticle}
+      />
     </>
   );
 }

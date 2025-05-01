@@ -32,7 +32,9 @@ export default function DemandPostDetailPage() {
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
+    "success"
+  );
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -40,29 +42,45 @@ export default function DemandPostDetailPage() {
     });
 
     const fetchPost = async () => {
-      const data = await postService.getPostById(id as string);
+      try {
+        const data = await postService.getPostById(id as string);
+        setPost(data);
 
-      if (data?.authorId) {
-        const club = await clubServices.getClubById(data.authorId);
-        if (club) {
+        if (data?.authorId) {
+          const club = await clubServices.getClubById(data.authorId);
           setClubInfo(club);
-        }
-      }
-      
 
-      setPost(data);
+          // 直接使用 clubInfo 的 email 作為聯絡信箱
+          if (club?.email) {
+            setPost((prev: any) => ({ ...prev, authorEmail: club.email }));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching post:", error);
+      }
     };
 
     fetchPost();
     return () => unsubscribe();
   }, [id]);
-
   if (!post) return null;
 
-  const formattedDate = new Date(post.createdAt).toLocaleString("zh-TW", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  // 使用一種固定格式，避免水合錯誤
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    } catch (error) {
+      return "無效日期";
+    }
+  };
+
+  const formattedDate = formatDate(post.createdAt);
 
   const handleSendMessage = async () => {
     const currentUser = auth.currentUser;
@@ -102,7 +120,11 @@ export default function DemandPostDetailPage() {
             </Typography>
 
             {/* 社團名稱 */}
-            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              color="text.secondary"
+              sx={{ mb: 1 }}
+            >
               發布社團：
               {clubInfo ? (
                 <MuiLink
@@ -130,18 +152,20 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 需求物資 */}
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+          <Box
+            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">需求物資</Typography>
             </Box>
             <Typography variant="body2" gutterBottom>
               <strong>需求項目：</strong>
-            </Typography>
+            </Typography>{" "}
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
               {post.selectedDemands?.length > 0 ? (
-                post.selectedDemands.map((item: string, index: number) => (
-                  <Chip key={index} label={item} color="primary" />
+                post.selectedDemands.map((item: string) => (
+                  <Chip key={`demand-${item}`} label={item} color="primary" />
                 ))
               ) : (
                 <Typography variant="body2">未填寫</Typography>
@@ -153,7 +177,9 @@ export default function DemandPostDetailPage() {
           </Box>
 
           {/* 活動資訊 */}
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+          <Box
+            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">活動資訊</Typography>

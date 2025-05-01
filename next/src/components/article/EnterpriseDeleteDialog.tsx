@@ -6,8 +6,8 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import React, { useState } from "react";
-import { enterpriseService } from "../../firebase/services/enterprise-service";
+import { useState } from "react";
+import enterpriseService from "../../firebase/services/enterprise-service";
 
 type EnterpriseDeleteDialogProps = {
   open: boolean;
@@ -44,7 +44,8 @@ export default function EnterpriseDeleteDialog({
       <DialogTitle>確認刪除</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          確定要刪除這則企業公告「{announcement?.title || "未命名公告"}」嗎？此操作無法復原。
+          確定要刪除這則企業公告「{announcement?.title || "未命名公告"}
+          」嗎？此操作無法復原。
         </DialogContentText>
       </DialogContent>
       <DialogActions>
