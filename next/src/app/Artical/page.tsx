@@ -27,6 +27,8 @@ import Navbar from "../../components/Navbar";
 import { auth } from "../../firebase/config";
 import * as postService from "../../firebase/services/post-service";
 import { ClientOnly } from "../../hooks/useHydration";
+import { useRouter } from "next/navigation";
+
 
 interface DemandPostData {
   id?: string;
@@ -65,6 +67,7 @@ export default function DemandPostPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
   const [email, setEmail] = useState("");
+  const router = useRouter();
 
   // 表單錯誤狀態
   const [errors, setErrors] = useState({
@@ -93,6 +96,7 @@ export default function DemandPostPage() {
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success"
   );
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -349,8 +353,12 @@ export default function DemandPostPage() {
         const result = await postService.createPost(postData);
         if (!result.success) throw new Error("發布失敗");
         setSnackbarMessage("文章發布成功");
+        setTimeout(() => {
+          router.push("/Artical/DemandList"); // 這邊對應你紅筆框起來的路徑
+        }, 2000);
       }
-
+// ✅ 加入跳轉邏輯（2 秒後跳轉）
+  
       setSnackbarSeverity("success");
       clearForm();
     } catch (error) {
@@ -361,6 +369,7 @@ export default function DemandPostPage() {
       setOpenSnackbar(true);
       setLoading(false);
     }
+    
   };
 
   const handleSaveDraft = async () => {

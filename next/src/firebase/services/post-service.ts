@@ -374,3 +374,35 @@ export const getPostsByTag = async (tag: string): Promise<PostData[]> => {
     return [];
   }
 };
+
+// 收藏
+
+export const checkIfFavorited = async (userId: string, postId: string) => {
+  const q = query(
+    collection(db, "favorites"),
+    where("userId", "==", userId),
+    where("postId", "==", postId)
+  );
+  const querySnapshot = await getDocs(q);
+  return !querySnapshot.empty;
+};
+
+export const addFavorite = async (userId: string, postId: string) => {
+  return await addDoc(collection(db, "favorites"), {
+    userId,
+    postId,
+    createdAt: new Date()
+  });
+};
+
+export const removeFavorite = async (userId: string, postId: string) => {
+  const q = query(
+    collection(db, "favorites"),
+    where("userId", "==", userId),
+    where("postId", "==", postId)
+  );
+  const querySnapshot = await getDocs(q);
+  for (const docSnap of querySnapshot.docs) {
+    await deleteDoc(doc(db, "favorites", docSnap.id));
+  }
+};

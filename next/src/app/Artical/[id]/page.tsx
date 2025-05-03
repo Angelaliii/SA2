@@ -3,12 +3,15 @@
 import EventIcon from "@mui/icons-material/Event";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Alert,
   Box,
   Button,
   Chip,
   Container,
+  IconButton,
   Link as MuiLink,
   Paper,
   Snackbar,
@@ -29,6 +32,7 @@ export default function DemandPostDetailPage() {
   const [clubInfo, setClubInfo] = useState<any>(null);
   const [messageSent, setMessageSent] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [favorites, setFavorites] = useState<{ [key: string]: boolean }>({});
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -50,10 +54,17 @@ export default function DemandPostDetailPage() {
           const club = await clubServices.getClubById(data.authorId);
           setClubInfo(club);
 
-          // 直接使用 clubInfo 的 email 作為聯絡信箱
           if (club?.email) {
             setPost((prev: any) => ({ ...prev, authorEmail: club.email }));
           }
+        }
+
+        if (auth.currentUser) {
+          const isFav = await postService.checkIfFavorited(
+            auth.currentUser.uid,
+            id as string
+          );
+          setFavorites({ [id as string]: isFav });
         }
       } catch (error) {
         console.error("Error fetching post:", error);
@@ -63,9 +74,9 @@ export default function DemandPostDetailPage() {
     fetchPost();
     return () => unsubscribe();
   }, [id]);
+
   if (!post) return null;
 
-  // 使用一種固定格式，避免水合錯誤
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -108,23 +119,36 @@ export default function DemandPostDetailPage() {
     }
   };
 
+  const toggleFavorite = async (post: any) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const postId = post.id;
+    const isFav = favorites[postId];
+
+    try {
+      if (isFav) {
+        await postService.removeFavorite(currentUser.uid, postId);
+      } else {
+        await postService.addFavorite(currentUser.uid, postId);
+      }
+      setFavorites((prev) => ({ ...prev, [postId]: !isFav }));
+    } catch (error) {
+      console.error("收藏切換失敗:", error);
+    }
+  };
+
   return (
     <>
       <Navbar />
       <Container maxWidth="md" sx={{ pt: 10, pb: 8 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, minHeight: "80vh" }}>
-          {/* 標題 + 社團資訊 */}
           <Box sx={{ textAlign: "center", mb: 4 }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
               {post.title}
             </Typography>
 
-            {/* 社團名稱 */}
-            <Typography
-              variant="subtitle1"
-              color="text.secondary"
-              sx={{ mb: 1 }}
-            >
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
               發布社團：
               {clubInfo ? (
                 <MuiLink
@@ -139,22 +163,17 @@ export default function DemandPostDetailPage() {
               )}
             </Typography>
 
-            {/* 發文時間 */}
             <Typography variant="body2" color="text.secondary">
               發文時間：{formattedDate}
             </Typography>
 
-            {/* 聯絡信箱 */}
             <Typography variant="body2" color="text.secondary">
               聯絡信箱：
               {post.email ?? "未提供"}
             </Typography>
           </Box>
 
-          {/* 需求物資 */}
-          <Box
-            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
-          >
+          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">需求物資</Typography>
@@ -176,10 +195,7 @@ export default function DemandPostDetailPage() {
             </Typography>
           </Box>
 
-          {/* 活動資訊 */}
-          <Box
-            sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
-          >
+          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
               <Typography variant="h6">活動資訊</Typography>
@@ -202,7 +218,6 @@ export default function DemandPostDetailPage() {
             </Typography>
           </Box>
 
-          {/* 回饋與補充說明 */}
           <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
@@ -216,9 +231,8 @@ export default function DemandPostDetailPage() {
             </Typography>
           </Box>
 
-          {/* 發送訊息按鈕 */}
           {isLoggedIn && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -228,8 +242,19 @@ export default function DemandPostDetailPage() {
               >
                 {messageSent ? "已發送訊息" : "發送合作訊息"}
               </Button>
+              <IconButton
+                size="large"
+                onClick={() => toggleFavorite(post)}
+              >
+                {favorites[post.id] ? (
+                  <FavoriteIcon color="error" />
+                ) : (
+                  <FavoriteBorderIcon />
+                )}
+              </IconButton>
             </Box>
-          )}
+          )})
+
           {!isLoggedIn && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
@@ -240,7 +265,6 @@ export default function DemandPostDetailPage() {
         </Paper>
       </Container>
 
-      {/* Snackbar */}
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
