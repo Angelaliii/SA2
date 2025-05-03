@@ -9,16 +9,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 
-interface CollaborationRequest {
-  id?: string;
-  postTitle: string;
-  status: string;
-  message?: string;
-  createdAt: any;
-  updatedAt?: any;
-  rejectReason?: string;
-}
-
 interface CollaborationListProps {
   userType: string;
   onOpenReview: (collaborationId: string) => void;
