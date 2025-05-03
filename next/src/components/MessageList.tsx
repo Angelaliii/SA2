@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { db, auth } from "../firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
-  query,
-  where,
-  getDocs,
   doc,
   getDoc,
+  getDocs,
+  query,
+  where,
 } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { auth, db } from "../firebase/config";
 
 interface MessageItem {
   senderId: string;
@@ -55,13 +55,31 @@ const MessageList = () => {
           // 根據 senderId 查 club name
           try {
             const clubSnap = await getDocs(
-              query(collection(db, "clubs"), where("userId", "==", msg.senderId))
+              query(
+                collection(db, "clubs"),
+                where("userId", "==", msg.senderId)
+              )
             );
             if (!clubSnap.empty) {
               senderName = clubSnap.docs[0].data().clubName;
+            } else {
+              // 如果不是社團，查詢企業資料
+              const companySnap = await getDocs(
+                query(
+                  collection(db, "companies"),
+                  where("userId", "==", msg.senderId)
+                )
+              );
+              if (!companySnap.empty) {
+                senderName = companySnap.docs[0].data().companyName;
+              } else {
+                // 如果都沒找到，使用寄件者 ID
+                senderName = msg.senderId;
+              }
             }
           } catch (e) {
-            console.warn("查詢 senderName 發生錯誤", e);
+            console.warn("查詢寄件者資訊失敗", e);
+            senderName = msg.senderId;
           }
 
           // 根據 postId 查文章標題

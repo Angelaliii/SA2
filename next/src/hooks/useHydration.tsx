@@ -30,25 +30,16 @@ export function ClientOnly({
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // Use requestAnimationFrame to ensure we're in the next paint cycle
-    // This gives the browser time to apply all styles before showing content
-    const timeoutId = setTimeout(() => {
-      // Delay the mount state change to ensure styles are processed
-      setHasMounted(true);
-    }, 0);
-
-    return () => clearTimeout(timeoutId);
+    // Set mounted state on the client side only
+    setHasMounted(true);
   }, []);
 
-  // During server rendering and initial client render, show the fallback
-  // This prevents hydration mismatches by completely avoiding rendering the children
-  // until we're fully on the client side
+  // If we haven't mounted yet (server-side or first render), show the fallback
   if (!hasMounted) {
-    // Return minimal markup for the fallback to minimize hydration issues
-    return <div suppressHydrationWarning>{fallback}</div>;
+    // Use empty fragment when no fallback is provided to minimize DOM differences
+    return fallback ? <>{fallback}</> : null;
   }
 
-  // Once mounted on client, render the actual content wrapped in a div that
-  // suppresses any remaining hydration warnings
-  return <div suppressHydrationWarning>{children}</div>;
+  // Once mounted on client, render the actual content
+  return <>{children}</>;
 }

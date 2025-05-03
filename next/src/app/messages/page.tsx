@@ -71,6 +71,7 @@ export default function NotificationsPage() {
             let postTitle = "";
 
             try {
+              // 先查詢社團資料
               const clubSnap = await getDocs(
                 query(
                   collection(db, "clubs"),
@@ -79,8 +80,25 @@ export default function NotificationsPage() {
               );
               if (!clubSnap.empty) {
                 senderName = clubSnap.docs[0].data().clubName;
+              } else {
+                // 如果不是社團，查詢企業資料
+                const companySnap = await getDocs(
+                  query(
+                    collection(db, "companies"),
+                    where("userId", "==", data.senderId)
+                  )
+                );
+                if (!companySnap.empty) {
+                  senderName = companySnap.docs[0].data().companyName;
+                } else {
+                  // 如果都沒找到，使用寄件者 ID
+                  senderName = data.senderId;
+                }
               }
-            } catch {}
+            } catch (err) {
+              console.error("查詢寄件者資訊失敗:", err);
+              senderName = data.senderId;
+            }
 
             try {
               const postSnap = await getDoc(doc(db, "posts", data.postId));
@@ -316,21 +334,8 @@ export default function NotificationsPage() {
                               </Typography>
                             </Box>
                           )}
-                          {!msg.isRead && (
-                            <Box
-                              sx={{
-                                position: "absolute",
-                                top: 12,
-                                right: 12,
-                                width: 8,
-                                height: 8,
-                                borderRadius: "50%",
-                                bgcolor: "primary.main",
-                              }}
-                            />
-                          )}
                         </ListItem>
-                        <Box sx={{ height: 16 }} />
+                        <Divider sx={{ my: 2 }} />
                       </React.Fragment>
                     ))}
                   </List>
