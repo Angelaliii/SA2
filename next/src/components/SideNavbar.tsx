@@ -1,16 +1,17 @@
 "use client";
 
+import { ClientOnly } from "../hooks/useHydration";
 import ArticleIcon from "@mui/icons-material/Article";
 import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import EventIcon from "@mui/icons-material/Event";
 import FolderIcon from "@mui/icons-material/Folder";
 import PersonIcon from "@mui/icons-material/Person";
+import HandshakeIcon from "@mui/icons-material/Handshake";
 import {
   Box,
   Chip,
   Drawer,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { useState } from "react";
@@ -24,18 +25,17 @@ interface SideNavbarProps {
 }
 
 export default function SideNavbar({
-  searchTerm,
   setSearchTerm,
   selectedTag,
   setSelectedTag,
   drawerWidth = 240,
 }: SideNavbarProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // 直接在組件內部定義標籤列表
-  const availableTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊"];
+  const availableTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊", "合作記錄"];
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -90,6 +90,9 @@ export default function SideNavbar({
             case "我的收藏":
               icon = <BookmarksIcon fontSize="small" />;
               break;
+            case "合作記錄":
+              icon = <HandshakeIcon fontSize="small" />;
+              break;
             default:
               icon = <FolderIcon fontSize="small" />;
           }
@@ -143,27 +146,28 @@ export default function SideNavbar({
       component="nav"
       sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
     >
-      {/* Permanent drawer for desktop */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: "none", md: "block" },
-          "& .MuiDrawer-paper": {
-            boxSizing: "border-box",
-            width: drawerWidth,
-            borderRight: "1px solid rgba(0, 0, 0, 0.08)",
-            position: "fixed",
-            top: { xs: "56px", sm: "64px" }, // 根據 MUI AppBar 的高度調整
-            height: "calc(100% - 64px)",
-            overflowY: "hidden", // Changed from 'auto' to 'hidden' to remove scrollbar
-            backgroundColor: theme.palette.background.default,
-            zIndex: theme.zIndex.drawer,
-          },
-        }}
-        open
-      >
-        {drawerContent}
-      </Drawer>
+      <ClientOnly>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+              borderRight: "1px solid rgba(0, 0, 0, 0.08)",
+              position: "fixed",
+              top: { xs: "56px", sm: "64px" }, // 根據 MUI AppBar 的高度調整
+              height: "calc(100% - 64px)",
+              overflowY: "hidden", // Changed from 'auto' to 'hidden' to remove scrollbar
+              backgroundColor: theme.palette.background.default,
+              zIndex: theme.zIndex.drawer,
+            },
+          }}
+          open
+        >
+          {drawerContent}
+        </Drawer>
+      </ClientOnly>
     </Box>
   );
 }

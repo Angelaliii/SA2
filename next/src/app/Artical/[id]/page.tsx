@@ -3,6 +3,7 @@
 import EventIcon from "@mui/icons-material/Event";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import HandshakeIcon from '@mui/icons-material/Handshake';
 import {
   Alert,
   Box,
@@ -16,15 +17,17 @@ import {
 } from "@mui/material";
 import { addDoc, collection } from "firebase/firestore";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
 import { clubServices } from "../../../firebase/services/club-service";
 import * as postService from "../../../firebase/services/post-service";
+import { collaborationService } from "../../../firebase/services/collaboration-service";
 
 export default function DemandPostDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [post, setPost] = useState<any>(null);
   const [clubInfo, setClubInfo] = useState<any>(null);
   const [messageSent, setMessageSent] = useState(false);
@@ -87,6 +90,7 @@ export default function DemandPostDetailPage() {
     if (!currentUser) return;
 
     try {
+      // 1. 發送訊息
       const messageContent = `我這個組織有意願和你這篇文章合作。`;
       await addDoc(collection(db, "messages"), {
         senderId: currentUser.uid,
@@ -96,8 +100,31 @@ export default function DemandPostDetailPage() {
         timestamp: new Date(),
       });
 
+      // 2. 創建合作請求
+      console.log('Creating collaboration request with:', {
+        postId: id,
+        postTitle: post.title,
+        requesterId: currentUser.uid,
+        receiverId: post.authorId,
+      });
+      
+      const collaborationResult = await collaborationService.createCollaborationRequest({
+        postId: id as string,
+        postTitle: post.title,
+        requesterId: currentUser.uid,
+        receiverId: post.authorId,
+        message: messageContent,
+      });
+
+      console.log('Collaboration request result:', collaborationResult);
+
+      if (collaborationResult.success) {
+        setSnackbarMessage("已成功發送合作訊息！合作請求已提交給對方審核。");
+      } else {
+        setSnackbarMessage(`已發送訊息，但${collaborationResult.error || '無法提交合作請求'}`);
+      }
+
       setMessageSent(true);
-      setSnackbarMessage("已成功發送合作訊息！");
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
     } catch (error) {
@@ -106,6 +133,11 @@ export default function DemandPostDetailPage() {
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
     }
+  };
+
+  // 導航到社團的合作列表頁面
+  const handleNavigateToCollaborationList = () => {
+    router.push(`/Profile?searchTerm=4`); // 導航到合作記錄標籤
   };
 
   return (
@@ -218,7 +250,7 @@ export default function DemandPostDetailPage() {
 
           {/* 發送訊息按鈕 */}
           {isLoggedIn && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4, flexDirection: 'column', alignItems: 'center', gap: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -228,6 +260,17 @@ export default function DemandPostDetailPage() {
               >
                 {messageSent ? "已發送訊息" : "發送合作訊息"}
               </Button>
+              
+              {messageSent && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleNavigateToCollaborationList}
+                  startIcon={<HandshakeIcon />}
+                >
+                  前往我的合作記錄確認
+                </Button>
+              )}
             </Box>
           )}
           {!isLoggedIn && (

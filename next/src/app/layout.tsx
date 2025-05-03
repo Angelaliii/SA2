@@ -3,8 +3,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../assets/globals.module.css";
-import ThemeRegistry from "../components/ThemeRegistry";
-import { AuthProvider } from "../hooks/useAuth"; // ✅ 加這行
+import ClientLayout from "./client-layout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,11 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeRegistry>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </ThemeRegistry>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

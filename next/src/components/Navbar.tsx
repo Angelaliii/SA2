@@ -49,59 +49,60 @@ const userOptions = [
 export default function Navbar({
   hasUnread = false,
 }: Readonly<{ hasUnread?: boolean }>) {
+  // Initialize all state to consistent values for both server and client
   const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false); // Initialize to false explicitly
+  const [openLogoutDialog, setOpenLogoutDialog] = useState<boolean>(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [userType, setUserType] = useState<"club" | "company" | "unknown">(
-    "unknown"
-  );
+  const [userType, setUserType] = useState<"club" | "company" | "unknown">("unknown");
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const greeting = "您好，";
 
   useEffect(() => {
+    // Skip the first render to prevent hydration mismatch
+    if (!isInitialized) {
+      setIsInitialized(true);
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
-      if (user) {
-        try {
-          // Try to find user in clubs collection first
-          const clubData = await clubServices.getClubByUserId(user.uid);
-          if (clubData) {
-            setUserName(clubData.clubName);
-            setUserType("club");
-            return;
-          }
-
-          // If not found in clubs, try to find in companies collection
-          const companies = await companyServices.getCompaniesByUserId(
-            user.uid
-          );
-          if (companies && companies.length > 0) {
-            setUserName(companies[0].companyName);
-            setUserType("company");
-            return;
-          }
-
-          // If still not found, use default display name
-          const displayName =
-            user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
-          setUserName(displayName);
-          setUserType("unknown");
-        } catch (error) {
-          console.error("無法獲取組織名稱:", error);
-          const displayName =
-            user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
-          setUserName(displayName);
-          setUserType("unknown");
-        }
-      } else {
+      if (!user) {
         setUserName(null);
+        setUserType("unknown");
+        return;
+      }
+
+      try {
+        // Try to find user in clubs collection first
+        const clubData = await clubServices.getClubByUserId(user.uid);
+        if (clubData) {
+          setUserName(clubData.clubName);
+          setUserType("club");
+          return;
+        }
+
+        // If not found in clubs, try to find in companies collection
+        const companies = await companyServices.getCompaniesByUserId(user.uid);
+        if (companies?.length > 0) {
+          setUserName(companies[0].companyName);
+          setUserType("company");
+          return;
+        }
+
+        // If still not found, use default display name
+        setUserName(user.displayName ?? user.email?.split("@")[0] ?? "夥伴");
+        setUserType("unknown");
+      } catch (error) {
+        console.error("無法獲取組織名稱:", error);
+        setUserName(user.displayName ?? user.email?.split("@")[0] ?? "夥伴");
         setUserType("unknown");
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isInitialized]); // Only run effect when isInitialized changes
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorElNav(event.currentTarget);

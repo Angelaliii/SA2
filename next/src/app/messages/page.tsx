@@ -24,10 +24,12 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase/config";
+import HandshakeIcon from '@mui/icons-material/Handshake';
 
 type NotificationItem = {
   id: string;
@@ -41,9 +43,11 @@ type NotificationItem = {
 };
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [hasCollaborationMessages, setHasCollaborationMessages] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -121,6 +125,16 @@ export default function NotificationsPage() {
         );
 
         setNotifications(enriched);
+
+        // 檢查是否有合作相關的訊息
+        const hasCollaboration = enriched.some(msg => 
+          msg.messageContent.includes('合作') || 
+          msg.messageContent.includes('申請') || 
+          msg.messageContent.includes('婉拒') ||
+          msg.messageContent.includes('邀請') ||
+          msg.messageContent.includes('意願')
+        );
+        setHasCollaborationMessages(hasCollaboration);
       } catch (error) {
         console.error("Error fetching notifications:", error);
       } finally {
@@ -184,6 +198,10 @@ export default function NotificationsPage() {
     }
   };
 
+  const navigateToCollaborations = () => {
+    router.push("/Profile?searchTerm=4");
+  };
+
   return (
     <>
       <Navbar hasUnread={notifications.some((n) => !n.isRead)} />
@@ -223,6 +241,8 @@ export default function NotificationsPage() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     mb: 2,
+                    flexWrap: 'wrap',
+                    gap: 1
                   }}
                 >
                   <Typography
@@ -236,13 +256,25 @@ export default function NotificationsPage() {
                   >
                     通知中心
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    onClick={markAllAsRead}
-                    disabled={notifications.every((n) => n.isRead)}
-                  >
-                    全部標記為已讀
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {hasCollaborationMessages && (
+                      <Button 
+                        variant="outlined" 
+                        color="primary"
+                        startIcon={<HandshakeIcon />}
+                        onClick={navigateToCollaborations}
+                      >
+                        查看合作請求
+                      </Button>
+                    )}
+                    <Button
+                      variant="outlined"
+                      onClick={markAllAsRead}
+                      disabled={notifications.every((n) => n.isRead)}
+                    >
+                      全部標記為已讀
+                    </Button>
+                  </Box>
                 </Box>
                 <Divider sx={{ my: 2 }} />
 
@@ -332,6 +364,23 @@ export default function NotificationsPage() {
                                   {msg.postTitle}
                                 </Link>
                               </Typography>
+                            </Box>
+                          )}
+                          
+                          {msg.messageContent.includes('合作') && (
+                            <Box sx={{ mt: 2, alignSelf: 'flex-end' }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<HandshakeIcon />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateToCollaborations();
+                                }}
+                              >
+                                前往審核合作請求
+                              </Button>
                             </Box>
                           )}
                         </ListItem>

@@ -5,6 +5,7 @@ import BookmarkIcon from "@mui/icons-material/Bookmark";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import EventIcon from "@mui/icons-material/Event";
+import HandshakeIcon from "@mui/icons-material/Handshake";
 import {
   Alert,
   Box,
@@ -41,6 +42,8 @@ import {
   companyServices,
 } from "../../firebase/services/company-service";
 import { ClientOnly } from "../../hooks/useHydration";
+import CollaborationList from "../../components/collaboration/CollaborationList";
+import CollaborationReviewDialog from "../../components/collaboration/CollaborationReviewDialog";
 
 function TabPanel(props: {
   children?: React.ReactNode;
@@ -62,7 +65,6 @@ function TabPanel(props: {
 }
 
 export default function Profile() {
-  const router = useRouter();
   const [value, setValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +103,53 @@ export default function Profile() {
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [articleEditDialogOpen, setArticleEditDialogOpen] = useState(false);
   const [articleDeleteDialogOpen, setArticleDeleteDialogOpen] = useState(false);
+  // 合作請求相關狀態
+  const [selectedCollaborationId, setSelectedCollaborationId] = useState<string | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  // Add evaluation states
+  const [collaborationStats, setCollaborationStats] = useState({
+    totalCollaborations: 0,
+    averageRating: 0,
+    completedCollaborations: 0
+  });
+
+  const handleOpenReview = (id: string) => {
+    setSelectedCollaborationId(id);
+    setReviewDialogOpen(true);
+  };
+
+  const handleCloseReview = () => {
+    setReviewDialogOpen(false);
+    setSelectedCollaborationId(null);
+  };
+
+  // Add collaboration data export function
+  const handleExportCollaborations = async () => {
+    try {
+      const response = await collaborationService.exportCollaborationData();
+      if (response.success) {
+        setSnackbarMessage("合作記錄匯出成功！檔案已下載。");
+        setSnackbarSeverity("success");
+      } else {
+        throw new Error(response.error);
+      }
+    } catch (error) {
+      setSnackbarMessage("匯出失敗，請稍後再試");
+      setSnackbarSeverity("error");
+    }
+    setSnackbarOpen(true);
+  };
+
+  // Add collaboration stats update function
+  const updateCollaborationStats = async () => {
+    try {
+      const stats = await collaborationService.getCollaborationStats();
+      setCollaborationStats(stats);
+    } catch (error) {
+      console.error("Failed to fetch collaboration stats:", error);
+    }
+  };
 
   // Combine all useEffect hooks into a single one to ensure consistent order
   useEffect(() => {
@@ -449,19 +498,29 @@ export default function Profile() {
     }
   };
 
-  // Basic loading fallback for server-side rendering and initial load
-  const loadingFallback = (
+  // Basic loading fallback that matches the client structure exactly
+  const LoadingFallback = () => (
     <Box
       sx={{
-        pt: "64px",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        pt: "64px",
         minHeight: "calc(100vh - 64px)",
         backgroundColor: "#f2f2f7",
       }}
     >
-      <CircularProgress />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: { xs: 2, sm: 4 },
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
     </Box>
   );
 
@@ -470,7 +529,7 @@ export default function Profile() {
     return (
       <>
         <Navbar />
-        {loadingFallback}
+        <LoadingFallback />
       </>
     );
   }
@@ -490,7 +549,7 @@ export default function Profile() {
     return (
       <>
         <Navbar />
-        {loadingFallback}
+        <LoadingFallback />
       </>
     );
   }
@@ -499,7 +558,7 @@ export default function Profile() {
   return (
     <>
       <Navbar />
-      <ClientOnly fallback={loadingFallback}>
+      <ClientOnly fallback={<LoadingFallback />}>
         <Box
           sx={{
             display: "flex",
@@ -832,6 +891,27 @@ export default function Profile() {
                       )}
                     </Box>
                   )}
+                </TabPanel>
+
+                <TabPanel value={value} index={4}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                      <HandshakeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                      合作記錄與請求
+                    </Typography>
+                  </Box>
+                  
+                  {/* 合作記錄列表 - 已經連接到合作服務 */}
+                  <CollaborationList userType={userType} onOpenReview={handleOpenReview} />
+                  
+                  {/* 顯示合作請求評價對話框 */}
+                    {selectedCollaborationId && (
+                    <CollaborationReviewDialog
+                      open={reviewDialogOpen}  
+                      onClose={handleCloseReview}
+                      collaborationId={selectedCollaborationId}
+                    />
+                    )}
                 </TabPanel>
               </Paper>
             </Container>
