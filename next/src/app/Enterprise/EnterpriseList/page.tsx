@@ -32,6 +32,8 @@ import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
 import { enterpriseService } from "../../../firebase/services/enterprise-service";
+import { ClientOnly } from "../../../hooks/useHydration";
+import useHydration from "../../../hooks/useHydration";
 
 interface EnterprisePost {
   id: string;
@@ -43,6 +45,7 @@ interface EnterprisePost {
   status?: string;
   authorId?: string;
   isDraft?: boolean;
+  announcementType?: "marketing" | "activity" | "internship";
 }
 
 export default function EnterpriseListPage() {
@@ -51,7 +54,10 @@ export default function EnterpriseListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [selectedTag] = useState<string>("全部");
+  
+  // 修改：添加篩選類型狀態，預設為「全部」
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  
   const itemsPerPage = 8;
 
   // 獲取收藏狀態
@@ -163,7 +169,12 @@ export default function EnterpriseListPage() {
     // 過濾掉 null 或 undefined 值和草稿文章
     if (!post || post.isDraft === true) return false;
 
-    // 如果搜尋詞為空，顯示所有非草稿文章
+    // 應用公告類型篩選
+    if (selectedType && post.announcementType !== selectedType) {
+      return false;
+    }
+
+    // 如果搜尋詞為空，顯示所有符合類型篩選的非草稿文章
     if (!searchTerm.trim()) return true;
 
     // 搜尋邏輯，確保即使屬性為空也能正確處理
@@ -179,15 +190,20 @@ export default function EnterpriseListPage() {
     currentPage * itemsPerPage
   );
 
-  // 格式化日期
+  // 格式化日期 - 修改為使用ISO字符串確保伺服器端與客戶端一致
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "未知日期";
     try {
-      return new Date(dateStr).toLocaleDateString("zh-TW");
+      // Use a consistent format that doesn't depend on locale settings
+      const date = new Date(dateStr);
+      // During hydration, return a simple string to avoid mismatches
+      return date.toISOString().split('T')[0];
     } catch (e) {
       return "日期格式錯誤";
     }
   };
+  
+  const hydrated = useHydration();
 
   return (
     <>
@@ -243,6 +259,59 @@ export default function EnterpriseListPage() {
               sx={{ bgcolor: "background.paper" }}
             />
           </Paper>{" "}
+          
+          {/* 公告類型篩選按鈕 */}
+          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="subtitle1" fontWeight="medium">
+              公告類型篩選
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button 
+                variant={selectedType === null ? "contained" : "outlined"}
+                onClick={() => {
+                  setSelectedType(null);
+                  setCurrentPage(1);
+                }}
+                size="medium"
+              >
+                全部公告
+              </Button>
+              <Button 
+                variant={selectedType === "marketing" ? "contained" : "outlined"}
+                onClick={() => {
+                  setSelectedType("marketing");
+                  setCurrentPage(1);
+                }}
+                size="medium"
+                color="primary"
+              >
+                行銷推廣
+              </Button>
+              <Button 
+                variant={selectedType === "activity" ? "contained" : "outlined"}
+                onClick={() => {
+                  setSelectedType("activity");
+                  setCurrentPage(1);
+                }}
+                size="medium"
+                color="secondary"
+              >
+                活動合作
+              </Button>
+              <Button 
+                variant={selectedType === "internship" ? "contained" : "outlined"}
+                onClick={() => {
+                  setSelectedType("internship");
+                  setCurrentPage(1);
+                }}
+                size="medium"
+                color="success"
+              >
+                實習合作
+              </Button>
+            </Box>
+          </Box>
+          
           {/* 貼文列表 */}
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -293,6 +362,63 @@ export default function EnterpriseListPage() {
                         >
                           {post.title}
                         </Typography>
+
+                        {/* 顯示公告類型標籤 */}
+                        {post.announcementType && (
+                          <Box sx={{ mb: 1.5 }}>
+                            {post.announcementType === "marketing" && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                disableElevation
+                                sx={{ 
+                                  fontSize: "0.7rem", 
+                                  py: 0.2, 
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                  mr: 1
+                                }}
+                              >
+                                行銷推廣
+                              </Button>
+                            )}
+                            {post.announcementType === "activity" && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="secondary"
+                                disableElevation
+                                sx={{ 
+                                  fontSize: "0.7rem", 
+                                  py: 0.2, 
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                  mr: 1
+                                }}
+                              >
+                                活動合作
+                              </Button>
+                            )}
+                            {post.announcementType === "internship" && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                disableElevation
+                                sx={{ 
+                                  fontSize: "0.7rem", 
+                                  py: 0.2, 
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                  mr: 1
+                                }}
+                              >
+                                實習合作
+                              </Button>
+                            )}
+                          </Box>
+                        )}
 
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 1 }}
