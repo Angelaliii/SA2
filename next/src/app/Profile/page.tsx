@@ -19,7 +19,6 @@ import {
   Typography,
 } from "@mui/material";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import ActivityDeleteDialog from "../../components/activities/ActivityDeleteDialog";
 import ActivityEditDialog from "../../components/activities/ActivityEditDialog";
@@ -107,13 +106,6 @@ export default function Profile() {
   const [selectedCollaborationId, setSelectedCollaborationId] = useState<string | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
-  // Add evaluation states
-  const [collaborationStats, setCollaborationStats] = useState({
-    totalCollaborations: 0,
-    averageRating: 0,
-    completedCollaborations: 0
-  });
-
   const handleOpenReview = (id: string) => {
     setSelectedCollaborationId(id);
     setReviewDialogOpen(true);
@@ -122,33 +114,6 @@ export default function Profile() {
   const handleCloseReview = () => {
     setReviewDialogOpen(false);
     setSelectedCollaborationId(null);
-  };
-
-  // Add collaboration data export function
-  const handleExportCollaborations = async () => {
-    try {
-      const response = await collaborationService.exportCollaborationData();
-      if (response.success) {
-        setSnackbarMessage("合作記錄匯出成功！檔案已下載。");
-        setSnackbarSeverity("success");
-      } else {
-        throw new Error(response.error);
-      }
-    } catch (error) {
-      setSnackbarMessage("匯出失敗，請稍後再試");
-      setSnackbarSeverity("error");
-    }
-    setSnackbarOpen(true);
-  };
-
-  // Add collaboration stats update function
-  const updateCollaborationStats = async () => {
-    try {
-      const stats = await collaborationService.getCollaborationStats();
-      setCollaborationStats(stats);
-    } catch (error) {
-      console.error("Failed to fetch collaboration stats:", error);
-    }
   };
 
   // Combine all useEffect hooks into a single one to ensure consistent order
