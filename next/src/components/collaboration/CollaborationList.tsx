@@ -3,11 +3,12 @@
 import { Button, Box, Typography, Paper, Chip, CircularProgress } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { auth } from '../../firebase/config';
-import { collaborationService, CollaborationRequest } from '../../firebase/services/collaboration-service';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { collaborationService } from '../../firebase/services/collaboration-service';
+import HandshakeIcon from '@mui/icons-material/Handshake';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import HandshakeIcon from '@mui/icons-material/Handshake';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { CollaborationEndReviewDialog } from './CollaborationReviewDialog';
 
 interface CollaborationListProps {
   userType: string;
@@ -15,58 +16,59 @@ interface CollaborationListProps {
 }
 
 export default function CollaborationList({ userType, onOpenReview }: CollaborationListProps) {
-  const [receivedRequests, setReceivedRequests] = useState<CollaborationRequest[]>([]);
-  const [sentRequests, setSentRequests] = useState<CollaborationRequest[]>([]);
-  const [acceptedCollaborations, setAcceptedCollaborations] = useState<CollaborationRequest[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
+  const [acceptedCollaborations, setAcceptedCollaborations] = useState<any[]>([]);
+  const [completedCollaborations, setCompletedCollaborations] = useState<any[]>([]);
+  const [cancelledCollaborations, setCancelledCollaborations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const loadCollaborations = async () => {
-      console.log('開始載入合作記錄...');
-      setLoading(true);
-      setError(null);
-      
-      const user = auth.currentUser;
-      console.log('當前用戶:', user?.uid);
-      
-      if (!user) {
-        console.log('未登入狀態');
-        setError("請先登入");
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        console.log('開始獲取收到的合作請求...');
-        const received = await collaborationService.getReceivedRequests(user.uid);
-        console.log('收到的合作請求:', received);
-        setReceivedRequests(received);
-        
-        console.log('開始獲取發送的合作請求...');
-        const sent = await collaborationService.getSentRequests(user.uid);
-        console.log('發送的合作請求:', sent);
-        setSentRequests(sent);
-        
-        const receivedAccepted = received.filter((req) => req.status === 'accepted');
-        const sentAccepted = sent.filter((req) => req.status === 'accepted');
-        
-        const allAccepted = [...receivedAccepted, ...sentAccepted];
-        const uniqueAccepted = allAccepted.filter((collaboration, index, self) =>
-          index === self.findIndex((c) => c.id === collaboration.id)
-        );
-        
-        console.log('已接受的合作:', uniqueAccepted);
-        setAcceptedCollaborations(uniqueAccepted);
-      } catch (err) {
-        console.error('載入合作記錄時發生錯誤:', err);
-        setError('載入合作記錄時發生錯誤');
-      } finally {
-        console.log('載入完成，設置 loading 為 false');
-        setLoading(false);
-      }
-    };
+  const [selectedCollaboration, setSelectedCollaboration] = useState<string | null>(null);
+  const [endReviewType, setEndReviewType] = useState<'complete' | 'cancel' | null>(null);
+
+  const loadCollaborations = async () => {
+    setLoading(true);
+    setError(null);
     
+    const user = auth.currentUser;
+    if (!user) {
+      setError("請先登入");
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      // 獲取收到的合作請求
+      const received = await collaborationService.getReceivedRequests(user.uid);
+      setReceivedRequests(received);
+      
+      // 獲取發送的合作請求
+      const sent = await collaborationService.getSentRequests(user.uid);
+      setSentRequests(sent);
+      
+      // 合併所有合作記錄並去重
+      const allCollaborations = [...received, ...sent].filter(
+        (collaboration, index, self) =>
+          index === self.findIndex((c) => c.id === collaboration.id)
+      );
+      
+      // 分類合作記錄
+      const active = allCollaborations.filter(c => c.status === 'accepted');
+      const completed = allCollaborations.filter(c => c.status === 'complete');
+      const cancelled = allCollaborations.filter(c => c.status === 'cancel');
+      
+      setAcceptedCollaborations(active);
+      setCompletedCollaborations(completed);
+      setCancelledCollaborations(cancelled);
+    } catch (err) {
+      console.error('Error loading collaborations:', err);
+      setError('載入合作記錄時發生錯誤');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadCollaborations();
   }, []);
   
@@ -81,7 +83,7 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
         };
       case 'accepted':
         return { 
-          label: '已接受', 
+          label: '進行中', 
           color: 'success' as const,
           icon: <CheckCircleIcon fontSize="small" sx={{ mr: 0.5 }} />
         };
@@ -91,11 +93,23 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
           color: 'error' as const,
           icon: <CancelIcon fontSize="small" sx={{ mr: 0.5 }} />
         };
+      case 'complete':
+        return { 
+          label: '已完成', 
+          color: 'primary' as const,
+          icon: <CheckCircleIcon fontSize="small" sx={{ mr: 0.5 }} />
+        };
+      case 'cancel':
+        return { 
+          label: '已取消', 
+          color: 'error' as const,
+          icon: <CancelIcon fontSize="small" sx={{ mr: 0.5 }} />
+        };
       default:
         return { 
           label: '未知狀態', 
           color: 'default' as const,
-          icon: undefined
+          icon: null
         };
     }
   };
@@ -116,6 +130,18 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
     } catch (err) {
       return '日期格式錯誤';
     }
+  };
+
+  const handleOpenEndReview = (collaborationId: string, type: 'complete' | 'cancel') => {
+    setSelectedCollaboration(collaborationId);
+    setEndReviewType(type);
+  };
+
+  const handleCloseEndReview = async () => {
+    setSelectedCollaboration(null);
+    setEndReviewType(null);
+    // 重新加載合作列表
+    await loadCollaborations();
   };
   
   if (loading) {
@@ -183,7 +209,7 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
               
               {request.message && (
                 <Typography variant="body2" sx={{ mb: 2, bgcolor: '#f5f5f5', p: 1.5, borderRadius: 1 }}>
-                  {request.message}
+                  "{request.message}"
                 </Typography>
               )}
               
@@ -191,14 +217,14 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
                 <Button 
                   variant="outlined" 
                   color="error"
-                  onClick={() => request.id && onOpenReview(request.id)}
+                  onClick={() => onOpenReview(request.id)}
                 >
                   拒絕
                 </Button>
                 <Button 
                   variant="contained" 
                   color="primary"
-                  onClick={() => request.id && onOpenReview(request.id)}
+                  onClick={() => onOpenReview(request.id)}
                 >
                   接受
                 </Button>
@@ -286,16 +312,26 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
                 <Typography variant="subtitle1" fontWeight="medium">
                   《{collaboration.postTitle}》
                 </Typography>
-                <Chip
-                  label="合作中"
-                  color="success"
-                  size="small"
-                  icon={<CheckCircleIcon fontSize="small" />}
-                />
               </Box>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 建立時間：{formatDate(collaboration.updatedAt)}
               </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleOpenEndReview(collaboration.id, 'cancel')}
+                >
+                  取消合作
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleOpenEndReview(collaboration.id, 'complete')}
+                >
+                  完成合作
+                </Button>
+              </Box>
             </Paper>
           ))
         ) : (
@@ -304,6 +340,119 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
           </Typography>
         )}
       </Paper>
+
+      {/* 已完成的合作 */}
+      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#fff' }}>
+        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <CheckCircleIcon sx={{ mr: 1 }} />
+          已完成的合作
+        </Typography>
+        
+        {completedCollaborations.length > 0 ? (
+          completedCollaborations.map((collaboration) => (
+            <Paper 
+              key={collaboration.id}
+              elevation={0}
+              sx={{ 
+                p: 2.5, 
+                mb: 2, 
+                borderRadius: 2,
+                border: '1px solid rgba(0,0,0,0.08)',
+                bgcolor: '#fafafa'
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  《{collaboration.postTitle}》
+                </Typography>
+                <Chip
+                  label={getStatusDisplay(collaboration.status).label}
+                  color={getStatusDisplay(collaboration.status).color}
+                  size="small"
+                  icon={getStatusDisplay(collaboration.status).icon}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                完成時間：{formatDate(collaboration.completeReview?.reviewedAt)}
+              </Typography>
+              {collaboration.completeReview && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    評價：{collaboration.completeReview.rating} / 5
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                    {collaboration.completeReview.comment}
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          ))
+        ) : (
+          <Typography color="text.secondary">
+            目前沒有已完成的合作
+          </Typography>
+        )}
+      </Paper>
+
+      {/* 已取消的合作 */}
+      <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
+        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <CancelIcon sx={{ mr: 1 }} />
+          已取消的合作
+        </Typography>
+        
+        {cancelledCollaborations.length > 0 ? (
+          cancelledCollaborations.map((collaboration) => (
+            <Paper 
+              key={collaboration.id}
+              elevation={0}
+              sx={{ 
+                p: 2.5, 
+                mb: 2, 
+                borderRadius: 2,
+                border: '1px solid rgba(0,0,0,0.08)',
+                bgcolor: '#fafafa'
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  《{collaboration.postTitle}》
+                </Typography>
+                <Chip
+                  label={getStatusDisplay(collaboration.status).label}
+                  color={getStatusDisplay(collaboration.status).color}
+                  size="small"
+                  icon={getStatusDisplay(collaboration.status).icon}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                取消時間：{formatDate(collaboration.cancelReview?.reviewedAt)}
+              </Typography>
+              {collaboration.cancelReview && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    評價：{collaboration.cancelReview.rating} / 5
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                    取消原因：{collaboration.cancelReview.comment}
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          ))
+        ) : (
+          <Typography color="text.secondary">
+            目前沒有已取消的合作
+          </Typography>
+        )}
+      </Paper>
+
+      <CollaborationEndReviewDialog
+        open={!!selectedCollaboration && !!endReviewType}
+        onClose={handleCloseEndReview}
+        collaborationId={selectedCollaboration}
+        endType={endReviewType || 'complete'}
+      />
     </Box>
   );
 }

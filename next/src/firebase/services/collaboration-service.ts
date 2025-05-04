@@ -19,11 +19,28 @@ export interface CollaborationRequest {
   postTitle: string;
   requesterId: string;
   receiverId: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'complete' | 'cancel';
   message?: string;
   rejectReason?: string;
+  completeReview?: {
+    rating: number;
+    comment: string;
+    reviewerId: string;
+    reviewedAt: any;
+  };
+  cancelReview?: {
+    rating: number;
+    comment: string;
+    reviewerId: string;
+    reviewedAt: any;
+  };
   createdAt?: any;
   updatedAt?: any;
+}
+
+export interface CollaborationReview {
+  rating: number;
+  comment: string;
 }
 
 export const collaborationService = {
@@ -112,6 +129,8 @@ export const collaborationService = {
             status: data.status,
             message: data.message || "",
             rejectReason: data.rejectReason || "",
+            completeReview: data.completeReview,
+            cancelReview: data.cancelReview,
             createdAt: data.createdAt,
             updatedAt: data.updatedAt
             } as CollaborationRequest;
@@ -143,6 +162,8 @@ export const collaborationService = {
             status: data.status,
             message: data.message || "",
             rejectReason: data.rejectReason || "",
+            completeReview: data.completeReview,
+            cancelReview: data.cancelReview,
             createdAt: data.createdAt,
             updatedAt: data.updatedAt
             } as CollaborationRequest;
@@ -188,5 +209,57 @@ export const collaborationService = {
       console.error("Error updating request status:", error);
       return { success: false, error };
     }
-  }
+  },
+
+  // Update a collaboration's completion status
+  updateCollaborationStatus: async (
+    collaborationId: string,
+    status: 'complete' | 'cancel',
+    review: CollaborationReview
+  ) => {
+    try {
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        return { success: false, error: '找不到該合作記錄' };
+      }
+
+      const data = docSnap.data();
+      
+      await updateDoc(docRef, {
+        status,
+        [`${status}Review`]: {
+          ...review,
+          reviewerId: auth.currentUser?.uid,
+          reviewedAt: serverTimestamp()
+        },
+        updatedAt: serverTimestamp()
+      });
+
+      // Send notification to the other party
+      const otherUserId = auth.currentUser?.uid === data.requesterId 
+        ? data.receiverId 
+        : data.requesterId;
+
+      if (status === 'complete') {
+        await notificationService.sendCollaborationCompleted(
+          otherUserId,
+          collaborationId,
+          review.comment
+        );
+      } else {
+        await notificationService.sendCollaborationCancelled(
+          otherUserId,
+          collaborationId,
+          review.comment
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating collaboration status:", error);
+      return { success: false, error: '更新合作狀態失敗' };
+    }
+  },
 };
