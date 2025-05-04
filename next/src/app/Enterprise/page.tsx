@@ -47,17 +47,19 @@ export default function EnterprisePostPage() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   // 新增公告類型與相關欄位狀態
-  const [announcementType, setAnnouncementType] = useState<"marketing" | "activity" | "internship" | "">("");
-  
+  const [announcementType, setAnnouncementType] = useState<
+    "marketing" | "activity" | "internship" | ""
+  >("");
+
   // 行銷推廣相關狀態
   const [marketingProductName, setMarketingProductName] = useState<string>("");
   const [marketingPeriodStart, setMarketingPeriodStart] = useState<string>("");
   const [marketingPeriodEnd, setMarketingPeriodEnd] = useState<string>("");
-  
+
   // 聯繫窗口（共用）
   const [contactName, setContactName] = useState<string>("");
   const [contactPhone, setContactPhone] = useState<string>("");
-  
+
   // 活動合作相關狀態
   const [activityName, setActivityName] = useState<string>("");
   const [activityType, setActivityType] = useState<string>("");
@@ -67,7 +69,7 @@ export default function EnterprisePostPage() {
   const [cooperationType, setCooperationType] = useState<string>("");
   const [partnerRequirements, setPartnerRequirements] = useState<string>("");
   const [documentURL, setDocumentURL] = useState<string>("");
-  
+
   // 實習合作相關狀態
   const [internshipTitle, setInternshipTitle] = useState<string>("");
   const [internshipDepartment, setInternshipDepartment] = useState<string>("");
@@ -80,14 +82,27 @@ export default function EnterprisePostPage() {
   const [benefits, setBenefits] = useState<string>("");
   const [applicationDeadline, setApplicationDeadline] = useState<string>("");
   const [interviewMethod, setInterviewMethod] = useState<string>("");
-  const [additionalDocumentURL, setAdditionalDocumentURL] = useState<string>("");
+  const [additionalDocumentURL, setAdditionalDocumentURL] =
+    useState<string>("");
 
   // 活動類型選項
   const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "其他"];
   // 合作方式選項
-  const cooperationTypeOptions = ["贊助", "場地提供", "技術支援", "媒體宣傳", "其他"];
+  const cooperationTypeOptions = [
+    "贊助",
+    "場地提供",
+    "技術支援",
+    "媒體宣傳",
+    "其他",
+  ];
   // 面試方式選項
-  const interviewMethodOptions = ["線上面試", "實體面試", "電話面試", "專案測試", "多輪面試"];
+  const interviewMethodOptions = [
+    "線上面試",
+    "實體面試",
+    "電話面試",
+    "專案測試",
+    "多輪面試",
+  ];
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -146,23 +161,22 @@ export default function EnterprisePostPage() {
         setTitle(draft.title);
         setContent(draft.content);
         setCurrentDraftId(draftId);
-        
+
         // 設置公告類型
         if (draft.announcementType) {
           setAnnouncementType(draft.announcementType);
         }
-        
+
         // 設置共用欄位
         setContactName(draft.contactName || "");
         setContactPhone(draft.contactPhone || "");
-        
+
         // 根據公告類型設置特定欄位
         if (draft.announcementType === "marketing") {
           setMarketingProductName(draft.marketingProductName || "");
           setMarketingPeriodStart(draft.marketingPeriodStart || "");
           setMarketingPeriodEnd(draft.marketingPeriodEnd || "");
-        } 
-        else if (draft.announcementType === "activity") {
+        } else if (draft.announcementType === "activity") {
           setActivityName(draft.activityName || "");
           setActivityType(draft.activityType || "");
           setActivityDateTime(draft.activityDateTime || "");
@@ -171,8 +185,7 @@ export default function EnterprisePostPage() {
           setCooperationType(draft.cooperationType || "");
           setPartnerRequirements(draft.partnerRequirements || "");
           setDocumentURL(draft.documentURL || "");
-        }
-        else if (draft.announcementType === "internship") {
+        } else if (draft.announcementType === "internship") {
           setInternshipTitle(draft.internshipTitle || "");
           setInternshipDepartment(draft.internshipDepartment || "");
           setInternshipPeriod(draft.internshipPeriod || "");
@@ -186,7 +199,7 @@ export default function EnterprisePostPage() {
           setInterviewMethod(draft.interviewMethod || "");
           setAdditionalDocumentURL(draft.additionalDocumentURL || "");
         }
-        
+
         setOpenDraftsDialog(false);
       }
     } catch (error) {
@@ -220,7 +233,7 @@ export default function EnterprisePostPage() {
     }
   };
 
-  const handleSubmit = async (isDraft: boolean = false) => {
+  const handleSubmit = async (isDraftParam: boolean = false) => {
     // Validate required fields based on announcement type
     if (!title || !content) {
       setSnackbarMessage("請填寫標題和內容");
@@ -230,21 +243,44 @@ export default function EnterprisePostPage() {
     }
 
     if (announcementType === "marketing") {
-      if (!marketingProductName || !marketingPeriodStart || !marketingPeriodEnd || !contactName || !contactPhone) {
+      if (
+        !marketingProductName ||
+        !marketingPeriodStart ||
+        !marketingPeriodEnd ||
+        !contactName ||
+        !contactPhone
+      ) {
         setSnackbarMessage("請填寫所有行銷推廣必填欄位");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
         return;
       }
     } else if (announcementType === "activity") {
-      if (!activityName || !activityType || !activityDateTime || !activityLocation || !cooperationPurpose || !contactName || !contactPhone) {
+      if (
+        !activityName ||
+        !activityType ||
+        !activityDateTime ||
+        !activityLocation ||
+        !cooperationPurpose ||
+        !contactName ||
+        !contactPhone
+      ) {
         setSnackbarMessage("請填寫所有活動合作必填欄位");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
         return;
       }
     } else if (announcementType === "internship") {
-      if (!internshipTitle || !internshipDepartment || !internshipPeriod || !workLocation || !jobDescription || !applicationDeadline || !contactName || !contactPhone) {
+      if (
+        !internshipTitle ||
+        !internshipDepartment ||
+        !internshipPeriod ||
+        !workLocation ||
+        !jobDescription ||
+        !applicationDeadline ||
+        !contactName ||
+        !contactPhone
+      ) {
         setSnackbarMessage("請填寫所有實習合作必填欄位");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
@@ -266,7 +302,7 @@ export default function EnterprisePostPage() {
         createdAt: new Date().toISOString(),
         status: "active" as const,
         postType: "enterprise" as const,
-        isDraft: isDraft,
+        isDraft: isDraftParam, // 使用函數參數而非組件狀態
         announcementType,
         contactName,
         contactPhone,
@@ -291,7 +327,12 @@ export default function EnterprisePostPage() {
         postData.internshipDepartment = internshipDepartment;
         postData.internshipPeriod = internshipPeriod;
         // Convert empty string to undefined, or string to number
-        postData.weeklyHours = weeklyHours === "" ? undefined : (typeof weeklyHours === "string" ? Number(weeklyHours) : weeklyHours);
+        postData.weeklyHours =
+          weeklyHours === ""
+            ? undefined
+            : typeof weeklyHours === "string"
+            ? Number(weeklyHours)
+            : weeklyHours;
         postData.workLocation = workLocation;
         postData.salary = salary;
         postData.jobDescription = jobDescription;
@@ -305,23 +346,24 @@ export default function EnterprisePostPage() {
       if (currentDraftId) {
         // 如果是編輯現有草稿，則更新該草稿
         await enterpriseService.updatePost(currentDraftId, postData);
-        if (!isDraft) {
+        if (!isDraftParam) {
+          // 使用函數參數
           // 如果不是儲存為草稿，則發布
           await enterpriseService.publishDraft(currentDraftId);
         }
-        setSnackbarMessage(isDraft ? "草稿已更新！" : "草稿已成功發布！");
+        setSnackbarMessage(isDraftParam ? "草稿已更新！" : "草稿已成功發布！"); // 使用函數參數
       } else {
         // 創建新文章
         const result = await enterpriseService.createPost(postData);
         if (result.success) {
-          setSnackbarMessage(isDraft ? "草稿儲存成功！" : "發布成功！");
+          setSnackbarMessage(isDraftParam ? "草稿儲存成功！" : "發布成功！"); // 使用函數參數
         } else {
-          throw new Error(isDraft ? "儲存草稿失敗" : "發布失敗");
+          throw new Error(isDraftParam ? "儲存草稿失敗" : "發布失敗"); // 使用函數參數
         }
       }
 
       setSnackbarSeverity("success");
-      
+
       // 清空表單
       setTitle("");
       setContent("");
@@ -351,11 +393,12 @@ export default function EnterprisePostPage() {
       setApplicationDeadline("");
       setInterviewMethod("");
       setAdditionalDocumentURL("");
-      
+
       setCurrentDraftId(null);
 
       // 僅在非草稿時跳轉
-      if (!isDraft) {
+      if (!isDraftParam) {
+        // 使用函數參數
         router.push("/Enterprise/EnterpriseList");
       }
     } catch (error) {
@@ -486,26 +529,43 @@ export default function EnterprisePostPage() {
 
               {/* 公告類型選擇 */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-                  公告類型 <Box component="span" sx={{ color: 'error.main' }}>*</Box>
+                <Typography
+                  variant="subtitle1"
+                  gutterBottom
+                  sx={{ fontWeight: "medium" }}
+                >
+                  公告類型{" "}
+                  <Box component="span" sx={{ color: "error.main" }}>
+                    *
+                  </Box>
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <Button 
-                    variant={announcementType === "marketing" ? "contained" : "outlined"}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    variant={
+                      announcementType === "marketing"
+                        ? "contained"
+                        : "outlined"
+                    }
                     onClick={() => setAnnouncementType("marketing")}
                     sx={{ flex: 1 }}
                   >
                     行銷推廣
                   </Button>
-                  <Button 
-                    variant={announcementType === "activity" ? "contained" : "outlined"}
+                  <Button
+                    variant={
+                      announcementType === "activity" ? "contained" : "outlined"
+                    }
                     onClick={() => setAnnouncementType("activity")}
                     sx={{ flex: 1 }}
                   >
                     活動合作
                   </Button>
-                  <Button 
-                    variant={announcementType === "internship" ? "contained" : "outlined"}
+                  <Button
+                    variant={
+                      announcementType === "internship"
+                        ? "contained"
+                        : "outlined"
+                    }
                     onClick={() => setAnnouncementType("internship")}
                     sx={{ flex: 1 }}
                   >
@@ -516,11 +576,15 @@ export default function EnterprisePostPage() {
 
               {/* 共用聯繫窗口欄位 */}
               {announcementType && (
-                <Box sx={{ mb: 3, p: 2, bgcolor: '#f0f5ff', borderRadius: 1 }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
+                <Box sx={{ mb: 3, p: 2, bgcolor: "#f0f5ff", borderRadius: 1 }}>
+                  <Typography
+                    variant="subtitle1"
+                    gutterBottom
+                    sx={{ fontWeight: "medium" }}
+                  >
                     聯繫窗口資訊 *
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Box sx={{ display: "flex", gap: 2 }}>
                     <TextField
                       label="聯繫人姓名"
                       value={contactName}
@@ -542,10 +606,18 @@ export default function EnterprisePostPage() {
               {/* 行銷推廣特有欄位 */}
               {announcementType === "marketing" && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', borderBottom: '1px solid #e0e0e0', pb: 1 }}>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{
+                      color: "#1976d2",
+                      borderBottom: "1px solid #e0e0e0",
+                      pb: 1,
+                    }}
+                  >
                     行銷推廣資訊
                   </Typography>
-                  
+
                   <TextField
                     fullWidth
                     label="推廣產品/服務名稱"
@@ -554,8 +626,8 @@ export default function EnterprisePostPage() {
                     required
                     sx={{ mb: 2 }}
                   />
-                  
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       label="推廣開始日期"
                       type="date"
@@ -581,10 +653,18 @@ export default function EnterprisePostPage() {
               {/* 活動合作特有欄位 */}
               {announcementType === "activity" && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', borderBottom: '1px solid #e0e0e0', pb: 1 }}>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{
+                      color: "#1976d2",
+                      borderBottom: "1px solid #e0e0e0",
+                      pb: 1,
+                    }}
+                  >
                     活動合作資訊
                   </Typography>
-                  
+
                   <TextField
                     fullWidth
                     label="活動名稱"
@@ -593,8 +673,8 @@ export default function EnterprisePostPage() {
                     required
                     sx={{ mb: 2 }}
                   />
-                  
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       select
                       label="活動類型"
@@ -613,7 +693,7 @@ export default function EnterprisePostPage() {
                         </option>
                       ))}
                     </TextField>
-                    
+
                     <TextField
                       label="活動日期與時間"
                       type="datetime-local"
@@ -624,7 +704,7 @@ export default function EnterprisePostPage() {
                       sx={{ flex: 1 }}
                     />
                   </Box>
-                  
+
                   <TextField
                     fullWidth
                     label="活動地點"
@@ -633,7 +713,7 @@ export default function EnterprisePostPage() {
                     required
                     sx={{ mb: 2 }}
                   />
-                  
+
                   <TextField
                     fullWidth
                     label="合作說明與目的"
@@ -644,8 +724,8 @@ export default function EnterprisePostPage() {
                     rows={3}
                     sx={{ mb: 2 }}
                   />
-                  
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       select
                       label="合作方式"
@@ -663,7 +743,7 @@ export default function EnterprisePostPage() {
                         </option>
                       ))}
                     </TextField>
-                    
+
                     <TextField
                       label="相關文件連結"
                       value={documentURL}
@@ -672,7 +752,7 @@ export default function EnterprisePostPage() {
                       sx={{ flex: 1 }}
                     />
                   </Box>
-                  
+
                   <TextField
                     fullWidth
                     label="徵求合作對象條件"
@@ -688,10 +768,18 @@ export default function EnterprisePostPage() {
               {/* 實習合作特有欄位 */}
               {announcementType === "internship" && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', borderBottom: '1px solid #e0e0e0', pb: 1 }}>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{
+                      color: "#1976d2",
+                      borderBottom: "1px solid #e0e0e0",
+                      pb: 1,
+                    }}
+                  >
                     實習合作資訊
                   </Typography>
-                  
+
                   <TextField
                     fullWidth
                     label="實習職缺名稱"
@@ -700,8 +788,8 @@ export default function EnterprisePostPage() {
                     required
                     sx={{ mb: 2 }}
                   />
-                  
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       label="實習部門"
                       value={internshipDepartment}
@@ -709,7 +797,7 @@ export default function EnterprisePostPage() {
                       required
                       sx={{ flex: 1 }}
                     />
-                    
+
                     <TextField
                       label="實習期間"
                       value={internshipPeriod}
@@ -719,17 +807,21 @@ export default function EnterprisePostPage() {
                       sx={{ flex: 1 }}
                     />
                   </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       label="每週工作時數"
                       type="number"
                       value={weeklyHours}
-                      onChange={(e) => setWeeklyHours(e.target.value === "" ? "" : Number(e.target.value))}
+                      onChange={(e) =>
+                        setWeeklyHours(
+                          e.target.value === "" ? "" : Number(e.target.value)
+                        )
+                      }
                       inputProps={{ min: 0 }}
                       sx={{ flex: 1 }}
                     />
-                    
+
                     <TextField
                       label="薪資待遇"
                       value={salary}
@@ -738,7 +830,7 @@ export default function EnterprisePostPage() {
                       sx={{ flex: 1 }}
                     />
                   </Box>
-                  
+
                   <TextField
                     fullWidth
                     label="工作地點"
@@ -747,7 +839,7 @@ export default function EnterprisePostPage() {
                     required
                     sx={{ mb: 2 }}
                   />
-                  
+
                   <TextField
                     fullWidth
                     label="職務內容"
@@ -758,7 +850,7 @@ export default function EnterprisePostPage() {
                     rows={3}
                     sx={{ mb: 2 }}
                   />
-                  
+
                   <TextField
                     fullWidth
                     label="應徵條件"
@@ -769,7 +861,7 @@ export default function EnterprisePostPage() {
                     placeholder="例：科系、年級、技能等"
                     sx={{ mb: 2 }}
                   />
-                  
+
                   <TextField
                     fullWidth
                     label="實習福利"
@@ -779,8 +871,8 @@ export default function EnterprisePostPage() {
                     rows={2}
                     sx={{ mb: 2 }}
                   />
-                  
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       label="申請截止日期"
                       type="date"
@@ -790,7 +882,7 @@ export default function EnterprisePostPage() {
                       InputLabelProps={{ shrink: true }}
                       sx={{ flex: 1 }}
                     />
-                    
+
                     <TextField
                       select
                       label="面試方式"
@@ -809,7 +901,7 @@ export default function EnterprisePostPage() {
                       ))}
                     </TextField>
                   </Box>
-                  
+
                   <TextField
                     fullWidth
                     label="附加說明文件連結"
@@ -862,10 +954,7 @@ export default function EnterprisePostPage() {
                 </Button>
                 <Button
                   variant="outlined"
-                  onClick={() => {
-                    setIsDraft(true);
-                    handleSubmit();
-                  }}
+                  onClick={() => handleSubmit(true)}
                   size="large"
                   color="secondary"
                 >
@@ -873,10 +962,7 @@ export default function EnterprisePostPage() {
                 </Button>
                 <Button
                   variant="contained"
-                  onClick={() => {
-                    setIsDraft(false);
-                    handleSubmit();
-                  }}
+                  onClick={() => handleSubmit(false)}
                   size="large"
                   color="primary"
                 >
