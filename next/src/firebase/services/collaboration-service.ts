@@ -19,7 +19,7 @@ export interface CollaborationRequest {
   postTitle: string;
   requesterId: string;
   receiverId: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'complete' | 'cancel';
+  status: 'pending' | 'accepted' | 'rejected' | 'complete' | 'cancel' | 'pending_review';
   message?: string;
   rejectReason?: string;
   completeReview?: {
@@ -36,6 +36,7 @@ export interface CollaborationRequest {
   };
   createdAt?: any;
   updatedAt?: any;
+  pendingReviewFor?: string; // 記錄誰需要評價
 }
 
 export interface CollaborationReview {
@@ -226,40 +227,78 @@ export const collaborationService = {
       }
 
       const data = docSnap.data();
+      const currentUserId = auth.currentUser?.uid;
+      
+      // 確定另一方的ID
+      const otherUserId = currentUserId === data.requesterId ? data.receiverId : data.requesterId;
       
       await updateDoc(docRef, {
-        status,
+        status: 'pending_review',
         [`${status}Review`]: {
           ...review,
-          reviewerId: auth.currentUser?.uid,
+          reviewerId: currentUserId,
           reviewedAt: serverTimestamp()
         },
+        pendingReviewFor: otherUserId,
+        actionInitiator: currentUserId, // 記錄誰發起的完成/取消動作
         updatedAt: serverTimestamp()
       });
 
-      // Send notification to the other party
-      const otherUserId = auth.currentUser?.uid === data.requesterId 
-        ? data.receiverId 
-        : data.requesterId;
-
+      // 發送通知給對方
       if (status === 'complete') {
-        await notificationService.sendCollaborationCompleted(
-          otherUserId,
-          collaborationId,
-          review.comment
-        );
+        await notificationService.sendCollaborationCompleted(otherUserId, collaborationId, review.comment);
       } else {
-        await notificationService.sendCollaborationCancelled(
-          otherUserId,
-          collaborationId,
-          review.comment
-        );
+        await notificationService.sendCollaborationCancelled(otherUserId, collaborationId, review.comment);
       }
 
       return { success: true };
     } catch (error) {
       console.error("Error updating collaboration status:", error);
       return { success: false, error: '更新合作狀態失敗' };
+    }
+  },
+
+  // Submit review for a collaboration that is pending review
+  submitReview: async (
+    collaborationId: string,
+    review: CollaborationReview
+  ) => {
+    try {
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        return { success: false, error: '找不到該合作記錄' };
+      }
+
+      const data = docSnap.data();
+      const currentUserId = auth.currentUser?.uid;
+      
+      // 檢查是否是等待當前用戶評價
+      if (data.pendingReviewFor !== currentUserId) {
+        return { success: false, error: '您目前無法評價此合作' };
+      }
+
+      // 判斷是完成還是取消合作
+      const statusType = data.completeReview ? 'complete' : 'cancel';
+      const reviewType = `${statusType}Review`;
+      const partnerReviewType = `partner${reviewType}`;
+
+      await updateDoc(docRef, {
+        status: statusType,
+        [partnerReviewType]: {
+          ...review,
+          reviewerId: currentUserId,
+          reviewedAt: serverTimestamp()
+        },
+        pendingReviewFor: null,
+        updatedAt: serverTimestamp()
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      return { success: false, error: '提交評價失敗' };
     }
   },
 };

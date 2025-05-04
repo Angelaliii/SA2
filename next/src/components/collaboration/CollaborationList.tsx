@@ -2,13 +2,15 @@
 
 import { Button, Box, Typography, Paper, Chip, CircularProgress } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { auth } from '../../firebase/config';
+import { auth, db } from '../../firebase/config';
 import { collaborationService } from '../../firebase/services/collaboration-service';
+import { getOrganizationName } from '../../firebase/services/post-service';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { CollaborationEndReviewDialog } from './CollaborationReviewDialog';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface CollaborationListProps {
   userType: string;
@@ -25,6 +27,28 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
   const [error, setError] = useState<string | null>(null);
   const [selectedCollaboration, setSelectedCollaboration] = useState<string | null>(null);
   const [endReviewType, setEndReviewType] = useState<'complete' | 'cancel' | null>(null);
+  const [organizationNames, setOrganizationNames] = useState<{[key: string]: string}>({});
+  const [selectedCollaborationForReview, setSelectedCollaborationForReview] = useState<string | null>(null);
+  const [reviewType, setReviewType] = useState<'complete' | 'cancel' | null>(null);
+
+  const loadOrganizationName = async (userId: string) => {
+    if (organizationNames[userId]) return organizationNames[userId];
+    
+    try {
+      const name = await getOrganizationName(userId);
+      if (name) {
+        setOrganizationNames(prev => ({
+          ...prev,
+          [userId]: name
+        }));
+        return name;
+      }
+      return '未知組織';
+    } catch (err) {
+      console.error('Error loading organization name:', err);
+      return '未知組織';
+    }
+  };
 
   const loadCollaborations = async () => {
     setLoading(true);
@@ -53,7 +77,7 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
       );
       
       // 分類合作記錄
-      const active = allCollaborations.filter(c => c.status === 'accepted');
+      const active = allCollaborations.filter(c => c.status === 'accepted' || c.status === 'pending_review');
       const completed = allCollaborations.filter(c => c.status === 'complete');
       const cancelled = allCollaborations.filter(c => c.status === 'cancel');
       
@@ -71,6 +95,31 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
   useEffect(() => {
     loadCollaborations();
   }, []);
+
+  useEffect(() => {
+    const loadCollaborationPartners = async () => {
+      const allCollaborations = [...receivedRequests, ...sentRequests, ...acceptedCollaborations, ...completedCollaborations, ...cancelledCollaborations];
+      
+      for (const collab of allCollaborations) {
+        const currentUserId = auth.currentUser?.uid;
+        if (!currentUserId) continue;
+
+        // 確定合作對象的 ID
+        const partnerId = currentUserId === collab.requesterId ? collab.receiverId : collab.requesterId;
+        await loadOrganizationName(partnerId);
+      }
+    };
+
+    loadCollaborationPartners();
+  }, [receivedRequests, sentRequests, acceptedCollaborations, completedCollaborations, cancelledCollaborations]);
+
+  const getPartnerName = (collaboration: any) => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) return '未知組織';
+    
+    const partnerId = currentUserId === collaboration.requesterId ? collaboration.receiverId : collaboration.requesterId;
+    return organizationNames[partnerId] || '載入中...';
+  };
   
   // 獲取請求狀態的顯示值和顏色
   const getStatusDisplay = (status: string) => {
@@ -86,6 +135,12 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
           label: '進行中', 
           color: 'success' as const,
           icon: <CheckCircleIcon fontSize="small" sx={{ mr: 0.5 }} />
+        };
+      case 'pending_review':
+        return { 
+          label: '等待評價', 
+          color: 'warning' as const,
+          icon: <AccessTimeIcon fontSize="small" sx={{ mr: 0.5 }} />
         };
       case 'rejected':
         return { 
@@ -143,7 +198,121 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
     // 重新加載合作列表
     await loadCollaborations();
   };
-  
+
+  const handleOpenReview = (collaborationId: string, type: 'complete' | 'cancel') => {
+    setSelectedCollaborationForReview(collaborationId);
+    setReviewType(type);
+  };
+
+  const handleCloseReview = () => {
+    setSelectedCollaborationForReview(null);
+    setReviewType(null);
+    loadCollaborations(); // 重新加載列表
+  };
+
+  // 渲染等待評價的合作項目
+  const renderPendingReviewItem = (collaboration: any) => {
+    const currentUserId = auth.currentUser?.uid;
+    const isCurrentUserPendingReview = collaboration.pendingReviewFor === currentUserId;
+    const partnerName = getPartnerName(collaboration);
+    const reviewType = collaboration.completeReview ? 'complete' : 'cancel';
+
+    return (
+      <Paper 
+        key={collaboration.id}
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          mb: 2, 
+          borderRadius: 2,
+          border: '1px solid rgba(0,0,0,0.08)',
+          bgcolor: '#fafafa'
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="subtitle1" fontWeight="medium">
+            《{collaboration.postTitle}》 - {partnerName}
+          </Typography>
+          <Chip
+            label={isCurrentUserPendingReview ? "需要您評價" : "等待對方評價"}
+            color="warning"
+            size="small"
+            icon={<AccessTimeIcon fontSize="small" sx={{ mr: 0.5 }} />}
+          />
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          狀態更新時間：{formatDate(collaboration.updatedAt)}
+        </Typography>
+        {isCurrentUserPendingReview && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleOpenReview(collaboration.id, reviewType)}
+            >
+              {reviewType === 'complete' ? '完成評價' : '取消評價'}
+            </Button>
+          </Box>
+        )}
+      </Paper>
+    );
+  };
+
+  const renderReviewStatus = (collaboration: any) => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) return null;
+
+    if (collaboration.status === 'pending_review') {
+      const isCurrentUserPendingReview = collaboration.pendingReviewFor === currentUserId;
+      const partnerName = getPartnerName(collaboration);
+      const reviewType = collaboration.completeReview ? 'complete' : 'cancel';
+      const actionText = reviewType === 'complete' ? '完成' : '取消';
+
+      return (
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {collaboration.actionInitiator === currentUserId 
+              ? `等待 ${partnerName} 評價`
+              : `${partnerName} 已${actionText}合作，請給予評價`}
+          </Typography>
+          {collaboration.completeReview && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                對方評價：{collaboration.completeReview.rating} / 5
+              </Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                {collaboration.completeReview.comment}
+              </Typography>
+            </Box>
+          )}
+          {collaboration.cancelReview && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                取消原因：{collaboration.cancelReview.comment}
+              </Typography>
+              <Typography variant="body2">
+                評價：{collaboration.cancelReview.rating} / 5
+              </Typography>
+            </Box>
+          )}
+          {isCurrentUserPendingReview && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleOpenReview(collaboration.id, reviewType)}
+              >
+                {reviewType === 'complete' ? '完成評價' : '提供取消評價'}
+              </Button>
+            </Box>
+          )}
+        </Box>
+      );
+    }
+
+    return null;
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -292,7 +461,7 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
       <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
         <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
           <CheckCircleIcon sx={{ mr: 1 }} />
-          已建立的合作關係
+          進行中的合作
         </Typography>
         
         {acceptedCollaborations.length > 0 ? (
@@ -310,33 +479,60 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="subtitle1" fontWeight="medium">
-                  《{collaboration.postTitle}》
+                  《{collaboration.postTitle}》 - {getPartnerName(collaboration)}
                 </Typography>
+                <Chip
+                  label={getStatusDisplay(collaboration.status).label}
+                  color={getStatusDisplay(collaboration.status).color}
+                  size="small"
+                  icon={getStatusDisplay(collaboration.status).icon}
+                />
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                建立時間：{formatDate(collaboration.updatedAt)}
+                狀態更新時間：{formatDate(collaboration.updatedAt)}
               </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => handleOpenEndReview(collaboration.id, 'cancel')}
-                >
-                  取消合作
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleOpenEndReview(collaboration.id, 'complete')}
-                >
-                  完成合作
-                </Button>
-              </Box>
+              {renderReviewStatus(collaboration)}
+              {collaboration.status === 'accepted' && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={() => handleOpenEndReview(collaboration.id, 'cancel')}
+                  >
+                    取消合作
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleOpenEndReview(collaboration.id, 'complete')}
+                  >
+                    完成合作
+                  </Button>
+                </Box>
+              )}
             </Paper>
           ))
         ) : (
           <Typography color="text.secondary">
-            目前沒有已建立的合作
+            目前沒有進行中的合作
+          </Typography>
+        )}
+      </Paper>
+
+      {/* 等待評價的合作 */}
+      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#fff' }}>
+        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <AccessTimeIcon sx={{ mr: 1 }} />
+          等待評價的合作
+        </Typography>
+        
+        {acceptedCollaborations.filter(c => c.status === 'pending_review').length > 0 ? (
+          acceptedCollaborations
+            .filter(c => c.status === 'pending_review')
+            .map(renderPendingReviewItem)
+        ) : (
+          <Typography color="text.secondary">
+            目前沒有等待評價的合作
           </Typography>
         )}
       </Paper>
@@ -363,7 +559,7 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="subtitle1" fontWeight="medium">
-                  《{collaboration.postTitle}》
+                  《{collaboration.postTitle}》 - {getPartnerName(collaboration)}
                 </Typography>
                 <Chip
                   label={getStatusDisplay(collaboration.status).label}
@@ -416,7 +612,7 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="subtitle1" fontWeight="medium">
-                  《{collaboration.postTitle}》
+                  《{collaboration.postTitle}》 - {getPartnerName(collaboration)}
                 </Typography>
                 <Chip
                   label={getStatusDisplay(collaboration.status).label}
@@ -452,6 +648,16 @@ export default function CollaborationList({ userType, onOpenReview }: Collaborat
         onClose={handleCloseEndReview}
         collaborationId={selectedCollaboration}
         endType={endReviewType || 'complete'}
+      />
+
+      <CollaborationEndReviewDialog
+        open={!!selectedCollaborationForReview && !!reviewType}
+        onClose={handleCloseReview}
+        collaborationId={selectedCollaborationForReview}
+        endType={reviewType || 'complete'}
+        partnerName={selectedCollaborationForReview ? 
+          getPartnerName(acceptedCollaborations.find(c => c.id === selectedCollaborationForReview)) : 
+          undefined}
       />
     </Box>
   );
