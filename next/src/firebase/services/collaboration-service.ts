@@ -188,6 +188,10 @@ export const collaborationService = {
 
       const docSnap = await getDoc(docRef);
       const data = docSnap.data();
+      
+      if (!data) {
+        return { success: false, error: '找不到合作請求資料' };
+      }
 
       // 處理通知
       if (status === 'accepted') {
@@ -240,16 +244,17 @@ export const collaborationService = {
           reviewedAt: serverTimestamp()
         },
         pendingReviewFor: otherUserId,
-        actionInitiator: currentUserId, // 記錄誰發起的完成/取消動作
+        actionInitiator: currentUserId,
+        actionType: status,
         updatedAt: serverTimestamp()
       });
 
-      // 發送通知給對方
-      if (status === 'complete') {
-        await notificationService.sendCollaborationCompleted(otherUserId, collaborationId, review.comment);
-      } else {
-        await notificationService.sendCollaborationCancelled(otherUserId, collaborationId, review.comment);
-      }
+      // 發送通知給對方需要評價
+      await notificationService.sendCollaborationNeedsReview(
+        otherUserId, 
+        collaborationId,
+        status === 'complete' ? '對方已完成合作，請給予評價' : '對方要求取消合作，請給予評價'
+      );
 
       return { success: true };
     } catch (error) {
@@ -279,10 +284,9 @@ export const collaborationService = {
         return { success: false, error: '您目前無法評價此合作' };
       }
 
-      // 判斷是完成還是取消合作
-      const statusType = data.completeReview ? 'complete' : 'cancel';
-      const reviewType = `${statusType}Review`;
-      const partnerReviewType = `partner${reviewType}`;
+      // 使用保存的action類型來確定評價類型
+      const statusType = data.actionType;
+      const partnerReviewType = `partner${statusType}Review`;
 
       await updateDoc(docRef, {
         status: statusType,
@@ -295,10 +299,62 @@ export const collaborationService = {
         updatedAt: serverTimestamp()
       });
 
+      // 發送通知給最初發起動作的人
+      await notificationService.sendCollaborationCompleted(
+        data.actionInitiator,
+        collaborationId,
+        `對方已完成評價：${review.comment}`
+      );
+
       return { success: true };
     } catch (error) {
       console.error("Error submitting review:", error);
       return { success: false, error: '提交評價失敗' };
+    }
+  },
+
+  // Cancel a collaboration without requiring partner review
+  cancelCollaboration: async (
+    collaborationId: string,
+    cancelReason: string
+  ) => {
+    try {
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        return { success: false, error: '找不到該合作記錄' };
+      }
+
+      const data = docSnap.data();
+      const currentUserId = auth.currentUser?.uid;
+      
+      // 確定另一方的ID
+      const otherUserId = currentUserId === data.requesterId ? data.receiverId : data.requesterId;
+      
+      // 直接更新為已取消狀態，不需要對方評價
+      await updateDoc(docRef, {
+        status: 'cancel',
+        cancelReview: {
+          comment: cancelReason,
+          reviewerId: currentUserId,
+          reviewedAt: serverTimestamp()
+        },
+        updatedAt: serverTimestamp()
+      });
+
+      // 發送通知給對方
+      await notificationService.sendCollaborationCancelled(
+        otherUserId, 
+        collaborationId,
+        data.postTitle,
+        cancelReason
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error cancelling collaboration:", error);
+      return { success: false, error: '取消合作失敗' };
     }
   },
 };

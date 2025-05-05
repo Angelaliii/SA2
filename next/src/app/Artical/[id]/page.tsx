@@ -91,13 +91,14 @@ export default function DemandPostDetailPage() {
 
     try {
       // 1. 發送訊息
-      const messageContent = `我這個組織有意願和你這篇文章合作。`;
+      const messageContent = `我這個組織有意願和你關於「${post.title}」的文章合作。`;
       await addDoc(collection(db, "messages"), {
         senderId: currentUser.uid,
         receiverId: post.authorId,
         messageContent: messageContent,
         postId: id,
         timestamp: new Date(),
+        postTitle: post.title
       });
 
       // 2. 創建合作請求
