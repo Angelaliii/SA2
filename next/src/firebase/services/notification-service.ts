@@ -5,7 +5,28 @@ import { doc, getDoc } from "firebase/firestore";
 
 export const notificationService = {
   // Send notification for new collaboration request
-
+  sendCollaborationRequest: async (receiverId: string, collaborationId: string) => {
+    try {
+      // 獲取文章標題
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      const postTitle = docSnap.exists() ? docSnap.data().postTitle : '未知文章';
+      const requesterData = docSnap.exists() ? docSnap.data() : null;
+      
+      await addDoc(collection(db, "messages"), {
+        senderId: auth.currentUser?.uid,
+        receiverId,
+        messageContent: `您收到了一個關於「${postTitle}」的合作請求`,
+        timestamp: serverTimestamp(),
+        type: "collaboration_request",
+        collaborationId,
+        isRead: false,
+        postTitle: postTitle
+      });
+    } catch (error) {
+      console.error("Error sending collaboration request notification:", error);
+    }
+  },
   
   sendCollaborationAccepted: async (receiverId: string, collaborationId: string) => {
     try {
