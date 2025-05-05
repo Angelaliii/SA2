@@ -645,7 +645,15 @@ export default function Profile() {
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
-                                sx={{ mt: 1 }}
+                                sx={{
+                                  mt: 1,
+                                  whiteSpace: "pre-line",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 3,
+                                  WebkitBoxOrient: "vertical",
+                                }}
                               >
                                 {article.content || "(無內容)"}
                               </Typography>
@@ -706,7 +714,15 @@ export default function Profile() {
                                 <Typography
                                   variant="body2"
                                   color="text.secondary"
-                                  sx={{ mt: 1 }}
+                                  sx={{
+                                    mt: 1,
+                                    whiteSpace: "pre-line",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 3,
+                                    WebkitBoxOrient: "vertical",
+                                  }}
                                 >
                                   {announcement.content || "(無內容)"}
                                 </Typography>

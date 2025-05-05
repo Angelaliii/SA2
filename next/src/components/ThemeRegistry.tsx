@@ -10,6 +10,9 @@ import {
 } from "@mui/material/styles";
 import { useServerInsertedHTML } from "next/navigation";
 import { ReactNode, useState } from "react";
+// 引入 LocalizationProvider 和 AdapterDayjs
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 // 建立一個穩定的主題，確保伺服器和客戶端一致
 const theme = createTheme({
@@ -80,8 +83,10 @@ export default function ThemeRegistry({
     <CacheProvider value={cache}>
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
-          <CssBaseline enableColorScheme />
-          {children}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <CssBaseline enableColorScheme />
+            {children}
+          </LocalizationProvider>
         </ThemeProvider>
       </StyledEngineProvider>
     </CacheProvider>

@@ -25,6 +25,42 @@ export interface EnterprisePost {
   status: "active" | "closed";
   postType: "enterprise";
   isDraft?: boolean;
+  
+  // 新增公告類型欄位
+  announcementType?: "marketing" | "activity" | "internship"; // 行銷推廣、活動合作、實習合作
+  
+  // 行銷推廣特有欄位
+  marketingProductName?: string; // 推廣產品/服務名稱
+  marketingPeriodStart?: string; // 推廣開始日期
+  marketingPeriodEnd?: string; // 推廣結束日期
+  
+  // 聯繫窗口（共用）
+  contactName?: string; // 聯繫窗口姓名
+  contactPhone?: string; // 聯繫窗口電話
+  
+  // 活動合作特有欄位
+  activityName?: string; // 活動名稱
+  activityType?: string; // 活動類型（演講/工作坊/展覽/比賽等）
+  activityDateTime?: string; // 活動日期與時間
+  activityLocation?: string; // 活動地點
+  cooperationPurpose?: string; // 合作說明與目的
+  cooperationType?: string; // 合作方式（贊助/場地提供/技術支援等）
+  partnerRequirements?: string; // 徵求合作對象條件
+  documentURL?: string; // 相關文件
+
+  // 實習合作特有欄位
+  internshipTitle?: string; // 實習職缺名稱
+  internshipDepartment?: string; // 實習部門
+  internshipPeriod?: string; // 實習期間
+  weeklyHours?: number; // 每週工作時數
+  workLocation?: string; // 工作地點
+  salary?: string; // 薪資待遇
+  jobDescription?: string; // 職務內容
+  requirements?: string; // 應徵條件（科系、年級、技能等）
+  benefits?: string; // 實習福利
+  applicationDeadline?: string; // 申請截止日期
+  interviewMethod?: string; // 面試方式
+  additionalDocumentURL?: string; // 附加說明文件
 }
 
 const ENTERPRISE_COLLECTION = "enterprisePosts";
