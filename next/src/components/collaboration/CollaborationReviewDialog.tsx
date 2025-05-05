@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { collaborationService } from '../../firebase/services/collaboration-service';
-import { getOrganizationName } from '../../firebase/services/post-service';
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase/config";
 
@@ -98,7 +97,7 @@ export default function CollaborationReviewDialog({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>審核合作請求</DialogTitle>
+      <DialogTitle>審核來自 {partnerName} 的合作請求</DialogTitle>
       <DialogContent>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
