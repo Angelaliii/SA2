@@ -11,7 +11,6 @@ export const notificationService = {
       const docRef = doc(db, "collaborations", collaborationId);
       const docSnap = await getDoc(docRef);
       const postTitle = docSnap.exists() ? docSnap.data().postTitle : '未知文章';
-      const requesterData = docSnap.exists() ? docSnap.data() : null;
       
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
