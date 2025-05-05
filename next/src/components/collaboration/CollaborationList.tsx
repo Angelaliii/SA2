@@ -13,11 +13,7 @@ import { CollaborationEndReviewDialog } from './CollaborationReviewDialog';
 import CollaborationResponseDialog from './CollaborationResponseDialog';
 import CancelCollaborationDialog from './CancelCollaborationDialog';
 
-interface CollaborationListProps {
-  userType: string;
-}
-
-export default function CollaborationList({ userType }: CollaborationListProps) {
+export default function CollaborationList({}: object) {
   const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [acceptedCollaborations, setAcceptedCollaborations] = useState<any[]>([]);
