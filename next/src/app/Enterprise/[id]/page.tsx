@@ -43,13 +43,16 @@ interface EnterprisePost {
   createdAt?: string | Date;
   status?: string;
   authorId?: string;
-  announcementType?: "marketing" | "activity" | "internship";
+  announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation";
   
   // 聯繫窗口（共用）
   contactName?: string;
   contactPhone?: string;
+  contactEmail?: string;
   
-  // 行銷推廣特有欄位
+  // 特約商店/行銷推廣特有欄位
+  partnershipName?: string; // 特約商店名稱
+  contractPeriodDuration?: string; // 合約期限
   marketingProductName?: string;
   marketingPeriodStart?: string;
   marketingPeriodEnd?: string;
@@ -57,11 +60,14 @@ interface EnterprisePost {
   // 活動合作特有欄位
   activityName?: string;
   activityType?: string;
+  activityStartDate?: string;
+  activityEndDate?: string;
   activityDateTime?: string;
   activityLocation?: string;
   cooperationPurpose?: string;
   cooperationType?: string;
   partnerRequirements?: string;
+  applicationDeadline?: string;
   documentURL?: string;
   
   // 實習合作特有欄位
@@ -74,7 +80,8 @@ interface EnterprisePost {
   jobDescription?: string;
   requirements?: string;
   benefits?: string;
-  applicationDeadline?: string;
+  internshipPositions?: number | string;
+  internshipApplicationDeadline?: string;
   interviewMethod?: string;
   additionalDocumentURL?: string;
 }
@@ -137,20 +144,21 @@ export default function EnterpriseDetailPage() {
             // 聯繫窗口
             contactName: postData.contactName,
             contactPhone: postData.contactPhone,
+            contactEmail: postData.contactEmail,
             
-            // 行銷推廣
-            marketingProductName: postData.marketingProductName,
-            marketingPeriodStart: postData.marketingPeriodStart,
-            marketingPeriodEnd: postData.marketingPeriodEnd,
+            // 特約商店/行銷推廣
+            partnershipName: postData.partnershipName,
+            contractPeriodDuration: postData.contractPeriodDuration,
             
             // 活動合作
             activityName: postData.activityName,
             activityType: postData.activityType,
-            activityDateTime: postData.activityDateTime,
+            activityStartDate: postData.activityStartDate,
+            activityEndDate: postData.activityEndDate,
             activityLocation: postData.activityLocation,
-            cooperationPurpose: postData.cooperationPurpose,
             cooperationType: postData.cooperationType,
             partnerRequirements: postData.partnerRequirements,
+            applicationDeadline: postData.applicationDeadline,
             documentURL: postData.documentURL,
             
             // 實習合作
@@ -162,10 +170,11 @@ export default function EnterpriseDetailPage() {
             salary: postData.salary,
             jobDescription: postData.jobDescription,
             requirements: postData.requirements,
-            benefits: postData.benefits,
-            applicationDeadline: postData.applicationDeadline,
+            internshipPositions: postData.internshipPositions,
+            internshipApplicationDeadline: postData.internshipApplicationDeadline,
             interviewMethod: postData.interviewMethod,
             additionalDocumentURL: postData.additionalDocumentURL,
+            benefits: postData.benefits,
           });
         } else {
           console.error("Post not found");
@@ -393,8 +402,8 @@ export default function EnterpriseDetailPage() {
             {/* 根據公告類型顯示特定欄位 */}
             {post.announcementType && (
               <Box sx={{ mb: 4 }}>
-                {/* 行銷推廣特有欄位 */}
-                {post.announcementType === "marketing" && (
+                {/* 特約商店特有欄位 */}
+                {post.announcementType === "specialOfferPartnership" && (
                   <Box sx={{ 
                     backgroundColor: "#f2f9ff", 
                     p: 3, 
@@ -403,20 +412,19 @@ export default function EnterpriseDetailPage() {
                     mb: 3 
                   }}>
                     <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', borderBottom: '1px solid #d0e8ff', pb: 1 }}>
-                      行銷推廣資訊
+                      特約商店資訊
                     </Typography>
                     
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">推廣產品/服務名稱</Typography>
-                        <Typography variant="body1" fontWeight="medium">{post.marketingProductName || "未提供"}</Typography>
+                        <Typography variant="subtitle2" color="text.secondary">特約商店名稱</Typography>
+                        <Typography variant="body1" fontWeight="medium">{post.partnershipName || "未提供"}</Typography>
                       </Box>
                       
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">推廣時間</Typography>
+                        <Typography variant="subtitle2" color="text.secondary">合約期限</Typography>
                         <Typography variant="body1">
-                          {post.marketingPeriodStart ? new Date(post.marketingPeriodStart).toLocaleDateString() : "未提供"} 
-                          {post.marketingPeriodEnd ? ` 至 ${new Date(post.marketingPeriodEnd).toLocaleDateString()}` : ""}
+                          {post.contractPeriodDuration || "未提供"}
                         </Typography>
                       </Box>
                     </Box>
@@ -424,7 +432,7 @@ export default function EnterpriseDetailPage() {
                 )}
                 
                 {/* 活動合作特有欄位 */}
-                {post.announcementType === "activity" && (
+                {post.announcementType === "activityCooperation" && (
                   <Box sx={{ 
                     backgroundColor: "#f6f9ff", 
                     p: 3, 
@@ -448,23 +456,30 @@ export default function EnterpriseDetailPage() {
                       </Box>
                       
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">活動日期與時間</Typography>
+                        <Typography variant="subtitle2" color="text.secondary">活動開始日期</Typography>
                         <Typography variant="body1">
-                          {post.activityDateTime ? new Date(post.activityDateTime).toLocaleString() : "未提供"}
+                          {post.activityStartDate ? new Date(post.activityStartDate).toLocaleDateString() : "未提供"}
                         </Typography>
                       </Box>
                       
                       <Box>
+                        <Typography variant="subtitle2" color="text.secondary">活動結束日期</Typography>
+                        <Typography variant="body1">
+                          {post.activityEndDate ? new Date(post.activityEndDate).toLocaleDateString() : "未提供"}
+                        </Typography>
+                      </Box>
+
+                      <Box>
                         <Typography variant="subtitle2" color="text.secondary">活動地點</Typography>
                         <Typography variant="body1">{post.activityLocation || "未提供"}</Typography>
                       </Box>
-                    </Box>
-                    
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" color="text.secondary">合作說明與目的</Typography>
-                      <Typography variant="body1" sx={{ whiteSpace: 'pre-line', bgcolor: 'white', p: 1.5, borderRadius: 1 }}>
-                        {post.cooperationPurpose || "未提供"}
-                      </Typography>
+
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">申請截止日期</Typography>
+                        <Typography variant="body1">
+                          {post.applicationDeadline ? new Date(post.applicationDeadline).toLocaleDateString() : "未提供"}
+                        </Typography>
+                      </Box>
                     </Box>
                     
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
@@ -495,7 +510,7 @@ export default function EnterpriseDetailPage() {
                 )}
                 
                 {/* 實習合作特有欄位 */}
-                {post.announcementType === "internship" && (
+                {post.announcementType === "internshipCooperation" && (
                   <Box sx={{ 
                     backgroundColor: "#f5fcf9", 
                     p: 3, 
@@ -541,7 +556,7 @@ export default function EnterpriseDetailPage() {
                       <Box>
                         <Typography variant="subtitle2" color="text.secondary">申請截止日期</Typography>
                         <Typography variant="body1">
-                          {post.applicationDeadline ? new Date(post.applicationDeadline).toLocaleDateString() : "未提供"}
+                          {post.internshipApplicationDeadline ? new Date(post.internshipApplicationDeadline).toLocaleDateString() : "未提供"}
                         </Typography>
                       </Box>
                       

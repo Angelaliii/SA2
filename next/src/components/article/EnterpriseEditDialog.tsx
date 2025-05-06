@@ -34,9 +34,20 @@ export default function EnterpriseEditDialog({
   onSuccess,
   announcement,
 }: EnterpriseEditDialogProps) {
-  const [formData, setFormData] = useState<Partial<EnterprisePost>>({});
+  // Define a form state type that allows string values for numeric fields
+  interface FormDataType extends Omit<Partial<EnterprisePost>, 'weeklyHours' | 'internshipPositions'> {
+    weeklyHours?: string | number;
+    internshipPositions?: string | number;
+  }
+  
+  const [formData, setFormData] = useState<FormDataType>({});
   const [loading, setLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
+
+  // 定義選項
+  const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "營隊", "其他"];
+  const interviewMethodOptions = ["線上面試", "實體面試", "電話面試", "專案測試", "多輪面試", "其他"];
+  const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
 
   // Parse date strings to Date objects for the date pickers
   const parseDate = (dateString?: string): Date | null => {
@@ -52,38 +63,40 @@ export default function EnterpriseEditDialog({
         content: announcement.content || "",
         email: announcement.email || "",
         companyName: announcement.companyName || "",
-        announcementType: announcement.announcementType || "marketing",
+        announcementType: announcement.announcementType || "specialOfferPartnership",
         
         // Contact info
         contactName: announcement.contactName || "",
         contactPhone: announcement.contactPhone || "",
+        contactEmail: announcement.contactEmail || "",
         
-        // Marketing fields
-        marketingProductName: announcement.marketingProductName || "",
-        marketingPeriodStart: announcement.marketingPeriodStart || "",
-        marketingPeriodEnd: announcement.marketingPeriodEnd || "",
+        // 特約商店特有欄位
+        partnershipName: announcement.partnershipName || "",
+        contractPeriodDuration: announcement.contractPeriodDuration || "",
         
-        // Activity fields
+        // 活動合作特有欄位
         activityName: announcement.activityName || "",
         activityType: announcement.activityType || "",
-        activityDateTime: announcement.activityDateTime || "",
+        activityStartDate: announcement.activityStartDate || "",
+        activityEndDate: announcement.activityEndDate || "",
         activityLocation: announcement.activityLocation || "",
-        cooperationPurpose: announcement.cooperationPurpose || "",
         cooperationType: announcement.cooperationType || "",
         partnerRequirements: announcement.partnerRequirements || "",
+        applicationDeadline: announcement.applicationDeadline || "",
         documentURL: announcement.documentURL || "",
         
-        // Internship fields
+        // 實習合作特有欄位
         internshipTitle: announcement.internshipTitle || "",
         internshipDepartment: announcement.internshipDepartment || "",
         internshipPeriod: announcement.internshipPeriod || "",
-        // weeklyHours: announcement.weeklyHours !== undefined ? String(announcement.weeklyHours) : "", // Fix for Firebase undefined value
+        weeklyHours: announcement.weeklyHours !== undefined ? String(announcement.weeklyHours) : "",
         workLocation: announcement.workLocation || "",
         salary: announcement.salary || "",
         jobDescription: announcement.jobDescription || "",
         requirements: announcement.requirements || "",
+        internshipPositions: announcement.internshipPositions !== undefined ? String(announcement.internshipPositions) : "",
         benefits: announcement.benefits || "",
-        applicationDeadline: announcement.applicationDeadline || "",
+        internshipApplicationDeadline: announcement.internshipApplicationDeadline || "",
         interviewMethod: announcement.interviewMethod || "",
         additionalDocumentURL: announcement.additionalDocumentURL || "",
       });
@@ -113,22 +126,35 @@ export default function EnterpriseEditDialog({
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.content) {
-      alert("請填寫標題和內容");
-      return;
-    }
-
-    setLoading(true);
     try {
-      // Create a clean data object without undefined values
-      const cleanData = { ...formData };
+      setLoading(true);
+      if (!formData.title || !formData.content) {
+        alert("標題和內容不能為空");
+        return;
+      }
       
-      // Convert empty string weeklyHours to undefined if it exists as empty string
-      // if (cleanData.weeklyHours === "") {
-      //   cleanData.weeklyHours = undefined;
-      // } else {
-      //   cleanData.weeklyHours = Number(cleanData.weeklyHours);
-      // }
+      // Create a clean data object that matches EnterprisePost type
+      const cleanData: Partial<EnterprisePost> = {
+        ...Object.fromEntries(
+          Object.entries(formData).filter(([key]) => 
+            key !== 'weeklyHours' && key !== 'internshipPositions'
+          )
+        )
+      };
+      
+      // Convert weeklyHours string to number or undefined
+      if (formData.weeklyHours === "" || formData.weeklyHours === undefined) {
+        cleanData.weeklyHours = undefined;
+      } else {
+        cleanData.weeklyHours = Number(formData.weeklyHours);
+      }
+      
+      // Convert internshipPositions string to number or undefined
+      if (formData.internshipPositions === "" || formData.internshipPositions === undefined) {
+        cleanData.internshipPositions = undefined;
+      } else {
+        cleanData.internshipPositions = Number(formData.internshipPositions);
+      }
       
       await enterpriseService.updatePost(announcement.id!, cleanData);
       onSuccess();
@@ -168,6 +194,7 @@ export default function EnterpriseEditDialog({
           onChange={handleInputChange}
           type="email"
           sx={{ mb: 2 }}
+          helperText="此信箱將作為合作洽談的主要聯絡方式"
         />
 
         <FormControl fullWidth sx={{ mb: 3 }}>
@@ -175,14 +202,14 @@ export default function EnterpriseEditDialog({
           <Select
             labelId="announcement-type-label"
             name="announcementType"
-            value={formData.announcementType || "marketing"}
+            value={formData.announcementType || "specialOfferPartnership"}
             onChange={handleSelectChange}
             label="公告類型"
             disabled={true} // 不允许更改公告类型，只能在创建时选择
           >
-            <MenuItem value="marketing">行銷推廣</MenuItem>
-            <MenuItem value="activity">活動合作</MenuItem>
-            <MenuItem value="internship">實習合作</MenuItem>
+            <MenuItem value="specialOfferPartnership">特約商店</MenuItem>
+            <MenuItem value="activityCooperation">活動合作</MenuItem>
+            <MenuItem value="internshipCooperation">實習合作</MenuItem>
           </Select>
           <FormHelperText>公告類型不可更改</FormHelperText>
         </FormControl>
@@ -209,6 +236,15 @@ export default function EnterpriseEditDialog({
             onChange={handleInputChange}
             fullWidth
           />
+          
+          <TextField
+            name="contactEmail"
+            label="聯繫信箱"
+            variant="outlined"
+            value={formData.contactEmail || ""}
+            onChange={handleInputChange}
+            fullWidth
+          />
         </Box>
         
         <Tabs value={currentTab} onChange={handleTabChange} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -219,7 +255,7 @@ export default function EnterpriseEditDialog({
         {currentTab === 0 && (
           <>
             {/* 根據公告類型顯示對應的表單 */}
-            {formData.announcementType === "marketing" && (
+            {formData.announcementType === "specialOfferPartnership" && (
               <Box sx={{ 
                 p: 2, 
                 border: '1px solid #e0e0e0', 
@@ -228,40 +264,40 @@ export default function EnterpriseEditDialog({
                 bgcolor: '#f2f9ff' 
               }}>
                 <Typography variant="h6" gutterBottom>
-                  行銷推廣詳細資訊
+                  特約商店資訊
                 </Typography>
                 
                 <TextField
                   fullWidth
-                  name="marketingProductName"
-                  label="推廣產品/服務名稱"
+                  name="partnershipName"
+                  label="特約商店名稱"
                   variant="outlined"
-                  value={formData.marketingProductName || ""}
+                  value={formData.partnershipName || ""}
                   onChange={handleInputChange}
                   sx={{ mb: 2 }}
                 />
                 
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                    <DatePicker
-                      label="推廣開始日期"
-                      value={parseDate(formData.marketingPeriodStart)}
-                      onChange={(date) => handleDateChange('marketingPeriodStart', date)}
-                      slotProps={{ textField: { fullWidth: true } }}
-                    />
-                    
-                    <DatePicker
-                      label="推廣結束日期"
-                      value={parseDate(formData.marketingPeriodEnd)}
-                      onChange={(date) => handleDateChange('marketingPeriodEnd', date)}
-                      slotProps={{ textField: { fullWidth: true } }}
-                    />
-                  </Box>
-                </LocalizationProvider>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel id="contract-period-label">合約期限</InputLabel>
+                  <Select
+                    labelId="contract-period-label"
+                    name="contractPeriodDuration"
+                    value={formData.contractPeriodDuration || ""}
+                    onChange={handleSelectChange}
+                    label="合約期限"
+                  >
+                    <MenuItem value="">選擇合約期限</MenuItem>
+                    {contractPeriodOptions.map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {option}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
             )}
             
-            {formData.announcementType === "activity" && (
+            {formData.announcementType === "activityCooperation" && (
               <Box sx={{ 
                 p: 2, 
                 border: '1px solid #e0e0e0', 
@@ -270,85 +306,80 @@ export default function EnterpriseEditDialog({
                 bgcolor: '#f6f9ff' 
               }}>
                 <Typography variant="h6" gutterBottom>
-                  活動合作詳細資訊
+                  活動合作資訊
                 </Typography>
                 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
-                  <TextField
-                    name="activityName"
-                    label="活動名稱"
-                    variant="outlined"
-                    value={formData.activityName || ""}
-                    onChange={handleInputChange}
-                    fullWidth
-                  />
+                <TextField
+                  fullWidth
+                  name="activityName"
+                  label="活動名稱"
+                  variant="outlined"
+                  value={formData.activityName || ""}
+                  onChange={handleInputChange}
+                  sx={{ mb: 2 }}
+                />
+                
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, mb: 2 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="activity-type-label">活動類型</InputLabel>
+                    <Select
+                      labelId="activity-type-label"
+                      name="activityType"
+                      value={formData.activityType || ""}
+                      onChange={handleSelectChange}
+                      label="活動類型"
+                    >
+                      <MenuItem value="">選擇活動類型</MenuItem>
+                      {activityTypeOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   
                   <TextField
-                    name="activityType"
-                    label="活動類型"
+                    name="activityStartDate"
+                    label="活動開始日期"
+                    type="date"
                     variant="outlined"
-                    value={formData.activityType || ""}
+                    value={formData.activityStartDate || ""}
                     onChange={handleInputChange}
                     fullWidth
-                    placeholder="演講/工作坊/展覽/比賽等"
-                  />
-                </Box>
-                
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
-                  <TextField
-                    name="activityDateTime"
-                    label="活動日期與時間"
-                    variant="outlined"
-                    value={formData.activityDateTime || ""}
-                    onChange={handleInputChange}
-                    fullWidth
-                    type="datetime-local"
                     InputLabelProps={{ shrink: true }}
                   />
                   
                   <TextField
-                    name="activityLocation"
-                    label="活動地點"
+                    name="activityEndDate"
+                    label="活動結束日期"
+                    type="date"
                     variant="outlined"
-                    value={formData.activityLocation || ""}
+                    value={formData.activityEndDate || ""}
                     onChange={handleInputChange}
                     fullWidth
+                    InputLabelProps={{ shrink: true }}
                   />
                 </Box>
                 
                 <TextField
-                  name="cooperationPurpose"
-                  label="合作說明與目的"
+                  name="activityLocation"
+                  label="活動地點"
                   variant="outlined"
-                  value={formData.cooperationPurpose || ""}
+                  value={formData.activityLocation || ""}
                   onChange={handleInputChange}
                   fullWidth
-                  multiline
-                  rows={3}
                   sx={{ mb: 2 }}
                 />
                 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
-                  <TextField
-                    name="cooperationType"
-                    label="合作方式"
-                    variant="outlined"
-                    value={formData.cooperationType || ""}
-                    onChange={handleInputChange}
-                    fullWidth
-                    placeholder="贊助/場地提供/技術支援等"
-                  />
-                  
-                  <TextField
-                    name="documentURL"
-                    label="相關文件連結"
-                    variant="outlined"
-                    value={formData.documentURL || ""}
-                    onChange={handleInputChange}
-                    fullWidth
-                    placeholder="http://..."
-                  />
-                </Box>
+                <TextField
+                  name="cooperationType"
+                  label="合作方式"
+                  variant="outlined"
+                  value={formData.cooperationType || ""}
+                  onChange={handleInputChange}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                />
                 
                 <TextField
                   name="partnerRequirements"
@@ -359,11 +390,34 @@ export default function EnterpriseEditDialog({
                   fullWidth
                   multiline
                   rows={2}
+                  sx={{ mb: 2 }}
+                />
+                
+                <TextField
+                  name="applicationDeadline"
+                  label="申請截止日期"
+                  type="date"
+                  variant="outlined"
+                  value={formData.applicationDeadline || ""}
+                  onChange={handleInputChange}
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ mb: 2 }}
+                />
+                
+                <TextField
+                  name="documentURL"
+                  label="相關文件連結"
+                  variant="outlined"
+                  value={formData.documentURL || ""}
+                  onChange={handleInputChange}
+                  fullWidth
+                  placeholder="請輸入文件的URL連結"
                 />
               </Box>
             )}
             
-            {formData.announcementType === "internship" && (
+            {formData.announcementType === "internshipCooperation" && (
               <Box sx={{ 
                 p: 2, 
                 border: '1px solid #e0e0e0', 
@@ -372,19 +426,20 @@ export default function EnterpriseEditDialog({
                 bgcolor: '#f5fcf9' 
               }}>
                 <Typography variant="h6" gutterBottom>
-                  實習合作詳細資訊
+                  實習合作資訊
                 </Typography>
                 
+                <TextField
+                  fullWidth
+                  name="internshipTitle"
+                  label="實習職缺名稱"
+                  variant="outlined"
+                  value={formData.internshipTitle || ""}
+                  onChange={handleInputChange}
+                  sx={{ mb: 2 }}
+                />
+                
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
-                  <TextField
-                    name="internshipTitle"
-                    label="實習職缺名稱"
-                    variant="outlined"
-                    value={formData.internshipTitle || ""}
-                    onChange={handleInputChange}
-                    fullWidth
-                  />
-                  
                   <TextField
                     name="internshipDepartment"
                     label="實習部門"
@@ -393,9 +448,7 @@ export default function EnterpriseEditDialog({
                     onChange={handleInputChange}
                     fullWidth
                   />
-                </Box>
-                
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                  
                   <TextField
                     name="internshipPeriod"
                     label="實習期間"
@@ -403,9 +456,11 @@ export default function EnterpriseEditDialog({
                     value={formData.internshipPeriod || ""}
                     onChange={handleInputChange}
                     fullWidth
-                    placeholder="如: 3個月/6個月/一年"
+                    placeholder="例：3個月/1學期"
                   />
-                  
+                </Box>
+                
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
                   <TextField
                     name="weeklyHours"
                     label="每週工作時數"
@@ -414,17 +469,7 @@ export default function EnterpriseEditDialog({
                     onChange={handleInputChange}
                     fullWidth
                     type="number"
-                  />
-                </Box>
-                
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
-                  <TextField
-                    name="workLocation"
-                    label="工作地點"
-                    variant="outlined"
-                    value={formData.workLocation || ""}
-                    onChange={handleInputChange}
-                    fullWidth
+                    inputProps={{ min: 0 }}
                   />
                   
                   <TextField
@@ -434,8 +479,19 @@ export default function EnterpriseEditDialog({
                     value={formData.salary || ""}
                     onChange={handleInputChange}
                     fullWidth
+                    placeholder="例：時薪165元/月薪25,000元"
                   />
                 </Box>
+                
+                <TextField
+                  name="workLocation"
+                  label="工作地點"
+                  variant="outlined"
+                  value={formData.workLocation || ""}
+                  onChange={handleInputChange}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                />
                 
                 <TextField
                   name="jobDescription"
@@ -459,7 +515,19 @@ export default function EnterpriseEditDialog({
                   multiline
                   rows={2}
                   sx={{ mb: 2 }}
-                  placeholder="科系、年級、技能等"
+                  placeholder="例：科系、年級、技能等"
+                />
+                
+                <TextField
+                  name="internshipPositions"
+                  label="實習名額"
+                  variant="outlined"
+                  value={formData.internshipPositions || ""}
+                  onChange={handleInputChange}
+                  fullWidth
+                  type="number"
+                  inputProps={{ min: 0 }}
+                  sx={{ mb: 2 }}
                 />
                 
                 <TextField
@@ -475,23 +543,34 @@ export default function EnterpriseEditDialog({
                 />
                 
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DatePicker
-                      label="申請截止日期"
-                      value={parseDate(formData.applicationDeadline)}
-                      onChange={(date) => handleDateChange('applicationDeadline', date)}
-                      slotProps={{ textField: { fullWidth: true } }}
-                    />
-                  </LocalizationProvider>
-                  
                   <TextField
-                    name="interviewMethod"
-                    label="面試方式"
+                    name="internshipApplicationDeadline"
+                    label="申請截止日期"
+                    type="date"
                     variant="outlined"
-                    value={formData.interviewMethod || ""}
+                    value={formData.internshipApplicationDeadline || ""}
                     onChange={handleInputChange}
                     fullWidth
+                    InputLabelProps={{ shrink: true }}
                   />
+                  
+                  <FormControl fullWidth>
+                    <InputLabel id="interview-method-label">面試方式</InputLabel>
+                    <Select
+                      labelId="interview-method-label"
+                      name="interviewMethod"
+                      value={formData.interviewMethod || ""}
+                      onChange={handleSelectChange}
+                      label="面試方式"
+                    >
+                      <MenuItem value="">選擇面試方式</MenuItem>
+                      {interviewMethodOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Box>
                 
                 <TextField
@@ -501,7 +580,7 @@ export default function EnterpriseEditDialog({
                   value={formData.additionalDocumentURL || ""}
                   onChange={handleInputChange}
                   fullWidth
-                  placeholder="http://..."
+                  placeholder="請輸入文件的URL連結"
                 />
               </Box>
             )}
@@ -520,6 +599,7 @@ export default function EnterpriseEditDialog({
             multiline
             rows={12}
             sx={{ mt: 2 }}
+            placeholder="詳細描述合作內容、期望與條件"
           />
         )}
       </DialogContent>
