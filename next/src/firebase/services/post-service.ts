@@ -32,6 +32,12 @@ export interface PostData {
   isDraft?: boolean;
   viewCount?: number;
   interactionCount?: number;
+  promotionTarget?: string;
+promotionForm?: string;
+purposeType?: string;
+participationType?: string;
+eventEndDate?: string;
+
 }
 
 export interface DemandPostData extends PostData {
@@ -44,6 +50,13 @@ export interface DemandPostData extends PostData {
   eventName?: string; // 添加活動名稱
   eventType?: string; // 添加活動類型
   email?: string; // ✅ 在這裡加一行
+  purposeType: string;
+  participationType: string;
+  tags: string[];
+  promotionTarget?: string;
+  promotionForm?: string;
+  eventEndDate?: string;     // ✅ 加這行
+  customItems?: string[];    // ✅ 加這行
 }
 
 export const getOrganizationName = async (
@@ -327,6 +340,8 @@ export const getPostById = async (
       eventName: postData.eventName ?? "", // 添加活動名稱
       eventType: postData.eventType ?? "", // 添加活動類型
       email: postData.email ?? "", // ⭐⭐ 補這一行！⭐⭐
+      purposeType: postData.purposeType ?? "", // ✅ 加這行
+  participationType: postData.participationType ?? "", // ✅ 加這行
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);

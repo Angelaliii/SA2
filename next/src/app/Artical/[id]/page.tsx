@@ -4,6 +4,9 @@ import EventIcon from "@mui/icons-material/Event";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import GroupsIcon from '@mui/icons-material/Groups';
+import FlareIcon from '@mui/icons-material/Flare';
+import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Alert,
@@ -33,12 +36,9 @@ export default function DemandPostDetailPage() {
   const [messageSent, setMessageSent] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [favorites, setFavorites] = useState<{ [key: string]: boolean }>({});
-
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
-    "success"
-  );
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -49,6 +49,7 @@ export default function DemandPostDetailPage() {
       try {
         const data = await postService.getPostById(id as string);
         setPost(data);
+        console.log("post data", data); // 這裡 log
 
         if (data?.authorId) {
           const club = await clubServices.getClubById(data.authorId);
@@ -102,7 +103,7 @@ export default function DemandPostDetailPage() {
       await addDoc(collection(db, "messages"), {
         senderId: currentUser.uid,
         receiverId: post.authorId,
-        messageContent: messageContent,
+        messageContent,
         postId: id,
         timestamp: new Date(),
       });
@@ -142,94 +143,128 @@ export default function DemandPostDetailPage() {
     <>
       <Navbar />
       <Container maxWidth="md" sx={{ pt: 10, pb: 8 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2, minHeight: "80vh" }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Box sx={{ textAlign: "center", mb: 4 }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
               {post.title}
             </Typography>
-
-            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography variant="subtitle1" color="text.secondary">
               發布社團：
               {clubInfo ? (
-                <MuiLink
-                  component={Link}
-                  href={`/user/${clubInfo.userId}`}
-                  underline="hover"
-                >
+                <MuiLink component={Link} href={`/user/${clubInfo.userId}`} underline="hover">
                   {clubInfo.clubName}（{clubInfo.schoolName}）
                 </MuiLink>
               ) : (
                 post.organizationName ?? "未知社團"
               )}
             </Typography>
-
             <Typography variant="body2" color="text.secondary">
               發文時間：{formattedDate}
             </Typography>
-
             <Typography variant="body2" color="text.secondary">
-              聯絡信箱：
-              {post.email ?? "未提供"}
+              聯絡信箱：{post.email ?? "未提供"}
             </Typography>
           </Box>
 
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <InventoryIcon sx={{ mr: 1, color: "#1976d2" }} />
-              <Typography variant="h6">需求物資</Typography>
-            </Box>
-            <Typography variant="body2" gutterBottom>
-              <strong>需求項目：</strong>
-            </Typography>{" "}
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
-              {post.selectedDemands?.length > 0 ? (
-                post.selectedDemands.map((item: string) => (
-                  <Chip key={`demand-${item}`} label={item} color="primary" />
-                ))
-              ) : (
-                <Typography variant="body2">未填寫</Typography>
-              )}
-            </Box>
-            <Typography variant="body2" gutterBottom>
-              <strong>需求說明：</strong> {post.demandDescription ?? "未填寫"}
-            </Typography>
-          </Box>
+          {/* 四個區塊渲染如下 */}
 
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <EventIcon sx={{ mr: 1, color: "#1976d2" }} />
-              <Typography variant="h6">活動資訊</Typography>
-            </Box>
-            <Typography variant="body2" gutterBottom>
-              <strong>活動名稱：</strong>
-              {post.eventName ?? "未填寫"}
-            </Typography>
-            <Typography variant="body2" gutterBottom>
-              <strong>活動性質：</strong>
-              {post.eventType ?? "未填寫"}
-            </Typography>
-            <Typography variant="body2" gutterBottom>
-              <strong>預估人數：</strong>
-              {post.estimatedParticipants ?? "未填寫"}
-            </Typography>
-            <Typography variant="body2" gutterBottom>
-              <strong>活動日期：</strong>
-              {post.eventDate ?? "未填寫"}
-            </Typography>
-          </Box>
+         {/* 1. 需求類別 */}
+<Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    <InfoIcon fontSize="small" sx={{ mr: 1, color: "#1976d2" }} />
+    <Typography variant="h6" sx={{ color: "#1976d2" }}>
+      需求類別
+    </Typography>
+  </Box>
+  <Typography variant="body2">
+    <strong>需求主題:</strong> {post.title ?? "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>需求目的:</strong> {post.purposeType ?? "未填寫"}
+  </Typography>
+</Box>
 
-          <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
-              <Typography variant="h6">補充說明與回饋</Typography>
-            </Box>
-            <Typography variant="body2" gutterBottom>
-              <strong>回饋方案：</strong> {post.cooperationReturn ?? "未填寫"}
-            </Typography>
-            <Typography variant="body2" gutterBottom sx={{ mt: 1 }}>
-              <strong>補充說明：</strong> {post.eventDescription ?? "未填寫"}
-            </Typography>
-          </Box>
+          {/* 2. 需求類型與合作形式 */}
+<Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    <GroupsIcon fontSize="small" sx={{ mr: 1, color: "#1976d2" }} />
+    <Typography variant="h6" sx={{ color: "#1976d2" }}>
+      需求類型與合作形式
+    </Typography>
+  </Box>
+  <Typography variant="body2">
+    <strong>需求物資:</strong>{" "}
+    {post.customItems && post.customItems.length > 0 && post.customItems[0] !== "未填寫"
+      ? post.customItems.join("、")
+      : "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>希望企業參與方式:</strong> {post.participationType ?? "未填寫"}
+  </Typography>
+</Box>
+
+{/* 3. 活動資訊 */}
+<Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}>
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    <FlareIcon fontSize="small" sx={{ mr: 1, color: "#1976d2" }} />
+    <Typography variant="h6" sx={{ color: "#1976d2" }}>
+      活動資訊
+    </Typography>
+  </Box>
+  <Typography variant="body2">
+    <strong>預估人數：</strong> {post.estimatedParticipants ?? "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>活動地點：</strong> {post.location ?? "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>贊助截止日期：</strong> {post.cooperationReturn ?? "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>活動開始日期：</strong> {post.eventDate ?? "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>活動結束日期：</strong> {post.eventEndDate ?? "未填寫"}
+  </Typography>
+
+  {post.purposeType === "教育推廣" && (
+    <Typography variant="body2">
+      <strong>預計推廣對象：</strong> {post.eventDescription ?? "未填寫"}
+    </Typography>
+  )}
+  {post.purposeType === "社區服務" && (
+    <Typography variant="body2">
+      <strong>服務對象：</strong> {post.eventType ?? "未填寫"}
+    </Typography>
+  )}
+  {post.purposeType === "校園宣傳" && (
+    <>
+      <Typography variant="body2">
+        <strong>目標對象：</strong> {post.promotionTarget ?? "未填寫"}
+      </Typography>
+      <Typography variant="body2">
+        <strong>宣傳形式：</strong> {post.promotionForm ?? "未填寫"}
+      </Typography>
+    </>
+  )}
+</Box>
+
+
+         {/* 4. 補充說明與回饋 */}
+<Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2 }}>
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    <ChatBubbleIcon fontSize="small" sx={{ mr: 1, color: "#1976d2" }} />
+    <Typography variant="h6" sx={{ color: "#1976d2" }}>
+      補充說明與回饋
+    </Typography>
+  </Box>
+  <Typography variant="body2">
+    <strong>回饋方式：</strong> {post.demandDescription ?? "未填寫"}
+  </Typography>
+  <Typography variant="body2">
+    <strong>內容說明：</strong> {post.eventDescription ?? "未填寫"}
+  </Typography>
+</Box>
 
           {isLoggedIn && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4, gap: 2 }}>
@@ -242,10 +277,7 @@ export default function DemandPostDetailPage() {
               >
                 {messageSent ? "已發送訊息" : "發送合作訊息"}
               </Button>
-              <IconButton
-                size="large"
-                onClick={() => toggleFavorite(post)}
-              >
+              <IconButton size="large" onClick={() => toggleFavorite(post)}>
                 {favorites[post.id] ? (
                   <FavoriteIcon color="error" />
                 ) : (
@@ -253,7 +285,7 @@ export default function DemandPostDetailPage() {
                 )}
               </IconButton>
             </Box>
-          )})
+          )}
 
           {!isLoggedIn && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -265,16 +297,8 @@ export default function DemandPostDetailPage() {
         </Paper>
       </Container>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={() => setOpenSnackbar(false)}
-      >
-        <Alert
-          onClose={() => setOpenSnackbar(false)}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
-        >
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={() => setOpenSnackbar(false)}>
+        <Alert onClose={() => setOpenSnackbar(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

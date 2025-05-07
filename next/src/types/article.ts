@@ -124,4 +124,7 @@ export interface DemandPostData {
   authorId: string;
   isDraft: boolean;
   email?: string; 
+  purposeType: string;
+  participationType: string;
+  
 }

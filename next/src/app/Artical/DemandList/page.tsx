@@ -1,10 +1,13 @@
 "use client";
+import { ButtonGroup } from "@mui/material";
 
 import EventIcon from "@mui/icons-material/Event";
 import GroupIcon from "@mui/icons-material/Group";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import RedeemIcon from "@mui/icons-material/Redeem";
 import SearchIcon from "@mui/icons-material/Search";
+import InfoIcon from "@mui/icons-material/Info";
+
 import {
   Box,
   Button,
@@ -61,6 +64,10 @@ interface Post {
   eventName?: string;
   eventDescription?: string;
   email?: string;
+   // ⭐ 新增這幾個欄位
+   customItems?: string[];
+   purposeType?: string;
+   participationType?: string;
 }
 
 const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
@@ -78,7 +85,7 @@ export default function DemandListPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  const [selectedTag] = useState<string>("全部");
+  const [selectedTag, setSelectedTag] = useState<string>("全部");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每頁顯示8筆資料
@@ -237,10 +244,10 @@ export default function DemandListPage() {
 
     // Filter by tag
     const matchTag =
-      selectedTag === "全部"
-        ? true
-        : Array.isArray(post.selectedDemands) &&
-          post.selectedDemands.includes(selectedTag ?? "");
+    selectedTag === "全部"
+      ? true
+      : post.purposeType === selectedTag;
+  
 
     return matchSearch && matchTag;
   });
@@ -493,39 +500,7 @@ export default function DemandListPage() {
                 }}
               />
             </Box>
-            {/* 活動類型和需求物資篩選 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <TextField
-                fullWidth
-                label="活動類型"
-                select
-                value={filters.selectedEventType}
-                onChange={handleFilterChange}
-                name="selectedEventType"
-              >
-                <MenuItem value="">全部</MenuItem>
-                {eventTypes.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {type}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                fullWidth
-                label="需求物資類型"
-                select
-                value={filters.selectedDemand}
-                onChange={handleFilterChange}
-                name="selectedDemand"
-              >
-                <MenuItem value="">全部</MenuItem>
-                {demandItems.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
+            
             {/* 參與人數篩選 */}
             <Box>
               <TextField
@@ -538,276 +513,275 @@ export default function DemandListPage() {
               />
             </Box>
           </Paper>
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "" }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-start", gap: 1, mb: 3 }}>
+  {["全部", "活動支援", "教育推廣", "社區服務", "校園宣傳"].map((label) => (
+    <Button
+      key={label}
+      variant={selectedTag === label ? "contained" : "outlined"}
+      onClick={() => setSelectedTag(label)}
+      sx={{
+        borderRadius: "30px",     // 更小的橢圓
+        px: 2,                    // 左右 padding 縮小
+        py: 0.5,                  // 上下 padding 縮小
+        fontSize: "0.75rem",      // 字體縮小
+        minWidth: "auto",         // 不強制最小寬度
+        textTransform: "none",    // 保持正常大小寫
+      }}
+    >
+      {label}
+    </Button>
+  ))}
+</Box>
 
-          {/* 貼文卡片列表區塊 */}
-          <Stack spacing={3}>
-            {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : currentPosts.length === 0 ? (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  borderRadius: 2,
-                  bgcolor: "background.paper",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  textAlign: "center",
-                }}
+
+
+
+
+</Box>
+
+          {/* 把這段放進你的 return 區域對應位置 */}
+
+<Stack spacing={3}>
+  {loading ? (
+    <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+      <CircularProgress />
+    </Box>
+  ) : currentPosts.length === 0 ? (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 4,
+        borderRadius: 2,
+        bgcolor: "background.paper",
+        border: "1px solid",
+        borderColor: "divider",
+        textAlign: "center",
+      }}
+    >
+      <Typography variant="h6" color="text.secondary" gutterBottom>
+        找不到符合的文章
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {searchTerm ||
+        filters.selectedDemand ||
+        filters.selectedEventType ||
+        filters.startDate ||
+        filters.endDate ||
+        filters.minParticipants
+          ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
+          : "目前還沒有任何需求文章"}
+      </Typography>
+      {(searchTerm ||
+        filters.selectedDemand ||
+        filters.selectedEventType ||
+        filters.startDate ||
+        filters.endDate ||
+        filters.minParticipants) && (
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={() => {
+            setSearchTerm("");
+            setFilters({
+              selectedDemand: "",
+              selectedEventType: "",
+              startDate: "",
+              endDate: "",
+              minParticipants: "",
+            });
+          }}
+          sx={{ mt: 1 }}
+        >
+          清除所有篩選條件
+        </Button>
+      )}
+    </Paper>
+  ) : (
+    currentPosts.map((post, index) => (
+      <motion.div
+        key={post.id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.08 }}
+      >
+        <Card
+          sx={{
+            borderRadius: "16px",
+            p: 3,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+            "&:hover": {
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              transform: "translateY(-4px)",
+              transition: "all 0.3s ease",
+            },
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            {/* 主資訊區 */}
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ color: "primary.main", fontWeight: "bold", mb: 1.5 }}
               >
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  找不到符合的文章
+                {post.title ?? "(無標題)"}
+              </Typography>
+
+              <Box sx={{ mb: 2 }}>
+  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+    <InfoIcon fontSize="small" sx={{ mr: 1 }} />
+    <Typography variant="body2">需求目的類型</Typography>
+  </Box>
+  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+    <Chip
+      label={post.purposeType ?? "未提供"}
+      size="small"
+      color="primary"
+    />
+  </Box>
+</Box>
+
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <EventIcon fontSize="small" sx={{ mr: 1 }} />
+                <Typography variant="body2">
+                  {post.eventDate
+                    ? new Date(post.eventDate).toISOString().split("T")[0]
+                    : "未設定日期"}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {searchTerm ||
-                  filters.selectedDemand ||
-                  filters.selectedEventType ||
-                  filters.startDate ||
-                  filters.endDate ||
-                  filters.minParticipants
-                    ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
-                    : "目前還沒有任何需求文章"}
+              </Box>
+
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <GroupIcon fontSize="small" sx={{ mr: 1 }} />
+                <Typography variant="body2">
+                  {post.estimatedParticipants ?? "0"}人
                 </Typography>
-                {(searchTerm ||
-                  filters.selectedDemand ||
-                  filters.selectedEventType ||
-                  filters.startDate ||
-                  filters.endDate ||
-                  filters.minParticipants) && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setFilters({
-                        selectedDemand: "",
-                        selectedEventType: "",
-                        startDate: "",
-                        endDate: "",
-                        minParticipants: "",
-                      });
-                    }}
-                    sx={{ mt: 1 }}
-                  >
-                    清除所有篩選條件
-                  </Button>
-                )}
-              </Paper>
-            ) : (
-              currentPosts.map((post, index) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.08 }}
-                >
-                  <Card
-                    sx={{
-                      borderRadius: "16px",
-                      p: 3,
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                      "&:hover": {
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                        transform: "translateY(-4px)",
-                        transition: "all 0.3s ease",
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      {/* 卡片中間區域（主資訊區） */}
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            color: "primary.main",
-                            fontWeight: "bold",
-                            mb: 1.5,
-                          }}
-                        >
-                          {post.title ?? "(無標題)"}
-                        </Typography>
+              </Box>
 
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                        >
-                          <EventIcon fontSize="small" sx={{ mr: 1 }} />
-                          <Typography variant="body2">
-                            {post.eventDate
-                              ? new Date(post.eventDate)
-                                  .toISOString()
-                                  .split("T")[0]
-                              : "未設定日期"}
-                          </Typography>
-                        </Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 0.5 }}
+              >
+                來自：{post.organizationName ?? "未知組織"}
+              </Typography>
 
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                        >
-                          <GroupIcon fontSize="small" sx={{ mr: 1 }} />
-                          <Typography variant="body2">
-                            {post.estimatedParticipants ?? "0"}人
-                          </Typography>
-                        </Box>
-
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 0.5 }}
-                        >
-                          來自：{post.organizationName ?? "未知組織"}
-                        </Typography>
-
-                        {/* 新增物資需求說明 */}
-                        {post.demandDescription && (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              mb: 1,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                            }}
-                          >
-                            物資需求說明：{post.demandDescription}
-                          </Typography>
-                        )}
-
-                        <Typography variant="caption" color="text.secondary">
-                          發布時間：
-                          {post.createdAt
-                            ? new Date(post.createdAt).toLocaleDateString(
-                                "zh-TW"
-                              )
-                            : "未知"}
-                        </Typography>
-                      </Box>
-
-                      {/* 卡片右側區域（補充資訊區） */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          ml: 2,
-                          width: "30%",
-                        }}
-                      >
-                        <Box sx={{ mb: 2 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mb: 1,
-                            }}
-                          >
-                            <InventoryIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">需求物資</Typography>
-                          </Box>
-                          <Box
-                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
-                          >
-                            {(post.selectedDemands ?? []).map((item) => (
-                              <Chip
-                                key={`${post.id}-${item}`}
-                                label={item}
-                                size="small"
-                                color="primary"
-                              />
-                            ))}
-                          </Box>
-                        </Box>
-
-                        <Box>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mb: 1,
-                            }}
-                          >
-                            <RedeemIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">回饋方式</Typography>
-                          </Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              fontSize: "0.875rem",
-                              lineHeight: 1.43,
-                              maxWidth: "100%",
-                            }}
-                          >
-                            {post.cooperationReturn ?? "未提供回饋方式"}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* 卡片右邊操作區 */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          alignItems: "flex-end",
-                          ml: 2,
-                        }}
-                      >
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(post);
-                          }}
-                          sx={{ mb: 1 }}
-                        >
-                          {favorites[post.id] ? "❤️" : "🤍"}
-                        </IconButton>
-
-                        <Button
-                          variant="outlined"
-                          component={Link}
-                          href={`/Artical/${post.id}`}
-                          size="small"
-                          sx={{ whiteSpace: "nowrap" }}
-                        >
-                          查看更多
-                        </Button>
-                      </Box>
-                    </Box>
-                  </Card>
-                </motion.div>
-              ))
-            )}
-          </Stack>
-
-          {/* 分頁控制 */}
-          {totalPages > 1 && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={currentPage}
-                onChange={handlePageChange}
-                color="primary"
-                size="large"
-              />
+              <Typography variant="caption" color="text.secondary">
+                發布時間：
+                {post.createdAt
+                  ? new Date(post.createdAt).toLocaleDateString("zh-TW")
+                  : "未知"}
+              </Typography>
             </Box>
-          )}
-        </Container>
-      </Box>
-    </>
-  );
+
+            {/* 右側補充資訊區 */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                ml: 2,
+                width: "30%",
+              }}
+            >
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  <InventoryIcon fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">需求物資</Typography>
+                </Box>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {(post.customItems && post.customItems.length > 0
+                    ? post.customItems
+                    : ["未提供"]
+                  ).map((item) => (
+                    <Chip
+                      key={`${post.id}-${item}`}
+                      label={item}
+                      size="small"
+                      color="primary"
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              <Box>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  <RedeemIcon fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">希望企業參與方式</Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    fontSize: "0.875rem",
+                    lineHeight: 1.43,
+                    maxWidth: "100%",
+                  }}
+                >
+                  {post.participationType ?? "未提供"}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* 卡片右邊操作區 */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "flex-end",
+                ml: 2,
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(post);
+                }}
+                sx={{ mb: 1 }}
+              >
+                {favorites[post.id] ? "❤️" : "🤍"}
+              </IconButton>
+
+              <Button
+                variant="outlined"
+                component={Link}
+                href={`/Artical/${post.id}`}
+                size="small"
+                sx={{ whiteSpace: "nowrap" }}
+              >
+                查看更多
+              </Button>
+            </Box>
+          </Box>
+        </Card>
+      </motion.div>
+    ))
+  )}
+    </Stack>
+
+{/* 分頁控制 */}
+{totalPages > 1 && (
+  <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+    <Pagination
+      count={totalPages}
+      page={currentPage}
+      onChange={handlePageChange}
+      color="primary"
+      size="large"
+    />
+  </Box>
+)}
+
+</Container>
+</Box>
+</>
+);
 }
+
+  
+
