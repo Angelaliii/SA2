@@ -48,26 +48,31 @@ export default function EnterprisePostPage() {
 
   // 新增公告類型與相關欄位狀態
   const [announcementType, setAnnouncementType] = useState<
-    "marketing" | "activity" | "internship" | ""
+    | "specialOfferPartnership"
+    | "activityCooperation"
+    | "internshipCooperation"
+    | ""
   >("");
 
-  // 行銷推廣相關狀態
-  const [marketingProductName, setMarketingProductName] = useState<string>("");
-  const [marketingPeriodStart, setMarketingPeriodStart] = useState<string>("");
-  const [marketingPeriodEnd, setMarketingPeriodEnd] = useState<string>("");
+  // 特約商店相關狀態
+  const [partnershipName, setPartnershipName] = useState<string>("");
+  const [contractPeriodDuration, setContractPeriodDuration] =
+    useState<string>("");
 
   // 聯繫窗口（共用）
   const [contactName, setContactName] = useState<string>("");
   const [contactPhone, setContactPhone] = useState<string>("");
+  const [contactEmail, setContactEmail] = useState<string>("");
 
   // 活動合作相關狀態
   const [activityName, setActivityName] = useState<string>("");
   const [activityType, setActivityType] = useState<string>("");
-  const [activityDateTime, setActivityDateTime] = useState<string>("");
+  const [activityStartDate, setActivityStartDate] = useState<string>("");
+  const [activityEndDate, setActivityEndDate] = useState<string>("");
   const [activityLocation, setActivityLocation] = useState<string>("");
-  const [cooperationPurpose, setCooperationPurpose] = useState<string>("");
   const [cooperationType, setCooperationType] = useState<string>("");
   const [partnerRequirements, setPartnerRequirements] = useState<string>("");
+  const [applicationDeadline, setApplicationDeadline] = useState<string>("");
   const [documentURL, setDocumentURL] = useState<string>("");
 
   // 實習合作相關狀態
@@ -79,14 +84,25 @@ export default function EnterprisePostPage() {
   const [salary, setSalary] = useState<string>("");
   const [jobDescription, setJobDescription] = useState<string>("");
   const [requirements, setRequirements] = useState<string>("");
+  const [internshipPositions, setInternshipPositions] = useState<number | "">(
+    ""
+  );
   const [benefits, setBenefits] = useState<string>("");
-  const [applicationDeadline, setApplicationDeadline] = useState<string>("");
+  const [internshipApplicationDeadline, setInternshipApplicationDeadline] =
+    useState<string>("");
   const [interviewMethod, setInterviewMethod] = useState<string>("");
   const [additionalDocumentURL, setAdditionalDocumentURL] =
     useState<string>("");
 
   // 活動類型選項
-  const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "其他"];
+  const activityTypeOptions = [
+    "演講",
+    "工作坊",
+    "展覽",
+    "比賽",
+    "營隊",
+    "其他",
+  ];
   // 合作方式選項
   const cooperationTypeOptions = [
     "贊助",
@@ -102,7 +118,10 @@ export default function EnterprisePostPage() {
     "電話面試",
     "專案測試",
     "多輪面試",
+    "其他",
   ];
+  // 合約期限選項
+  const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -168,36 +187,41 @@ export default function EnterprisePostPage() {
         }
 
         // 設置共用欄位
-        setContactName(draft.contactName || "");
-        setContactPhone(draft.contactPhone || "");
+        setContactName(draft.contactName ?? "");
+        setContactPhone(draft.contactPhone ?? "");
 
         // 根據公告類型設置特定欄位
-        if (draft.announcementType === "marketing") {
-          setMarketingProductName(draft.marketingProductName || "");
-          setMarketingPeriodStart(draft.marketingPeriodStart || "");
-          setMarketingPeriodEnd(draft.marketingPeriodEnd || "");
-        } else if (draft.announcementType === "activity") {
-          setActivityName(draft.activityName || "");
-          setActivityType(draft.activityType || "");
-          setActivityDateTime(draft.activityDateTime || "");
-          setActivityLocation(draft.activityLocation || "");
-          setCooperationPurpose(draft.cooperationPurpose || "");
-          setCooperationType(draft.cooperationType || "");
-          setPartnerRequirements(draft.partnerRequirements || "");
-          setDocumentURL(draft.documentURL || "");
-        } else if (draft.announcementType === "internship") {
-          setInternshipTitle(draft.internshipTitle || "");
-          setInternshipDepartment(draft.internshipDepartment || "");
-          setInternshipPeriod(draft.internshipPeriod || "");
-          setWeeklyHours(draft.weeklyHours || "");
-          setWorkLocation(draft.workLocation || "");
-          setSalary(draft.salary || "");
-          setJobDescription(draft.jobDescription || "");
-          setRequirements(draft.requirements || "");
-          setBenefits(draft.benefits || "");
-          setApplicationDeadline(draft.applicationDeadline || "");
-          setInterviewMethod(draft.interviewMethod || "");
-          setAdditionalDocumentURL(draft.additionalDocumentURL || "");
+        if (draft.announcementType === "specialOfferPartnership") {
+          setPartnershipName(draft.partnershipName ?? "");
+          setContractPeriodDuration(
+            (draft as any).contractPeriodDuration ?? ""
+          );
+        } else if (draft.announcementType === "activityCooperation") {
+          setActivityName(draft.activityName ?? "");
+          setActivityType(draft.activityType ?? "");
+          setActivityStartDate(draft.activityStartDate ?? "");
+          setActivityEndDate(draft.activityEndDate ?? "");
+          setActivityLocation(draft.activityLocation ?? "");
+          setCooperationType(draft.cooperationType ?? "");
+          setPartnerRequirements(draft.partnerRequirements ?? "");
+          setApplicationDeadline(draft.applicationDeadline ?? "");
+          setDocumentURL(draft.documentURL ?? "");
+        } else if (draft.announcementType === "internshipCooperation") {
+          setInternshipTitle(draft.internshipTitle ?? "");
+          setInternshipDepartment(draft.internshipDepartment ?? "");
+          setInternshipPeriod(draft.internshipPeriod ?? "");
+          setWeeklyHours(draft.weeklyHours ?? "");
+          setWorkLocation(draft.workLocation ?? "");
+          setSalary(draft.salary ?? "");
+          setJobDescription(draft.jobDescription ?? "");
+          setRequirements(draft.requirements ?? "");
+          setInternshipPositions(draft.internshipPositions ?? "");
+          setBenefits(draft.benefits ?? "");
+          setInternshipApplicationDeadline(
+            draft.internshipApplicationDeadline ?? ""
+          );
+          setInterviewMethod(draft.interviewMethod ?? "");
+          setAdditionalDocumentURL(draft.additionalDocumentURL ?? "");
         }
 
         setOpenDraftsDialog(false);
@@ -242,44 +266,47 @@ export default function EnterprisePostPage() {
       return;
     }
 
-    if (announcementType === "marketing") {
+    if (announcementType === "specialOfferPartnership") {
       if (
-        !marketingProductName ||
-        !marketingPeriodStart ||
-        !marketingPeriodEnd ||
+        !partnershipName ||
+        !contractPeriodDuration ||
         !contactName ||
-        !contactPhone
+        !contactPhone ||
+        !contactEmail
       ) {
-        setSnackbarMessage("請填寫所有行銷推廣必填欄位");
+        setSnackbarMessage("請填寫所有特約商店必填欄位");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
         return;
       }
-    } else if (announcementType === "activity") {
+    } else if (announcementType === "activityCooperation") {
       if (
         !activityName ||
         !activityType ||
-        !activityDateTime ||
+        !activityStartDate ||
+        !activityEndDate ||
         !activityLocation ||
-        !cooperationPurpose ||
+        !cooperationType ||
         !contactName ||
-        !contactPhone
+        !contactPhone ||
+        !contactEmail
       ) {
         setSnackbarMessage("請填寫所有活動合作必填欄位");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
         return;
       }
-    } else if (announcementType === "internship") {
+    } else if (announcementType === "internshipCooperation") {
       if (
         !internshipTitle ||
         !internshipDepartment ||
         !internshipPeriod ||
         !workLocation ||
         !jobDescription ||
-        !applicationDeadline ||
+        !internshipApplicationDeadline ||
         !contactName ||
-        !contactPhone
+        !contactPhone ||
+        !contactEmail
       ) {
         setSnackbarMessage("請填寫所有實習合作必填欄位");
         setSnackbarSeverity("error");
@@ -306,23 +333,24 @@ export default function EnterprisePostPage() {
         announcementType,
         contactName,
         contactPhone,
+        contactEmail,
       };
 
       // 根據公告類型加入特定欄位
-      if (announcementType === "marketing") {
-        postData.marketingProductName = marketingProductName;
-        postData.marketingPeriodStart = marketingPeriodStart;
-        postData.marketingPeriodEnd = marketingPeriodEnd;
-      } else if (announcementType === "activity") {
+      if (announcementType === "specialOfferPartnership") {
+        postData.partnershipName = partnershipName;
+        postData.contractPeriodDuration = contractPeriodDuration;
+      } else if (announcementType === "activityCooperation") {
         postData.activityName = activityName;
         postData.activityType = activityType;
-        postData.activityDateTime = activityDateTime;
+        postData.activityStartDate = activityStartDate;
+        postData.activityEndDate = activityEndDate;
         postData.activityLocation = activityLocation;
-        postData.cooperationPurpose = cooperationPurpose;
         postData.cooperationType = cooperationType;
         postData.partnerRequirements = partnerRequirements;
+        postData.applicationDeadline = applicationDeadline;
         postData.documentURL = documentURL;
-      } else if (announcementType === "internship") {
+      } else if (announcementType === "internshipCooperation") {
         postData.internshipTitle = internshipTitle;
         postData.internshipDepartment = internshipDepartment;
         postData.internshipPeriod = internshipPeriod;
@@ -337,8 +365,9 @@ export default function EnterprisePostPage() {
         postData.salary = salary;
         postData.jobDescription = jobDescription;
         postData.requirements = requirements;
+        postData.internshipPositions = internshipPositions;
         postData.benefits = benefits;
-        postData.applicationDeadline = applicationDeadline;
+        postData.internshipApplicationDeadline = internshipApplicationDeadline;
         postData.interviewMethod = interviewMethod;
         postData.additionalDocumentURL = additionalDocumentURL;
       }
@@ -368,18 +397,19 @@ export default function EnterprisePostPage() {
       setTitle("");
       setContent("");
       setAnnouncementType("");
-      setMarketingProductName("");
-      setMarketingPeriodStart("");
-      setMarketingPeriodEnd("");
+      setPartnershipName("");
+      setContractPeriodDuration("");
       setContactName("");
       setContactPhone("");
+      setContactEmail("");
       setActivityName("");
       setActivityType("");
-      setActivityDateTime("");
+      setActivityStartDate("");
+      setActivityEndDate("");
       setActivityLocation("");
-      setCooperationPurpose("");
       setCooperationType("");
       setPartnerRequirements("");
+      setApplicationDeadline("");
       setDocumentURL("");
       setInternshipTitle("");
       setInternshipDepartment("");
@@ -389,8 +419,9 @@ export default function EnterprisePostPage() {
       setSalary("");
       setJobDescription("");
       setRequirements("");
+      setInternshipPositions("");
       setBenefits("");
-      setApplicationDeadline("");
+      setInternshipApplicationDeadline("");
       setInterviewMethod("");
       setAdditionalDocumentURL("");
 
@@ -542,31 +573,35 @@ export default function EnterprisePostPage() {
                 <Box sx={{ display: "flex", gap: 2 }}>
                   <Button
                     variant={
-                      announcementType === "marketing"
+                      announcementType === "specialOfferPartnership"
                         ? "contained"
                         : "outlined"
                     }
-                    onClick={() => setAnnouncementType("marketing")}
+                    onClick={() =>
+                      setAnnouncementType("specialOfferPartnership")
+                    }
                     sx={{ flex: 1 }}
                   >
-                    行銷推廣
+                    特約商店
                   </Button>
                   <Button
                     variant={
-                      announcementType === "activity" ? "contained" : "outlined"
+                      announcementType === "activityCooperation"
+                        ? "contained"
+                        : "outlined"
                     }
-                    onClick={() => setAnnouncementType("activity")}
+                    onClick={() => setAnnouncementType("activityCooperation")}
                     sx={{ flex: 1 }}
                   >
                     活動合作
                   </Button>
                   <Button
                     variant={
-                      announcementType === "internship"
+                      announcementType === "internshipCooperation"
                         ? "contained"
                         : "outlined"
                     }
-                    onClick={() => setAnnouncementType("internship")}
+                    onClick={() => setAnnouncementType("internshipCooperation")}
                     sx={{ flex: 1 }}
                   >
                     實習合作
@@ -582,7 +617,7 @@ export default function EnterprisePostPage() {
                     gutterBottom
                     sx={{ fontWeight: "medium" }}
                   >
-                    聯繫窗口資訊 *
+                    聯繫窗口資訊
                   </Typography>
                   <Box sx={{ display: "flex", gap: 2 }}>
                     <TextField
@@ -599,12 +634,19 @@ export default function EnterprisePostPage() {
                       required
                       sx={{ flex: 1 }}
                     />
+                    <TextField
+                      label="聯繫信箱"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      required
+                      sx={{ flex: 1 }}
+                    />
                   </Box>
                 </Box>
               )}
 
-              {/* 行銷推廣特有欄位 */}
-              {announcementType === "marketing" && (
+              {/* 特約商店特有欄位 */}
+              {announcementType === "specialOfferPartnership" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography
                     variant="h6"
@@ -615,43 +657,42 @@ export default function EnterprisePostPage() {
                       pb: 1,
                     }}
                   >
-                    行銷推廣資訊
+                    特約商店資訊
                   </Typography>
 
                   <TextField
                     fullWidth
-                    label="推廣產品/服務名稱"
-                    value={marketingProductName}
-                    onChange={(e) => setMarketingProductName(e.target.value)}
+                    label="特約商店名稱"
+                    value={partnershipName}
+                    onChange={(e) => setPartnershipName(e.target.value)}
                     required
                     sx={{ mb: 2 }}
                   />
 
-                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                    <TextField
-                      label="推廣開始日期"
-                      type="date"
-                      value={marketingPeriodStart}
-                      onChange={(e) => setMarketingPeriodStart(e.target.value)}
-                      required
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      label="推廣結束日期"
-                      type="date"
-                      value={marketingPeriodEnd}
-                      onChange={(e) => setMarketingPeriodEnd(e.target.value)}
-                      required
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
+                  <TextField
+                    select
+                    label="合約期限"
+                    value={contractPeriodDuration}
+                    onChange={(e) => setContractPeriodDuration(e.target.value)}
+                    required
+                    SelectProps={{
+                      native: true,
+                    }}
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    <option value=""></option>
+                    {contractPeriodOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </TextField>
                 </Box>
               )}
 
               {/* 活動合作特有欄位 */}
-              {announcementType === "activity" && (
+              {announcementType === "activityCooperation" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography
                     variant="h6"
@@ -695,10 +736,19 @@ export default function EnterprisePostPage() {
                     </TextField>
 
                     <TextField
-                      label="活動日期與時間"
-                      type="datetime-local"
-                      value={activityDateTime}
-                      onChange={(e) => setActivityDateTime(e.target.value)}
+                      label="活動開始日期"
+                      type="date"
+                      value={activityStartDate}
+                      onChange={(e) => setActivityStartDate(e.target.value)}
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ flex: 1 }}
+                    />
+                    <TextField
+                      label="活動結束日期"
+                      type="date"
+                      value={activityEndDate}
+                      onChange={(e) => setActivityEndDate(e.target.value)}
                       required
                       InputLabelProps={{ shrink: true }}
                       sx={{ flex: 1 }}
@@ -716,42 +766,12 @@ export default function EnterprisePostPage() {
 
                   <TextField
                     fullWidth
-                    label="合作說明與目的"
-                    value={cooperationPurpose}
-                    onChange={(e) => setCooperationPurpose(e.target.value)}
+                    label="合作方式"
+                    value={cooperationType}
+                    onChange={(e) => setCooperationType(e.target.value)}
                     required
-                    multiline
-                    rows={3}
                     sx={{ mb: 2 }}
                   />
-
-                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                    <TextField
-                      select
-                      label="合作方式"
-                      value={cooperationType}
-                      onChange={(e) => setCooperationType(e.target.value)}
-                      SelectProps={{
-                        native: true,
-                      }}
-                      sx={{ flex: 1 }}
-                    >
-                      <option value=""></option>
-                      {cooperationTypeOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </TextField>
-
-                    <TextField
-                      label="相關文件連結"
-                      value={documentURL}
-                      onChange={(e) => setDocumentURL(e.target.value)}
-                      placeholder="請輸入文件的URL連結"
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
 
                   <TextField
                     fullWidth
@@ -762,11 +782,31 @@ export default function EnterprisePostPage() {
                     rows={2}
                     sx={{ mb: 2 }}
                   />
+
+                  <TextField
+                    fullWidth
+                    label="申請截止日期"
+                    type="date"
+                    value={applicationDeadline}
+                    onChange={(e) => setApplicationDeadline(e.target.value)}
+                    required
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mb: 2 }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="相關文件連結"
+                    value={documentURL}
+                    onChange={(e) => setDocumentURL(e.target.value)}
+                    placeholder="請輸入文件的URL連結"
+                    sx={{ mb: 2 }}
+                  />
                 </Box>
               )}
 
               {/* 實習合作特有欄位 */}
-              {announcementType === "internship" && (
+              {announcementType === "internshipCooperation" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography
                     variant="h6"
@@ -864,6 +904,20 @@ export default function EnterprisePostPage() {
 
                   <TextField
                     fullWidth
+                    label="實習名額"
+                    type="number"
+                    value={internshipPositions}
+                    onChange={(e) =>
+                      setInternshipPositions(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                    inputProps={{ min: 0 }}
+                    sx={{ mb: 2 }}
+                  />
+
+                  <TextField
+                    fullWidth
                     label="實習福利"
                     value={benefits}
                     onChange={(e) => setBenefits(e.target.value)}
@@ -876,8 +930,10 @@ export default function EnterprisePostPage() {
                     <TextField
                       label="申請截止日期"
                       type="date"
-                      value={applicationDeadline}
-                      onChange={(e) => setApplicationDeadline(e.target.value)}
+                      value={internshipApplicationDeadline}
+                      onChange={(e) =>
+                        setInternshipApplicationDeadline(e.target.value)
+                      }
                       required
                       InputLabelProps={{ shrink: true }}
                       sx={{ flex: 1 }}
