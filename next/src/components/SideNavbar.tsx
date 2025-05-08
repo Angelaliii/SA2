@@ -22,6 +22,7 @@ interface SideNavbarProps {
   selectedTag: string | null;
   setSelectedTag: (tag: string | null) => void;
   drawerWidth?: number;
+  hideTabs?: string[]; // 新增可選 props
 }
 
 export default function SideNavbar({
@@ -29,24 +30,24 @@ export default function SideNavbar({
   selectedTag,
   setSelectedTag,
   drawerWidth = 240,
+  hideTabs = [], // 預設為空
 }: SideNavbarProps) {
   const theme = useTheme();
-  
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // 直接在組件內部定義標籤列表
-  const availableTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊", "合作記錄"];
+  // 原始標籤清單
+  const allTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊", "合作記錄"];
+
+  // 過濾要隱藏的標籤
+  const availableTags = allTags.filter(tag => !hideTabs.includes(tag));
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  // 處理標籤點擊，設置選中的標籤
   const handleTagClick = (tag: string) => {
     setSelectedTag(tag);
-    // 根據標籤設置對應的索引值
     const index = availableTags.indexOf(tag);
-    // 如果 setSearchTerm 是用來設置 tab index 的，也可以更新它
     setSearchTerm(index.toString());
   };
 
@@ -75,7 +76,6 @@ export default function SideNavbar({
         }}
       >
         {availableTags.map((tag) => {
-          // Determine the appropriate icon for each tag
           let icon;
           switch (tag) {
             case "個人檔案":
@@ -156,9 +156,9 @@ export default function SideNavbar({
               width: drawerWidth,
               borderRight: "1px solid rgba(0, 0, 0, 0.08)",
               position: "fixed",
-              top: { xs: "56px", sm: "64px" }, // 根據 MUI AppBar 的高度調整
+              top: { xs: "56px", sm: "64px" },
               height: "calc(100% - 64px)",
-              overflowY: "hidden", // Changed from 'auto' to 'hidden' to remove scrollbar
+              overflowY: "hidden",
               backgroundColor: theme.palette.background.default,
               zIndex: theme.zIndex.drawer,
             },

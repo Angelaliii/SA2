@@ -536,13 +536,13 @@ export default function Profile() {
             backgroundColor: "#f2f2f7",
           }}
         >
-          <SideNavbar
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedTag={selectedTag}
-            setSelectedTag={setSelectedTag}
-            drawerWidth={drawerWidth}
-          />
+        <SideNavbar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedTag={selectedTag}
+          setSelectedTag={setSelectedTag}
+          drawerWidth={drawerWidth}
+        />
 
           <Box
             component="main"
@@ -675,7 +675,7 @@ export default function Profile() {
                                 color="text.secondary"
                                 sx={{ mt: 1 }}
                               >
-                                {article.content || "(無內容)"}
+                                {article.demandDescription || "(無內容)"}
                               </Typography>
                               <Typography
                                 variant="caption"

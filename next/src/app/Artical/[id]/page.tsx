@@ -4,6 +4,7 @@ import EventIcon from "@mui/icons-material/Event";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import HandshakeIcon from '@mui/icons-material/Handshake';
+import NextLink from 'next/link';
 import {
   Alert,
   Box,
@@ -28,7 +29,12 @@ import { collaborationService } from "../../../firebase/services/collaboration-s
 export default function DemandPostDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [post, setPost] = useState<any>(null);
+  const [post, setPost] = useState<any>({
+    title: "載入中...",
+    organizationName: "未知社團",
+    createdAt: "",
+    email: "未提供",
+  });
   const [clubInfo, setClubInfo] = useState<any>(null);
   const [messageSent, setMessageSent] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -47,15 +53,14 @@ export default function DemandPostDetailPage() {
     const fetchPost = async () => {
       try {
         const data = await postService.getPostById(id as string);
-        setPost(data);
+        setPost((prev) => ({ ...prev, ...data }));
 
         if (data?.authorId) {
           const club = await clubServices.getClubById(data.authorId);
           setClubInfo(club);
 
-          // 直接使用 clubInfo 的 email 作為聯絡信箱
           if (club?.email) {
-            setPost((prev: any) => ({ ...prev, authorEmail: club.email }));
+            setPost((prev) => ({ ...prev, authorEmail: club.email }));
           }
         }
       } catch (error) {
@@ -153,22 +158,24 @@ export default function DemandPostDetailPage() {
             </Typography>
 
             {/* 社團名稱 */}
-            <Typography
-              variant="subtitle1"
-              color="text.secondary"
-              sx={{ mb: 1 }}
-            >
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
               發布社團：
               {clubInfo ? (
-                <MuiLink
-                  component={Link}
-                  href={`/user/${clubInfo.userId}`}
-                  underline="hover"
-                >
-                  {clubInfo.clubName}（{clubInfo.schoolName}）
-                </MuiLink>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  <NextLink href={`/public-profile/${post.authorId}`} passHref>
+                    <MuiLink
+                      sx={{
+                        color: '#1976d2',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      {clubInfo.clubName}｜{clubInfo.schoolName}
+                    </MuiLink>
+                  </NextLink>
+                </Typography>
               ) : (
-                post.organizationName ?? "未知社團"
+                post.organizationName ?? '未知社團'
               )}
             </Typography>
 

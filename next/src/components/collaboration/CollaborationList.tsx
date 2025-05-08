@@ -13,7 +13,15 @@ import { CollaborationEndReviewDialog } from './CollaborationReviewDialog';
 import CollaborationResponseDialog from './CollaborationResponseDialog';
 import CancelCollaborationDialog from './CancelCollaborationDialog';
 
-export default function CollaborationList({}: object) {
+interface CollaborationListProps {
+  userId?: string;
+  readonly?: boolean;
+  visibleTabs?: Array<'pending' | 'active' | 'review' | 'complete' | 'cancel'>;
+}
+
+
+export default function CollaborationList({ userId, readonly,// 預設顯示所有標籤頁
+  visibleTabs = ['pending', 'active', 'review', 'complete', 'cancel']  }: CollaborationListProps) {
   const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [acceptedCollaborations, setAcceptedCollaborations] = useState<any[]>([]);
@@ -53,20 +61,20 @@ export default function CollaborationList({}: object) {
     setLoading(true);
     setError(null);
     
-    const user = auth.currentUser;
-    if (!user) {
-      setError("請先登入");
+    const uid = userId ?? auth.currentUser?.uid;
+    if (!uid) {
+      setError("請先登入或提供 userId");
       setLoading(false);
       return;
     }
     
     try {
       // 獲取收到的合作請求
-      const received = await collaborationService.getReceivedRequests(user.uid);
+      const received = await collaborationService.getReceivedRequests(uid);
       setReceivedRequests(received);
       
       // 獲取發送的合作請求
-      const sent = await collaborationService.getSentRequests(user.uid);
+      const sent = await collaborationService.getSentRequests(uid);
       setSentRequests(sent);
       
       // 合併所有合作記錄並去重
@@ -230,6 +238,48 @@ export default function CollaborationList({}: object) {
     loadCollaborations(); // 重新加載列表
   };
 
+  // Tab labels 和對應值的映射
+  const tabConfig = [
+    { 
+      value: 'pending', 
+      label: `待回覆 (${receivedRequests.filter(req => req.status === 'pending').length})`,
+      icon: <AccessTimeIcon />
+    },
+    { 
+      value: 'active', 
+      label: `進行中 (${acceptedCollaborations.filter(c => c.status === 'accepted').length})`,
+      icon: <HandshakeIcon />
+    },
+    { 
+      value: 'review', 
+      label: `等待評價 (${acceptedCollaborations.filter(c => c.status === 'pending_review').length})`,
+      icon: <AccessTimeIcon />
+    },
+    { 
+      value: 'complete', 
+      label: `已完成 (${completedCollaborations.length})`,
+      icon: <CheckCircleIcon />
+    },
+    { 
+      value: 'cancel', 
+      label: `已取消 (${cancelledCollaborations.length})`,
+      icon: <CancelIcon />
+    }
+  ];
+
+  // 根據 visibleTabs 過濾要顯示的標籤頁
+  const visibleTabConfig = tabConfig.filter(tab => visibleTabs.includes(tab.value as any));
+  
+  // 確保在顯示的 tab 切換時，tabValue 的對應
+  useEffect(() => {
+    // 如果當前選擇的標籤不在可見標籤中，則自動選擇第一個可見標籤
+    if (visibleTabConfig.length > 0 && !visibleTabConfig[tabValue]) {
+      setTabValue(0);
+    }
+  }, [visibleTabs]);
+
+  // 獲取真正的 tab 值（而不僅僅是索引）
+  const currentTabValue = visibleTabConfig[tabValue]?.value || visibleTabs[0];
 
   const renderPendingReviewItem = (collaboration: any) => {
     const currentUserId = auth.currentUser?.uid;
@@ -321,35 +371,18 @@ export default function CollaborationList({}: object) {
           }
         }}
       >
-        <Tab 
-          label={`待回覆 (${receivedRequests.filter(req => req.status === 'pending').length})`}
-          icon={<AccessTimeIcon />}
-          iconPosition="start"
-        />
-        <Tab 
-          label={`進行中 (${acceptedCollaborations.filter(c => c.status === 'accepted').length})`}
-          icon={<HandshakeIcon />}
-          iconPosition="start"
-        />
-        <Tab 
-          label={`等待評價 (${acceptedCollaborations.filter(c => c.status === 'pending_review').length})`}
-          icon={<AccessTimeIcon />}
-          iconPosition="start"
-        />
-        <Tab 
-          label={`已完成 (${completedCollaborations.length})`}
-          icon={<CheckCircleIcon />}
-          iconPosition="start"
-        />
-        <Tab 
-          label={`已取消 (${cancelledCollaborations.length})`}
-          icon={<CancelIcon />}
-          iconPosition="start"
-        />
+        {visibleTabConfig.map((tab, index) => (
+          <Tab 
+            key={tab.value}
+            label={tab.label}
+            icon={tab.icon}
+            iconPosition="start"
+          />
+        ))}
       </Tabs>
 
       {/* Tab Panels */}
-      <Box hidden={tabValue !== 0}>
+      <Box hidden={currentTabValue !== 'pending'}>
         {/* 待回覆的合作請求 */}
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
           {receivedRequests.filter(req => req.status === 'pending').length > 0 ? (
@@ -415,7 +448,7 @@ export default function CollaborationList({}: object) {
         </Paper>
       </Box>
 
-      <Box hidden={tabValue !== 1}>
+      <Box hidden={currentTabValue !== 'active'}>
         {/* 進行中的合作 */}
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
           {acceptedCollaborations.filter(c => c.status === 'accepted').length > 0 ? (
@@ -491,7 +524,7 @@ export default function CollaborationList({}: object) {
         </Paper>
       </Box>
 
-      <Box hidden={tabValue !== 2}>
+      <Box hidden={currentTabValue !== 'review'}>
         {/* 等待評價的合作 */}
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
           {acceptedCollaborations.filter(c => c.status === 'pending_review').length > 0 ? (
@@ -506,7 +539,7 @@ export default function CollaborationList({}: object) {
         </Paper>
       </Box>
 
-      <Box hidden={tabValue !== 3}>
+      <Box hidden={currentTabValue !== 'complete'}>
         {/* 已完成的合作 */}
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
           {completedCollaborations.length > 0 ? (
@@ -556,7 +589,7 @@ export default function CollaborationList({}: object) {
         </Paper>
       </Box>
 
-      <Box hidden={tabValue !== 4}>
+      <Box hidden={currentTabValue !== 'cancel'}>
         {/* 已取消的合作 */}
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: '#fff' }}>
           {cancelledCollaborations.length > 0 ? (

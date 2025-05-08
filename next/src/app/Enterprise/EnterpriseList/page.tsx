@@ -298,9 +298,18 @@ export default function EnterpriseListPage() {
                           sx={{ display: "flex", alignItems: "center", mb: 1 }}
                         >
                           <BusinessIcon fontSize="small" sx={{ mr: 1 }} />
-                          <Typography variant="body2">
+
+                          <Link href={`/public-profile/${post.authorId}`}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "primary.main", // 藍色字
+                              cursor: "pointer",
+                            }}
+                          >
                             {post.companyName ?? "未知企業"}
                           </Typography>
+                        </Link>
                         </Box>
 
                         <Typography
