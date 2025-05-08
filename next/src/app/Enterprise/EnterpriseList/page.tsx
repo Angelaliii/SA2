@@ -45,7 +45,7 @@ interface EnterprisePost {
   status?: string;
   authorId?: string;
   isDraft?: boolean;
-  announcementType?: "marketing" | "activity" | "internship";
+  announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation";
 }
 
 export default function EnterpriseListPage() {
@@ -277,20 +277,20 @@ export default function EnterpriseListPage() {
                 全部公告
               </Button>
               <Button 
-                variant={selectedType === "marketing" ? "contained" : "outlined"}
+                variant={selectedType === "specialOfferPartnership" ? "contained" : "outlined"}
                 onClick={() => {
-                  setSelectedType("marketing");
+                  setSelectedType("specialOfferPartnership");
                   setCurrentPage(1);
                 }}
                 size="medium"
                 color="primary"
               >
-                行銷推廣
+                特約商店
               </Button>
               <Button 
-                variant={selectedType === "activity" ? "contained" : "outlined"}
+                variant={selectedType === "activityCooperation" ? "contained" : "outlined"}
                 onClick={() => {
-                  setSelectedType("activity");
+                  setSelectedType("activityCooperation");
                   setCurrentPage(1);
                 }}
                 size="medium"
@@ -299,9 +299,9 @@ export default function EnterpriseListPage() {
                 活動合作
               </Button>
               <Button 
-                variant={selectedType === "internship" ? "contained" : "outlined"}
+                variant={selectedType === "internshipCooperation" ? "contained" : "outlined"}
                 onClick={() => {
-                  setSelectedType("internship");
+                  setSelectedType("internshipCooperation");
                   setCurrentPage(1);
                 }}
                 size="medium"
@@ -366,7 +366,7 @@ export default function EnterpriseListPage() {
                         {/* 顯示公告類型標籤 */}
                         {post.announcementType && (
                           <Box sx={{ mb: 1.5 }}>
-                            {post.announcementType === "marketing" && (
+                            {post.announcementType === "specialOfferPartnership" && (
                               <Button
                                 size="small"
                                 variant="contained"
@@ -380,10 +380,10 @@ export default function EnterpriseListPage() {
                                   mr: 1
                                 }}
                               >
-                                行銷推廣
+                                特約商店
                               </Button>
                             )}
-                            {post.announcementType === "activity" && (
+                            {post.announcementType === "activityCooperation" && (
                               <Button
                                 size="small"
                                 variant="contained"
@@ -400,7 +400,7 @@ export default function EnterpriseListPage() {
                                 活動合作
                               </Button>
                             )}
-                            {post.announcementType === "internship" && (
+                            {post.announcementType === "internshipCooperation" && (
                               <Button
                                 size="small"
                                 variant="contained"
