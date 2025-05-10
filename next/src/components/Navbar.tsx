@@ -124,38 +124,7 @@ export default function Navbar({
     }
   };
 
-  // Basic navbar layout that will be rendered both on server and client
-  const baseNavbar = (
-    <Box sx={{ flexGrow: 1, position: "fixed", width: "100%", zIndex: 1201 }}>
-      <AppBar
-        position="static"
-        sx={{ boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}
-      >
-        <Container maxWidth="xl">
-          <Toolbar disableGutters>
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{
-                flexGrow: 1,
-                fontWeight: 700,
-                letterSpacing: ".1rem",
-                color: "inherit",
-              }}
-            >
-              社團企業媒合平台
-            </Typography>
-            <IconButton color="inherit" sx={{ ml: 1, p: 1 }}>
-              <AccountCircleIcon />
-            </IconButton>
-          </Toolbar>
-        </Container>
-      </AppBar>
-    </Box>
-  );
-
-  // Full interactive navbar for the client
-  const fullNavbar = (
+  return (
     <AppBar
       position="fixed"
       sx={{
@@ -166,252 +135,314 @@ export default function Navbar({
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Logo & Menu */}
-          <Typography
-            variant="h6"
-            noWrap
-            component={Link}
-            href="/"
-            sx={{
-              mr: 2,
-              display: { xs: "none", md: "flex" },
-              fontWeight: 700,
-              letterSpacing: ".1rem",
-              color: "inherit",
-              textDecoration: "none",
-            }}
-          >
-            社團企業媒合平台
-          </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
-            <IconButton
-              size="large"
-              onClick={handleOpenNavMenu}
-              color="inherit"
-            >
-              <MenuIcon />
-            </IconButton>
-            <Menu
-              id="menu-appbar"
-              anchorEl={anchorElNav}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "left",
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "left",
-              }}
-              open={Boolean(anchorElNav)}
-              onClose={handleCloseNavMenu}
+          <ClientOnly fallback={
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
               sx={{
-                display: { xs: "block", md: "none" },
-                mt: 1,
+                mr: 2,
+                display: { xs: "none", md: "flex" },
+                fontWeight: 700,
+                letterSpacing: ".1rem",
+                color: "inherit",
+                textDecoration: "none",
               }}
             >
-              {pages.map((page) => (
-                <MenuItem
-                  key={page.name}
-                  onClick={handleCloseNavMenu}
-                  component={Link}
-                  href={page.path}
-                >
-                  <Typography textAlign="center" component="span">
-                    {page.name === "通知中心" ? (
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Badge
-                          color="error"
-                          variant="dot"
-                          overlap="circular"
-                          invisible={!hasUnread}
-                        >
-                          <NotificationsIcon sx={{ mr: 1 }} />
-                        </Badge>
-                        {page.name}
-                      </Box>
-                    ) : (
-                      page.name
-                    )}
-                  </Typography>
-                </MenuItem>
-              ))}
-              {isLoggedIn && userType === "company" && (
-                <MenuItem
-                  onClick={handleCloseNavMenu}
-                  component={Link}
-                  href="/Enterprise"
-                >
-                  <Typography textAlign="center" component="span">
-                    發布企業公告
-                  </Typography>
-                </MenuItem>
-              )}
-              {isLoggedIn && userType === "club" && (
-                <MenuItem
-                  onClick={handleCloseNavMenu}
-                  component={Link}
-                  href="/Artical"
-                >
-                  <Typography textAlign="center" component="span">
-                    發布需求
-                  </Typography>
-                </MenuItem>
-              )}
-            </Menu>
+              社團企業媒合平台
+            </Typography>
+          }>
+            <Typography
+              variant="h6"
+              noWrap
+              component={Link}
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: "none", md: "flex" },
+                fontWeight: 700,
+                letterSpacing: ".1rem",
+                color: "inherit",
+                textDecoration: "none",
+              }}
+            >
+              社團企業媒合平台
+            </Typography>
+          </ClientOnly>
+          
+          <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
+            <ClientOnly fallback={
+              <IconButton size="large" color="inherit">
+                <MenuIcon />
+              </IconButton>
+            }>
+              <IconButton
+                size="large"
+                onClick={handleOpenNavMenu}
+                color="inherit"
+              >
+                <MenuIcon />
+              </IconButton>
+            </ClientOnly>
+            <ClientOnly>
+              <Menu
+                id="menu-appbar"
+                anchorEl={anchorElNav}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "left",
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "left",
+                }}
+                open={Boolean(anchorElNav)}
+                onClose={handleCloseNavMenu}
+                sx={{
+                  display: { xs: "block", md: "none" },
+                  mt: 1,
+                }}
+              >
+                {pages.map((page) => (
+                  <MenuItem
+                    key={page.name}
+                    onClick={handleCloseNavMenu}
+                    component={Link}
+                    href={page.path}
+                  >
+                    <Typography textAlign="center" component="span">
+                      {page.name === "通知中心" ? (
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Badge
+                            color="error"
+                            variant="dot"
+                            overlap="circular"
+                            invisible={!hasUnread}
+                          >
+                            <NotificationsIcon sx={{ mr: 1 }} />
+                          </Badge>
+                          {page.name}
+                        </Box>
+                      ) : (
+                        page.name
+                      )}
+                    </Typography>
+                  </MenuItem>
+                ))}
+                {isLoggedIn && userType === "company" && (
+                  <MenuItem
+                    onClick={handleCloseNavMenu}
+                    component={Link}
+                    href="/Enterprise"
+                  >
+                    <Typography textAlign="center" component="span">
+                      發布企業公告
+                    </Typography>
+                  </MenuItem>
+                )}
+                {isLoggedIn && userType === "club" && (
+                  <MenuItem
+                    onClick={handleCloseNavMenu}
+                    component={Link}
+                    href="/Artical"
+                  >
+                    <Typography textAlign="center" component="span">
+                      發布需求
+                    </Typography>
+                  </MenuItem>
+                )}
+              </Menu>
+            </ClientOnly>
           </Box>
 
           {/* Mobile Title */}
-          <Typography
-            variant="h5"
-            noWrap
-            component={Link}
-            href="/"
-            sx={{
-              mr: 2,
-              display: { xs: "flex", md: "none" },
-              flexGrow: 1,
-              fontWeight: 700,
-              letterSpacing: ".1rem",
-              color: "inherit",
-              textDecoration: "none",
-            }}
-          >
-            媒合平台
-          </Typography>
+          <ClientOnly fallback={
+            <Typography
+              variant="h5"
+              noWrap
+              component="div"
+              sx={{
+                mr: 2,
+                display: { xs: "flex", md: "none" },
+                flexGrow: 1,
+                fontWeight: 700,
+                letterSpacing: ".1rem",
+                color: "inherit",
+                textDecoration: "none",
+              }}
+            >
+              媒合平台
+            </Typography>
+          }>
+            <Typography
+              variant="h5"
+              noWrap
+              component={Link}
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: "flex", md: "none" },
+                flexGrow: 1,
+                fontWeight: 700,
+                letterSpacing: ".1rem",
+                color: "inherit",
+                textDecoration: "none",
+              }}
+            >
+              媒合平台
+            </Typography>
+          </ClientOnly>
 
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
-            {pages.map((page) => (
-              <Button
-                key={page.name}
-                component={Link}
-                href={page.path}
-                onClick={handleCloseNavMenu}
-                sx={{ color: "white", mx: 0.5, height: 40, minWidth: 40 }}
-              >
-                {page.name}
-              </Button>
-            ))}
-            {isLoggedIn && userType === "company" && (
-              <Button
-                component={Link}
-                href="/Enterprise"
-                onClick={handleCloseNavMenu}
-                sx={{ color: "white", mx: 0.5, height: 40 }}
-              >
-                發布企業公告
-              </Button>
-            )}
-            {isLoggedIn && userType === "club" && (
-              <Button
-                component={Link}
-                href="/Artical"
-                onClick={handleCloseNavMenu}
-                sx={{ color: "white", mx: 0.5, height: 40 }}
-              >
-                發布需求
-              </Button>
-            )}
+            <ClientOnly>
+              {pages.map((page) => (
+                <Button
+                  key={page.name}
+                  component={Link}
+                  href={page.path}
+                  onClick={handleCloseNavMenu}
+                  sx={{ color: "white", mx: 0.5, height: 40, minWidth: 40 }}
+                >
+                  {page.name}
+                </Button>
+              ))}
+              {isLoggedIn && userType === "company" && (
+                <Button
+                  component={Link}
+                  href="/Enterprise"
+                  onClick={handleCloseNavMenu}
+                  sx={{ color: "white", mx: 0.5, height: 40 }}
+                >
+                  發布企業公告
+                </Button>
+              )}
+              {isLoggedIn && userType === "club" && (
+                <Button
+                  component={Link}
+                  href="/Artical"
+                  onClick={handleCloseNavMenu}
+                  sx={{ color: "white", mx: 0.5, height: 40 }}
+                >
+                  發布需求
+                </Button>
+              )}
+            </ClientOnly>
           </Box>
 
           {/* User Greeting */}
-          {isLoggedIn && userName && (
-            <Tooltip title="這是您的個人識別標誌">
-              <Chip
-                icon={<EmojiPeopleIcon />}
-                label={`${greeting}${userName}`}
-                variant="outlined"
-                sx={{
-                  mr: 2,
-                  color: "white",
-                  borderColor: "rgba(255,255,255,0.5)",
-                  "& .MuiChip-icon": { color: "white" },
-                  "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.1)",
-                    transform: "scale(1.05)",
-                  },
-                }}
-              />
-            </Tooltip>
-          )}
+          <ClientOnly>
+            {isLoggedIn && userName && (
+              <Tooltip title="這是您的個人識別標誌">
+                <Chip
+                  icon={<EmojiPeopleIcon />}
+                  label={`${greeting}${userName}`}
+                  variant="outlined"
+                  sx={{
+                    mr: 2,
+                    color: "white",
+                    borderColor: "rgba(255,255,255,0.5)",
+                    "& .MuiChip-icon": { color: "white" },
+                    "&:hover": {
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                      transform: "scale(1.05)",
+                    },
+                  }}
+                />
+              </Tooltip>
+            )}
+          </ClientOnly>
 
           {/* 通知鈴鐺 */}
-          {isLoggedIn && (
-            <IconButton
-              component={Link}
-              href="/messages"
-              sx={{ color: "white", mr: 2 }}
-            >
-              <Badge
-                color="error"
-                variant="dot"
-                overlap="circular"
-                invisible={!hasUnread}
+          <ClientOnly>
+            {isLoggedIn && (
+              <IconButton
+                component={Link}
+                href="/messages"
+                sx={{ color: "white", mr: 2 }}
               >
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          )}
+                <Badge
+                  color="error"
+                  variant="dot"
+                  overlap="circular"
+                  invisible={!hasUnread}
+                >
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+            )}
+          </ClientOnly>
 
           {/* User Avatar Menu */}
           <Box sx={{ flexGrow: 0 }}>
-            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-              <Avatar sx={{ bgcolor: "secondary.main" }}>
-                <AccountCircleIcon />
-              </Avatar>
-            </IconButton>
-            <Menu
-              sx={{ mt: "45px" }}
-              anchorEl={anchorElUser}
-              open={Boolean(anchorElUser)}
-              onClose={handleCloseUserMenu}
-              anchorOrigin={{ vertical: "top", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-              {isLoggedIn ? (
-                <MenuItem onClick={handleLogoutClick}>
-                  <LogoutIcon sx={{ mr: 1 }} />
-                  <Typography textAlign="center" component="span">
-                    登出
-                  </Typography>
-                </MenuItem>
-              ) : (
-                userOptions.map((option) => (
-                  <MenuItem
-                    key={option.name}
-                    onClick={handleCloseUserMenu}
-                    component={Link}
-                    href={option.path}
-                  >
+            <ClientOnly fallback={
+              <IconButton sx={{ p: 0 }}>
+                <Avatar sx={{ bgcolor: "secondary.main" }}>
+                  <AccountCircleIcon />
+                </Avatar>
+              </IconButton>
+            }>
+              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                <Avatar sx={{ bgcolor: "secondary.main" }}>
+                  <AccountCircleIcon />
+                </Avatar>
+              </IconButton>
+            </ClientOnly>
+            <ClientOnly>
+              <Menu
+                sx={{ mt: "45px" }}
+                anchorEl={anchorElUser}
+                open={Boolean(anchorElUser)}
+                onClose={handleCloseUserMenu}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+              >
+                {isLoggedIn ? (
+                  <MenuItem onClick={handleLogoutClick}>
+                    <LogoutIcon sx={{ mr: 1 }} />
                     <Typography textAlign="center" component="span">
-                      {option.name}
+                      登出
                     </Typography>
                   </MenuItem>
-                ))
-              )}
-            </Menu>
+                ) : (
+                  userOptions.map((option) => (
+                    <MenuItem
+                      key={option.name}
+                      onClick={handleCloseUserMenu}
+                      component={Link}
+                      href={option.path}
+                    >
+                      <Typography textAlign="center" component="span">
+                        {option.name}
+                      </Typography>
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
+            </ClientOnly>
           </Box>
         </Toolbar>
       </Container>
 
       {/* Logout Confirmation */}
-      <Dialog
-        open={openLogoutDialog}
-        onClose={() => setOpenLogoutDialog(false)}
-      >
-        <DialogTitle>確認登出</DialogTitle>
-        <DialogContent>
-          <DialogContentText>您確定要登出嗎？</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
-          <Button onClick={handleLogout} color="primary" autoFocus>
-            確認登出
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ClientOnly>
+        <Dialog
+          open={openLogoutDialog}
+          onClose={() => setOpenLogoutDialog(false)}
+        >
+          <DialogTitle>確認登出</DialogTitle>
+          <DialogContent>
+            <DialogContentText>您確定要登出嗎？</DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
+            <Button onClick={handleLogout} color="primary" autoFocus>
+              確認登出
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </ClientOnly>
     </AppBar>
   );
-
-  return <ClientOnly fallback={baseNavbar}>{fullNavbar}</ClientOnly>;
 }
