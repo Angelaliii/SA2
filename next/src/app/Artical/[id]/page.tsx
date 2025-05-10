@@ -1,10 +1,9 @@
 "use client";
 
 import EventIcon from "@mui/icons-material/Event";
+import HandshakeIcon from "@mui/icons-material/Handshake";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
-import HandshakeIcon from '@mui/icons-material/Handshake';
-import NextLink from 'next/link';
 import {
   Alert,
   Box,
@@ -17,14 +16,14 @@ import {
   Typography,
 } from "@mui/material";
 import { addDoc, collection } from "firebase/firestore";
-import Link from "next/link";
+import NextLink from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
 import { clubServices } from "../../../firebase/services/club-service";
-import * as postService from "../../../firebase/services/post-service";
 import { collaborationService } from "../../../firebase/services/collaboration-service";
+import * as postService from "../../../firebase/services/post-service";
 
 export default function DemandPostDetailPage() {
   const { id } = useParams();
@@ -53,14 +52,14 @@ export default function DemandPostDetailPage() {
     const fetchPost = async () => {
       try {
         const data = await postService.getPostById(id as string);
-        setPost((prev) => ({ ...prev, ...data }));
+        setPost((prev: any) => ({ ...prev, ...data }));
 
         if (data?.authorId) {
           const club = await clubServices.getClubById(data.authorId);
           setClubInfo(club);
 
           if (club?.email) {
-            setPost((prev) => ({ ...prev, authorEmail: club.email }));
+            setPost((prev: any) => ({ ...prev, authorEmail: club.email }));
           }
         }
       } catch (error) {
@@ -74,9 +73,10 @@ export default function DemandPostDetailPage() {
   if (!post) return null;
 
   // 使用一種固定格式，避免水合錯誤
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     try {
-      const date = new Date(dateString);
+      const date =
+        dateString instanceof Date ? dateString : new Date(dateString);
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
@@ -84,6 +84,7 @@ export default function DemandPostDetailPage() {
       const minutes = String(date.getMinutes()).padStart(2, "0");
       return `${year}-${month}-${day} ${hours}:${minutes}`;
     } catch (error) {
+      console.error("日期格式化錯誤:", error);
       return "無效日期";
     }
   };
@@ -103,31 +104,34 @@ export default function DemandPostDetailPage() {
         messageContent: messageContent,
         postId: id,
         timestamp: new Date(),
-        postTitle: post.title
+        postTitle: post.title,
       });
 
       // 2. 創建合作請求
-      console.log('Creating collaboration request with:', {
+      console.log("Creating collaboration request with:", {
         postId: id,
         postTitle: post.title,
         requesterId: currentUser.uid,
         receiverId: post.authorId,
       });
-      
-      const collaborationResult = await collaborationService.createCollaborationRequest({
-        postId: id as string,
-        postTitle: post.title,
-        requesterId: currentUser.uid,
-        receiverId: post.authorId,
-        message: messageContent,
-      });
 
-      console.log('Collaboration request result:', collaborationResult);
+      const collaborationResult =
+        await collaborationService.createCollaborationRequest({
+          postId: id as string,
+          postTitle: post.title,
+          requesterId: currentUser.uid,
+          receiverId: post.authorId,
+          message: messageContent,
+        });
+
+      console.log("Collaboration request result:", collaborationResult);
 
       if (collaborationResult.success) {
         setSnackbarMessage("已成功發送合作訊息！合作請求已提交給對方審核。");
       } else {
-        setSnackbarMessage(`已發送訊息，但${collaborationResult.error || '無法提交合作請求'}`);
+        setSnackbarMessage(
+          `已發送訊息，但${collaborationResult.error ?? "無法提交合作請求"}`
+        );
       }
 
       setMessageSent(true);
@@ -158,24 +162,28 @@ export default function DemandPostDetailPage() {
             </Typography>
 
             {/* 社團名稱 */}
-            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              color="text.secondary"
+              sx={{ mb: 1 }}
+            >
               發布社團：
               {clubInfo ? (
-                <Typography variant="body2" sx={{ mb: 2 }}>
+                <Box sx={{ display: "inline-block", mb: 2 }}>
                   <NextLink href={`/public-profile/${post.authorId}`} passHref>
                     <MuiLink
                       sx={{
-                        color: '#1976d2',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
+                        color: "#1976d2",
+                        cursor: "pointer",
+                        textDecoration: "underline",
                       }}
                     >
                       {clubInfo.clubName}｜{clubInfo.schoolName}
                     </MuiLink>
                   </NextLink>
-                </Typography>
+                </Box>
               ) : (
-                post.organizationName ?? '未知社團'
+                post.organizationName ?? "未知社團"
               )}
             </Typography>
 
@@ -258,7 +266,16 @@ export default function DemandPostDetailPage() {
 
           {/* 發送訊息按鈕 */}
           {isLoggedIn && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4, flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                mt: 4,
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
               <Button
                 variant="contained"
                 color="primary"
@@ -268,7 +285,7 @@ export default function DemandPostDetailPage() {
               >
                 {messageSent ? "已發送訊息" : "發送合作訊息"}
               </Button>
-              
+
               {messageSent && (
                 <Button
                   variant="outlined"

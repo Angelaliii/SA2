@@ -36,21 +36,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return () => unsubscribe();
   }, []);
-
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => {
     return { user, loading };
   }, [user, loading]);
 
-  // Memoize the default context value for server rendering or initial client load
-  const defaultContextValue = useMemo(() => {
-    return { user: null, loading: true };
-  }, []);
   // During first render on the server or client hydration,
   // don't show any content that depends on authentication
   if (!mounted) {
     return (
-      <AuthContext.Provider value={defaultContextValue}>
+      <AuthContext.Provider value={{ user: null, loading: true }}>
         {children}
       </AuthContext.Provider>
     );

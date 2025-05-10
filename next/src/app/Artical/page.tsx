@@ -11,16 +11,13 @@ import {
   Snackbar,
   TextField,
   Typography,
-  
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import EventIcon from "@mui/icons-material/Event";
 import InfoIcon from "@mui/icons-material/Info";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import RedeemIcon from "@mui/icons-material/Redeem";
 import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import DeleteDraftDialog from "../../components/article/DeleteDraftDialog";
 import DemandDraftManager from "../../components/article/DemandDraftManager";
 import LoginPrompt from "../../components/LoginPromp";
@@ -28,7 +25,6 @@ import Navbar from "../../components/Navbar";
 import { auth } from "../../firebase/config";
 import * as postService from "../../firebase/services/post-service";
 import { ClientOnly } from "../../hooks/useHydration";
-import { useRouter } from "next/navigation";
 
 type FormErrorState = {
   title: boolean;
@@ -77,9 +73,8 @@ interface DemandPostData {
   purposeType: string;
   participationType: string;
   customItems: string[];
-eventEndDate: string;
-eventDescription: string;
-
+  eventEndDate: string;
+  eventDescription: string;
 }
 
 export default function DemandPostPage() {
@@ -97,8 +92,21 @@ export default function DemandPostPage() {
   const [eventType, setEventType] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
-  const participationOptions1 = ["物資捐贈", "金錢贊助", "人力支援（志工）", "媒體曝光", "合作活動", "企業到校演講"];
-  const participationOptions2 = ["教材贊助（書籍、講義、教具...）", "講師資源（派遣或補助講師...）", "場地提供","物資捐贈（文具、學習用品...）","金錢贊助",];
+  const participationOptions1 = [
+    "物資捐贈",
+    "金錢贊助",
+    "人力支援（志工）",
+    "媒體曝光",
+    "合作活動",
+    "企業到校演講",
+  ];
+  const participationOptions2 = [
+    "教材贊助（書籍、講義、教具...）",
+    "講師資源（派遣或補助講師...）",
+    "場地提供",
+    "物資捐贈（文具、學習用品...）",
+    "金錢贊助",
+  ];
 
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
@@ -106,61 +114,29 @@ export default function DemandPostPage() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [promotionTopic, setPromotionTopic] = useState("");
-const [promotionTarget, setPromotionTarget] = useState("");
-const [promotionForm, setPromotionForm] = useState("");
-const [schoolName, setSchoolName] = useState("");
-const [eventEndDate, setEventEndDate] = useState("");
-const [customItemInput, setCustomItemInput] = useState("");
-const [customItems, setCustomItems] = useState<string[]>([]);
+  const [promotionTarget, setPromotionTarget] = useState("");
+  const [promotionForm, setPromotionForm] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [eventEndDate, setEventEndDate] = useState("");
+  const [customItemInput, setCustomItemInput] = useState("");
+  const [customItems, setCustomItems] = useState<string[]>([]);
 
-const finalEventDescription = eventDescription || "未填寫";
-const cleanedCustomItems = customItems.filter((item) => item.trim() !== "");
-const finalCustomItems = cleanedCustomItems.length > 0 ? cleanedCustomItems : ["未填寫"];
-const finalEventEndDate = eventEndDate || "未填寫";
-
+  const finalEventDescription = eventDescription || "未填寫";
+  const cleanedCustomItems = customItems.filter((item) => item.trim() !== "");
+  const finalCustomItems =
+    cleanedCustomItems.length > 0 ? cleanedCustomItems : ["未填寫"];
+  const finalEventEndDate = eventEndDate || "未填寫";
 
   const router = useRouter();
   const [purposeOptions] = useState([
     "活動支援",
     "教育推廣",
     "社區服務",
-    "校園宣傳"
+    "校園宣傳",
   ]);
 
-
-// ✅ 表單錯誤狀態
-const [errors, setErrors] = useState<FormErrorState>({
-  title: false,
-  selectedDemands: false,
-  eventDate: false,
-  cooperationReturn: false,
-  organizationName: false,
-  email: false,
-  contactPerson: false,
-  contactPhone: false,
-  contactEmail: false,
-  eventName: false,
-  eventType: false,
-  location: false,
-  estimatedParticipants: false,
-  participationType: false,
-  promotionTopic: false,
-  promotionTarget: false,
-  promotionForm: false,
-  schoolName: false,
-  purposeType: false,
-  eventEndDate: false,
-  eventDescription: false,
-  demandDescription: false,
-  customItems: false,
-});
-
-  
-  // 🔽 驗證邏輯擴充
-// ✅ 修正版 validateForm，根據 purposeType 判斷必填欄位
-const validateForm = () => {
-  // 初始化所有錯誤為 false
-  const newErrors: FormErrorState = {
+  // ✅ 表單錯誤狀態
+  const [errors, setErrors] = useState<FormErrorState>({
     title: false,
     selectedDemands: false,
     eventDate: false,
@@ -179,83 +155,112 @@ const validateForm = () => {
     promotionTarget: false,
     promotionForm: false,
     schoolName: false,
-    purposeType: !purposeType.trim(),
+    purposeType: false,
+    eventEndDate: false,
     eventDescription: false,
     demandDescription: false,
-    customItems: customItems.length === 0,
-  eventEndDate: eventEndDate.trim() === "",
+    customItems: false,
+  });
+
+  // 🔽 驗證邏輯擴充
+  // ✅ 修正版 validateForm，根據 purposeType 判斷必填欄位
+  const validateForm = () => {
+    // 初始化所有錯誤為 false
+    const newErrors: FormErrorState = {
+      title: false,
+      selectedDemands: false,
+      eventDate: false,
+      cooperationReturn: false,
+      organizationName: false,
+      email: false,
+      contactPerson: false,
+      contactPhone: false,
+      contactEmail: false,
+      eventName: false,
+      eventType: false,
+      location: false,
+      estimatedParticipants: false,
+      participationType: false,
+      promotionTopic: false,
+      promotionTarget: false,
+      promotionForm: false,
+      schoolName: false,
+      purposeType: !purposeType.trim(),
+      eventDescription: false,
+      demandDescription: false,
+      customItems: customItems.length === 0,
+      eventEndDate: eventEndDate.trim() === "",
+    };
+
+    // 共用欄位驗證
+    newErrors.title = !title.trim();
+    newErrors.organizationName = !organizationName.trim();
+    newErrors.email = !email.trim();
+    newErrors.contactPerson = !contactPerson.trim();
+    newErrors.contactPhone = !/^[0-9]+$/.test(contactPhone);
+    newErrors.contactEmail = !contactEmail.trim();
+
+    // 根據不同目的驗證欄位
+    if (purposeType === "活動支援") {
+      newErrors.eventName = !eventName.trim();
+      newErrors.eventType = !eventType.trim();
+      newErrors.estimatedParticipants = !estimatedParticipants.trim();
+      newErrors.location = !location.trim();
+      newErrors.eventDate = !eventDate;
+      newErrors.eventEndDate = !eventEndDate;
+      newErrors.participationType = !participationType.trim();
+      newErrors.cooperationReturn = !cooperationReturn;
+    }
+
+    if (purposeType === "教育推廣") {
+      newErrors.eventName = !eventName.trim();
+      newErrors.estimatedParticipants = !estimatedParticipants.trim();
+      newErrors.location = !location.trim();
+      newErrors.eventDate = !eventDate;
+      newErrors.eventEndDate = !eventEndDate;
+      newErrors.participationType = !participationType.trim();
+      newErrors.eventDescription = !eventDescription.trim();
+      newErrors.demandDescription = !demandDescription.trim();
+      newErrors.cooperationReturn = !cooperationReturn;
+    }
+
+    if (purposeType === "社區服務") {
+      newErrors.eventName = !eventName.trim();
+      newErrors.eventType = !eventType.trim();
+      newErrors.estimatedParticipants = !estimatedParticipants.trim();
+      newErrors.location = !location.trim();
+      newErrors.eventDate = !eventDate;
+      newErrors.eventEndDate = !eventEndDate;
+      newErrors.participationType = !participationType.trim();
+      newErrors.eventDescription = !eventDescription.trim();
+      newErrors.demandDescription = !demandDescription.trim();
+      newErrors.cooperationReturn = !cooperationReturn;
+    }
+
+    if (purposeType === "校園宣傳") {
+      newErrors.promotionTopic = !promotionTopic.trim();
+      newErrors.promotionTarget = !promotionTarget.trim();
+      newErrors.promotionForm = !promotionForm.trim();
+      newErrors.schoolName = !location.trim();
+      newErrors.estimatedParticipants = !estimatedParticipants.trim();
+      newErrors.eventDate = !eventDate;
+      newErrors.eventEndDate = !eventEndDate;
+      newErrors.participationType = !participationType.trim();
+      newErrors.demandDescription = !demandDescription.trim();
+      newErrors.cooperationReturn = !cooperationReturn;
+    }
+
+    // 檢查贊助截止日不可晚於活動開始日
+    if (cooperationReturn && eventDate) {
+      const deadline = new Date(cooperationReturn);
+      const event = new Date(eventDate);
+      if (deadline > event) newErrors.cooperationReturn = true;
+    }
+
+    const isValid = !Object.values(newErrors).some(Boolean);
+    setErrors(newErrors);
+    return { isValid, newErrors };
   };
-
-  // 共用欄位驗證
-  newErrors.title = !title.trim();
-  newErrors.organizationName = !organizationName.trim();
-  newErrors.email = !email.trim();
-  newErrors.contactPerson = !contactPerson.trim();
-  newErrors.contactPhone = !/^[0-9]+$/.test(contactPhone);
-  newErrors.contactEmail = !contactEmail.trim();
-
-  // 根據不同目的驗證欄位
-  if (purposeType === "活動支援") {
-    newErrors.eventName = !eventName.trim();
-    newErrors.eventType = !eventType.trim();
-    newErrors.estimatedParticipants = !estimatedParticipants.trim();
-    newErrors.location = !location.trim();
-    newErrors.eventDate = !eventDate;
-    newErrors.eventEndDate = !eventEndDate;
-    newErrors.participationType = !participationType.trim();
-    newErrors.cooperationReturn = !cooperationReturn;
-  }
-
-  if (purposeType === "教育推廣") {
-    newErrors.eventName = !eventName.trim();
-    newErrors.estimatedParticipants = !estimatedParticipants.trim();
-    newErrors.location = !location.trim();
-    newErrors.eventDate = !eventDate;
-    newErrors.eventEndDate = !eventEndDate;
-    newErrors.participationType = !participationType.trim();
-    newErrors.eventDescription = !eventDescription.trim();
-    newErrors.demandDescription = !demandDescription.trim();
-    newErrors.cooperationReturn = !cooperationReturn;
-  }
-
-  if (purposeType === "社區服務") {
-    newErrors.eventName = !eventName.trim();
-    newErrors.eventType = !eventType.trim();
-    newErrors.estimatedParticipants = !estimatedParticipants.trim();
-    newErrors.location = !location.trim();
-    newErrors.eventDate = !eventDate;
-    newErrors.eventEndDate = !eventEndDate;
-    newErrors.participationType = !participationType.trim();
-    newErrors.eventDescription = !eventDescription.trim();
-    newErrors.demandDescription = !demandDescription.trim();
-    newErrors.cooperationReturn = !cooperationReturn;
-  }
-
-  if (purposeType === "校園宣傳") {
-    newErrors.promotionTopic = !promotionTopic.trim();
-    newErrors.promotionTarget = !promotionTarget.trim();
-    newErrors.promotionForm = !promotionForm.trim();
-    newErrors.schoolName = !location.trim();
-    newErrors.estimatedParticipants = !estimatedParticipants.trim();
-    newErrors.eventDate = !eventDate;
-    newErrors.eventEndDate = !eventEndDate;
-    newErrors.participationType = !participationType.trim();
-    newErrors.demandDescription = !demandDescription.trim();
-    newErrors.cooperationReturn = !cooperationReturn;
-  }
-
-  // 檢查贊助截止日不可晚於活動開始日
-  if (cooperationReturn && eventDate) {
-    const deadline = new Date(cooperationReturn);
-    const event = new Date(eventDate);
-    if (deadline > event) newErrors.cooperationReturn = true;
-  }
-
-  const isValid = !Object.values(newErrors).some(Boolean);
-  setErrors(newErrors);
-  return { isValid, newErrors };
-};
-
 
   // 表單區塊參考
   const titleRef = React.useRef<HTMLDivElement>(null);
@@ -274,7 +279,6 @@ const validateForm = () => {
   const [draftToDelete, setDraftToDelete] = useState<string | null>(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-
   // UI狀態
   const [loading, setLoading] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -283,18 +287,15 @@ const validateForm = () => {
     "success"
   );
 
+  useEffect(() => {
+    if (eventDate && !cooperationReturn) {
+      const event = new Date(eventDate);
+      const autoDeadline = new Date(event);
+      autoDeadline.setDate(autoDeadline.getDate() - 3);
 
-
-
-useEffect(() => {
-  if (eventDate && !cooperationReturn) {
-    const event = new Date(eventDate);
-    const autoDeadline = new Date(event);
-    autoDeadline.setDate(autoDeadline.getDate() - 3);
-
-    setCooperationReturn(autoDeadline.toISOString().split("T")[0]);
-  }
-}, [eventDate]);
+      setCooperationReturn(autoDeadline.toISOString().split("T")[0]);
+    }
+  }, [eventDate]);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -375,10 +376,10 @@ useEffect(() => {
     try {
       const draft = await postService.getPostById(draftId);
       if (!draft) throw new Error("找不到指定草稿");
-  
+
       setTitle(draft.title || "");
       setCurrentDraftId(draftId);
-  
+
       setSelectedDemands(draft.selectedDemands || []);
       setDemandDescription(draft.demandDescription || "未填寫");
       setCooperationReturn(draft.cooperationReturn || "未填寫");
@@ -387,15 +388,12 @@ useEffect(() => {
       setEventDescription(draft.eventDescription || "未填寫");
       setEventName(draft.eventName || "未填寫");
       setEventType(draft.eventType || "未填寫");
-      setEventEndDate(draft.eventEndDate || "未填寫");
-  
-      // customItems 要小心：如果是空陣列或 null，補 ["未填寫"]
-      if (draft.customItems && draft.customItems.length > 0) {
-        setCustomItems(draft.customItems);
-      } else {
-        setCustomItems(["未填寫"]);
-      }
-  
+      // 使用eventDate而不是不存在的eventEndDate
+      setEventEndDate(draft.eventDate || "未填寫");
+
+      // 確保demandDescription使用而不是customItems
+      setCustomItems(["未填寫"]);
+
       setSnackbarMessage("草稿已載入");
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
@@ -407,7 +405,6 @@ useEffect(() => {
       setOpenSnackbar(true);
     }
   };
-  
 
   // 確認刪除草稿
   const confirmDeleteDraft = (draftId: string) => {
@@ -444,8 +441,6 @@ useEffect(() => {
       setOpenSnackbar(true);
     }
   };
-
-  
 
   const handleSubmit = async () => {
     // 驗證表單
@@ -508,10 +503,9 @@ useEffect(() => {
         purposeType,
         participationType,
         tags: selectedTags ?? [], // ✅ 預防 undefined
-        customItems: finalCustomItems,  // ⭐ 加這行
-  eventEndDate: finalEventEndDate // ⭐ 加這行
+        customItems: finalCustomItems, // ⭐ 加這行
+        eventEndDate: finalEventEndDate, // ⭐ 加這行
       };
-      
 
       // 如果是編輯現有草稿，則直接發布該草稿
       if (currentDraftId) {
@@ -526,8 +520,8 @@ useEffect(() => {
           router.push("/Artical/DemandList"); // 這邊對應你紅筆框起來的路徑
         }, 2000);
       }
-// ✅ 加入跳轉邏輯（2 秒後跳轉）
-  
+      // ✅ 加入跳轉邏輯（2 秒後跳轉）
+
       setSnackbarSeverity("success");
       clearForm();
     } catch (error) {
@@ -538,7 +532,6 @@ useEffect(() => {
       setOpenSnackbar(true);
       setLoading(false);
     }
-    
   };
 
   const handleSaveDraft = async () => {
@@ -602,7 +595,6 @@ useEffect(() => {
         eventDescription: finalEventDescription,
         tags: selectedTags ?? [],
       };
-      
 
       const result = await postService.createPost(postData);
 
@@ -630,43 +622,42 @@ useEffect(() => {
     <>
       <Navbar />
       <ClientOnly
-  fallback={
-    <Box sx={{ pt: 10, pb: 8 }}>
-      <Container maxWidth="md">
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>
-            載入中...
-          </Typography>
-        </Paper>
-      </Container>
-    </Box>
-  }
->
-  <Box sx={{ pt: 10, pb: 8 }}>
-    <Container maxWidth="md">
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        
-        {/* ✅ 圖示與標題分開處理 */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            mb: 3,
-          }}
-        >
-          <Box
-            component="img"
-            src="/image/findsponsor.png"
-            alt="find sponsor"
-            sx={{ width: 80, height: 80, mb: 1 }}
-          />
-          <Typography variant="h5" fontWeight="bold">
-            發布需求文章
-          </Typography>
-        </Box>
+        fallback={
+          <Box sx={{ pt: 10, pb: 8 }}>
+            <Container maxWidth="md">
+              <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom>
+                  載入中...
+                </Typography>
+              </Paper>
+            </Container>
+          </Box>
+        }
+      >
+        <Box sx={{ pt: 10, pb: 8 }}>
+          <Container maxWidth="md">
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+              {/* ✅ 圖示與標題分開處理 */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  mb: 3,
+                }}
+              >
+                <Box
+                  component="img"
+                  src="/image/findsponsor.png"
+                  alt="find sponsor"
+                  sx={{ width: 80, height: 80, mb: 1 }}
+                />
+                <Typography variant="h5" fontWeight="bold">
+                  發布需求文章
+                </Typography>
+              </Box>
 
-        <Divider sx={{ mb: 3 }} />
+              <Divider sx={{ mb: 3 }} />
 
               <Box sx={{ mb: 3, px: 1 }}>
                 <Typography variant="body2" color="text.secondary">
@@ -719,879 +710,991 @@ useEffect(() => {
                   helperText="此信箱將作為合作洽談的聯絡方式"
                 />
               </Box>
-{/* ➤ 聯繫窗口資訊區塊 */}
-<Box
-  sx={{
-    backgroundColor: "#f9f9f9",
-    p: 2,
-    borderRadius: 2,
-    mb: 3,
-  }}
->
-<Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-  <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
-  <Typography variant="h6">聯繫窗口資訊</Typography>
-</Box>
+              {/* ➤ 聯繫窗口資訊區塊 */}
+              <Box
+                sx={{
+                  backgroundColor: "#f9f9f9",
+                  p: 2,
+                  borderRadius: 2,
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <InfoIcon sx={{ mr: 1, color: "#1976d2" }} />
+                  <Typography variant="h6">聯繫窗口資訊</Typography>
+                </Box>
 
-<Box sx={{ display: "flex", gap: 2 }}>
-  <TextField
-    label={
-      <>
-        聯繫人姓名 <span style={{ color: "#d32f2f" }}>*</span>
-      </>
-    }
-    variant="standard"
-    value={contactPerson}
-    onChange={(e) => setContactPerson(e.target.value)}
-    sx={{ flex: 1 }}
-    error={errors.contactPerson}
-    helperText={errors.contactPerson ? "此欄為必填" : ""}
-  />
-  <TextField
-  label={
-    <>
-      連絡電話 <span style={{ color: "#d32f2f" }}>*</span>
-    </>
-  }
-  variant="standard"
-  type="tel"
-  value={contactPhone}
-  onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ""))} 
-  inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-  sx={{ flex: 1 }}
-  error={errors.contactPhone}
-  helperText={errors.contactPhone ? "請填入有效電話（數字）" : ""}
-/>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TextField
+                    label={
+                      <>
+                        聯繫人姓名 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    sx={{ flex: 1 }}
+                    error={errors.contactPerson}
+                    helperText={errors.contactPerson ? "此欄為必填" : ""}
+                  />
+                  <TextField
+                    label={
+                      <>
+                        連絡電話 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    type="tel"
+                    value={contactPhone}
+                    onChange={(e) =>
+                      setContactPhone(e.target.value.replace(/\D/g, ""))
+                    }
+                    inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                    sx={{ flex: 1 }}
+                    error={errors.contactPhone}
+                    helperText={
+                      errors.contactPhone ? "請填入有效電話（數字）" : ""
+                    }
+                  />
 
-  <TextField
-    label={
-      <>
-        聯絡信箱 <span style={{ color: "#d32f2f" }}>*</span>
-      </>
-    }
-    variant="standard"
-    type="email"
-    value={contactEmail}
-    onChange={(e) => setContactEmail(e.target.value)}
-    sx={{ flex: 1 }}
-    error={errors.contactEmail}
-    helperText={errors.contactEmail ? "此欄為必填" : ""}
-  />
-</Box>
+                  <TextField
+                    label={
+                      <>
+                        聯絡信箱 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    sx={{ flex: 1 }}
+                    error={errors.contactEmail}
+                    helperText={errors.contactEmail ? "此欄為必填" : ""}
+                  />
+                </Box>
+              </Box>
 
-</Box>
+              {/* ➤ 需求分類（下拉式選單） */}
 
-              
-  {/* ➤ 需求分類（下拉式選單） */}
-  
-  <Autocomplete
-  options={purposeOptions}
-  value={purposeType}
-  onChange={(_, newValue) => setPurposeType(newValue ?? "")}
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label={
-        <>
-          需求目的類型 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      variant="standard"
-      error={Boolean(errors.purposeType)}
-      helperText={errors.purposeType ? "此欄為必填" : ""}
-    />
-  )}
-  sx={{ mb: 3 }}
-/>
+              <Autocomplete
+                options={purposeOptions}
+                value={purposeType}
+                onChange={(_, newValue) => setPurposeType(newValue ?? "")}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={
+                      <>
+                        需求目的類型 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    error={Boolean(errors.purposeType)}
+                    helperText={errors.purposeType ? "此欄為必填" : ""}
+                  />
+                )}
+                sx={{ mb: 3 }}
+              />
 
+              {/* 根據需求目的切換表單內容 */}
+              {purposeType === "活動支援" && (
+                <Box
+                  sx={{
+                    backgroundColor: "#f9f9f9",
+                    p: 2,
+                    borderRadius: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    活動支援內容說明
+                  </Typography>
 
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        活動名稱 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    sx={{ mb: 3 }}
+                    error={errors.eventName}
+                    helperText={errors.eventName ? "此欄為必填" : ""}
+                  />
 
+                  <Autocomplete
+                    options={eventTypes}
+                    value={eventType}
+                    onChange={(_, newValue) => setEventType(newValue ?? "")}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            活動性質 <span style={{ color: "#d32f2f" }}>*</span>
+                          </>
+                        }
+                        variant="standard"
+                        sx={{ mb: 3 }}
+                        error={errors.eventType}
+                        helperText={errors.eventType ? "此欄為必填" : ""}
+                      />
+                    )}
+                  />
 
-  {/* 根據需求目的切換表單內容 */}
-  {purposeType === "活動支援" && (
-  <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
-    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-      活動支援內容說明
-    </Typography>
+                  {/* 並排區塊：預估人數與活動地點 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      label={
+                        <>
+                          預估人數 <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="number"
+                      value={estimatedParticipants}
+                      onChange={(e) => setEstimatedParticipants(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.estimatedParticipants}
+                      helperText={
+                        errors.estimatedParticipants ? "此欄為必填" : ""
+                      }
+                    />
+                    <TextField
+                      label={
+                        <>
+                          活動地點 <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.location}
+                      helperText={errors.location ? "此欄為必填" : ""}
+                    />
+                  </Box>
 
-    <TextField
-      fullWidth
-      label={
-        <>
-          活動名稱 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      variant="standard"
-      value={eventName}
-      onChange={(e) => setEventName(e.target.value)}
-      sx={{ mb: 3 }}
-      error={errors.eventName}
-      helperText={errors.eventName ? "此欄為必填" : ""}
-    />
+                  {/* 贊助截止時間 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    type="date"
+                    value={cooperationReturn}
+                    onChange={(e) => setCooperationReturn(e.target.value)}
+                    sx={{ mb: 3 }}
+                    InputLabelProps={{ shrink: true }}
+                    error={errors.cooperationReturn}
+                    helperText={
+                      errors.cooperationReturn
+                        ? "此欄為必填，且不可晚於活動時間"
+                        : ""
+                    }
+                  />
 
-    <Autocomplete
-      options={eventTypes}
-      value={eventType}
-      onChange={(_, newValue) => setEventType(newValue ?? "")}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={
-            <>
-              活動性質 <span style={{ color: "#d32f2f" }}>*</span>
-            </>
-          }
-          variant="standard"
-          sx={{ mb: 3 }}
-          error={errors.eventType}
-          helperText={errors.eventType ? "此欄為必填" : ""}
-        />
-      )}
-    />
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    {/* 活動開始日期 */}
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動開始日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventDate}
+                      helperText={errors.eventDate ? "此欄為必填" : ""}
+                    />
 
-    {/* 並排區塊：預估人數與活動地點 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        label={
-          <>
-            預估人數 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="number"
-        value={estimatedParticipants}
-        onChange={(e) => setEstimatedParticipants(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.estimatedParticipants}
-        helperText={errors.estimatedParticipants ? "此欄為必填" : ""}
-      />
-      <TextField
-        label={
-          <>
-            活動地點 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.location}
-        helperText={errors.location ? "此欄為必填" : ""}
-      />
-    </Box>
+                    {/* 活動結束日期 */}
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動結束日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventEndDate}
+                      onChange={(e) => setEventEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventEndDate}
+                      helperText={errors.eventEndDate ? "此欄為必填" : ""}
+                    />
+                  </Box>
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        需求物資 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={customItems[0] || ""}
+                    onChange={(e) => setCustomItems([e.target.value])}
+                    sx={{ mb: 3 }}
+                    error={errors.customItems}
+                    helperText={errors.customItems ? "此欄為必填" : ""}
+                  />
 
-    {/* 贊助截止時間 */}
-<TextField
-  fullWidth
-  label={
-    <>
-      贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
-    </>
-  }
-  type="date"
-  value={cooperationReturn}
-  onChange={(e) => setCooperationReturn(e.target.value)}
-  sx={{ mb: 3 }}
-  InputLabelProps={{ shrink: true }}
-  error={errors.cooperationReturn}
-  helperText={
-    errors.cooperationReturn
-      ? "此欄為必填，且不可晚於活動時間"
-      : ""
-  }
-/>
+                  <Autocomplete
+                    options={participationOptions1}
+                    value={participationType}
+                    onChange={(_, newValue) =>
+                      setParticipationType(newValue ?? "")
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            希望企業參與方式{" "}
+                            <span style={{ color: "#d32f2f" }}>*</span>
+                          </>
+                        }
+                        variant="standard"
+                        sx={{ mb: 3 }}
+                        error={errors.participationType}
+                        helperText={
+                          errors.participationType ? "此欄為必填" : ""
+                        }
+                      />
+                    )}
+                  />
 
+                  <TextField
+                    fullWidth
+                    label="回饋方式"
+                    placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
+                    multiline
+                    rows={2}
+                    value={demandDescription}
+                    onChange={(e) => setDemandDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
 
-<Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-  {/* 活動開始日期 */}
-  <TextField
-    fullWidth
-    label={
-      <>
-        活動開始日期 <span style={{ color: "#d32f2f" }}>*</span>
-      </>
-    }
-    type="date"
-    value={eventDate}
-    onChange={(e) => setEventDate(e.target.value)}
-    InputLabelProps={{ shrink: true }}
-    error={errors.eventDate}
-    helperText={errors.eventDate ? "此欄為必填" : ""}
-  />
+                  <TextField
+                    fullWidth
+                    label="活動說明"
+                    placeholder=""
+                    multiline
+                    rows={2}
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
+                </Box>
+              )}
 
-  {/* 活動結束日期 */}
-  <TextField
-    fullWidth
-    label={
-      <>
-        活動結束日期 <span style={{ color: "#d32f2f" }}>*</span>
-      </>
-    }
-    type="date"
-    value={eventEndDate}
-    onChange={(e) => setEventEndDate(e.target.value)}
-    InputLabelProps={{ shrink: true }}
-    error={errors.eventEndDate}
-    helperText={errors.eventEndDate ? "此欄為必填" : ""}
-  />
-</Box>
-<TextField
-  fullWidth
-  label={
-    <>
-      需求物資 <span style={{ color: "#d32f2f" }}>*</span>
-    </>
-  }
-  variant="standard"
-  value={customItems[0] || ""}
-  onChange={(e) => setCustomItems([e.target.value])}
-  sx={{ mb: 3 }}
-  error={errors.customItems}
-  helperText={errors.customItems ? "此欄為必填" : ""}
-/>
+              {/* 教育推廣 */}
+              {purposeType === "教育推廣" && (
+                <Box
+                  sx={{
+                    backgroundColor: "#f9f9f9",
+                    p: 2,
+                    borderRadius: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    教育推廣內容說明
+                  </Typography>
 
-    <Autocomplete
-      options={participationOptions1}
-      value={participationType}
-      onChange={(_, newValue) => setParticipationType(newValue ?? "")}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={
-            <>
-              希望企業參與方式 <span style={{ color: "#d32f2f" }}>*</span>
-            </>
-          }
-          variant="standard"
-          sx={{ mb: 3 }}
-          error={errors.participationType}
-          helperText={errors.participationType ? "此欄為必填" : ""}
-        />
-      )}
-    />
+                  {/* 推廣主題 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        推廣主題 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    placeholder="例如：閱讀推廣 / 媒體素養 / 財商教育"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    sx={{ mb: 3 }}
+                    error={errors.eventName}
+                    helperText={errors.eventName ? "此欄為必填" : ""}
+                  />
 
-    <TextField
-      fullWidth
-      label="回饋方式"
-      placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
-      multiline
-      rows={2}
-      value={demandDescription}
-      onChange={(e) => setDemandDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
+                  {/* 並排：預估人數 + 活動地點 + 預計推廣對象 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      label={
+                        <>
+                          預估人數 <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="number"
+                      value={estimatedParticipants}
+                      onChange={(e) => setEstimatedParticipants(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.estimatedParticipants}
+                      helperText={
+                        errors.estimatedParticipants ? "此欄為必填" : ""
+                      }
+                    />
+                    <TextField
+                      label={
+                        <>
+                          活動地點 <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.location}
+                      helperText={errors.location ? "此欄為必填" : ""}
+                    />
+                    <Autocomplete
+                      options={[
+                        "國小學生",
+                        "國中學生",
+                        "高中職學生",
+                        "大專院校",
+                        "成人社區",
+                        "其他",
+                      ]}
+                      value={promotionTarget}
+                      onChange={(_, newValue) =>
+                        setPromotionTarget(newValue ?? "")
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={
+                            <>
+                              預計推廣對象{" "}
+                              <span style={{ color: "#d32f2f" }}>*</span>
+                            </>
+                          }
+                          variant="standard"
+                          error={errors.eventDescription}
+                          helperText={
+                            errors.eventDescription ? "此欄為必填" : ""
+                          }
+                        />
+                      )}
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
 
-    <TextField
-      fullWidth
-      label="活動說明"
-      placeholder=""
-      multiline
-      rows={2}
-      value={eventDescription}
-      onChange={(e) => setEventDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
-  </Box>
-)}
+                  {/* 贊助截止時間 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    type="date"
+                    sx={{ mb: 3 }}
+                    InputLabelProps={{ shrink: true }}
+                    value={cooperationReturn}
+                    onChange={(e) => setCooperationReturn(e.target.value)}
+                    error={errors.cooperationReturn}
+                    helperText={
+                      errors.cooperationReturn
+                        ? "此欄為必填，且不可晚於活動時間"
+                        : ""
+                    }
+                  />
 
+                  {/* 活動開始與結束時間 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動開始日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventDate}
+                      helperText={errors.eventDate ? "此欄為必填" : ""}
+                    />
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動結束日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventEndDate}
+                      onChange={(e) => setEventEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventEndDate}
+                      helperText={errors.eventEndDate ? "此欄為必填" : ""}
+                    />
+                  </Box>
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        需求物資 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={customItems[0] || ""}
+                    onChange={(e) => setCustomItems([e.target.value])}
+                    sx={{ mb: 3 }}
+                    error={errors.customItems}
+                    helperText={errors.customItems ? "此欄為必填" : ""}
+                  />
 
-{/* 教育推廣 */}
-{purposeType === "教育推廣" && (
-  <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
-    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-      教育推廣內容說明
-    </Typography>
+                  {/* 合作方式（下拉） */}
+                  <Autocomplete
+                    options={participationOptions2}
+                    value={participationType}
+                    onChange={(_, newValue) =>
+                      setParticipationType(newValue ?? "")
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            希望企業參與方式{" "}
+                            <span style={{ color: "#d32f2f" }}>*</span>
+                          </>
+                        }
+                        variant="standard"
+                        error={errors.participationType}
+                        helperText={
+                          errors.participationType ? "此欄為必填" : ""
+                        }
+                      />
+                    )}
+                    sx={{ mb: 3 }}
+                  />
 
-    {/* 推廣主題 */}
-    <TextField
-      fullWidth
-      label={
-        <>
-          推廣主題 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      placeholder="例如：閱讀推廣 / 媒體素養 / 財商教育"
-      value={eventName}
-      onChange={(e) => setEventName(e.target.value)}
-      sx={{ mb: 3 }}
-      error={errors.eventName}
-      helperText={errors.eventName ? "此欄為必填" : ""}
-    />
+                  {/* 回饋方式 */}
+                  <TextField
+                    fullWidth
+                    label="回饋方式"
+                    placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
+                    multiline
+                    rows={2}
+                    value={demandDescription}
+                    onChange={(e) => setDemandDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
 
-    {/* 並排：預估人數 + 活動地點 + 預計推廣對象 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        label={
-          <>
-            預估人數 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="number"
-        value={estimatedParticipants}
-        onChange={(e) => setEstimatedParticipants(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.estimatedParticipants}
-        helperText={errors.estimatedParticipants ? "此欄為必填" : ""}
-      />
-      <TextField
-        label={
-          <>
-            活動地點 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.location}
-        helperText={errors.location ? "此欄為必填" : ""}
-      />
-      <Autocomplete
-        options={["國小學生", "國中學生", "高中職學生", "大專院校", "成人社區", "其他"]}
-        value={promotionTarget}
-        onChange={(_, newValue) => setPromotionTarget(newValue ?? "")}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label={
-              <>
-                預計推廣對象 <span style={{ color: "#d32f2f" }}>*</span>
-              </>
-            }
-            variant="standard"
-            error={errors.eventDescription}
-            helperText={errors.eventDescription ? "此欄為必填" : ""}
-          />
-        )}
-        sx={{ flex: 1 }}
-      />
-    </Box>
+                  {/* 教育推廣內容說明 */}
+                  <TextField
+                    fullWidth
+                    label="內容說明"
+                    placeholder="請具體說明推廣活動的形式與內容，例如：講座安排、互動活動設計等"
+                    multiline
+                    rows={3}
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
+                </Box>
+              )}
 
-    {/* 贊助截止時間 */}
-    <TextField
-      fullWidth
-      label={
-        <>
-          贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      type="date"
-      sx={{ mb: 3 }}
-      InputLabelProps={{ shrink: true }}
-      value={cooperationReturn}
-      onChange={(e) => setCooperationReturn(e.target.value)}
-      error={errors.cooperationReturn}
-      helperText={
-        errors.cooperationReturn ? "此欄為必填，且不可晚於活動時間" : ""
-      }
-    />
+              {purposeType === "社區服務" && (
+                <Box
+                  sx={{
+                    backgroundColor: "#f9f9f9",
+                    p: 2,
+                    borderRadius: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    社區服務內容說明
+                  </Typography>
 
-    {/* 活動開始與結束時間 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        fullWidth
-        label={
-          <>
-            活動開始日期 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="date"
-        value={eventDate}
-        onChange={(e) => setEventDate(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        error={errors.eventDate}
-        helperText={errors.eventDate ? "此欄為必填" : ""}
-      />
-      <TextField
-        fullWidth
-        label={
-          <>
-            活動結束日期 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="date"
-        value={eventEndDate}
-        onChange={(e) => setEventEndDate(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        error={errors.eventEndDate}
-        helperText={errors.eventEndDate ? "此欄為必填" : ""}
-      />
-    </Box>
-    <TextField
-  fullWidth
-  label={
-    <>
-      需求物資 <span style={{ color: "#d32f2f" }}>*</span>
-    </>
-  }
-  variant="standard"
-  value={customItems[0] || ""}
-  onChange={(e) => setCustomItems([e.target.value])}
-  sx={{ mb: 3 }}
-  error={errors.customItems}
-  helperText={errors.customItems ? "此欄為必填" : ""}
-/>
+                  {/* 服務主題 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        服務主題 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    placeholder="例如：社區清潔 / 陪伴長者 / 街道美化"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    sx={{ mb: 3 }}
+                    error={errors.eventName}
+                    helperText={errors.eventName ? "此欄為必填" : ""}
+                  />
 
+                  {/* 並排：預估人數、活動地點、服務對象 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      label={
+                        <>
+                          預估參與人數{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="number"
+                      value={estimatedParticipants}
+                      onChange={(e) => setEstimatedParticipants(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.estimatedParticipants}
+                      helperText={
+                        errors.estimatedParticipants ? "此欄為必填" : ""
+                      }
+                    />
+                    <TextField
+                      label={
+                        <>
+                          活動地點 <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.location}
+                      helperText={errors.location ? "此欄為必填" : ""}
+                    />
+                    <Autocomplete
+                      options={[
+                        "高齡長者",
+                        "兒童與青少年",
+                        "身心障礙者",
+                        "偏鄉居民",
+                        "一般社區居民",
+                        "其他",
+                      ]}
+                      value={eventType}
+                      onChange={(_, newValue) => setEventType(newValue ?? "")}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={
+                            <>
+                              服務對象{" "}
+                              <span style={{ color: "#d32f2f" }}>*</span>
+                            </>
+                          }
+                          variant="standard"
+                          error={errors.eventType}
+                          helperText={errors.eventType ? "此欄為必填" : ""}
+                        />
+                      )}
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
 
-    {/* 合作方式（下拉） */}
-    <Autocomplete
-      options={participationOptions2}
-      value={participationType}
-      onChange={(_, newValue) => setParticipationType(newValue ?? "")}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={
-            <>
-              希望企業參與方式 <span style={{ color: "#d32f2f" }}>*</span>
-            </>
-          }
-          variant="standard"
-          error={errors.participationType}
-          helperText={errors.participationType ? "此欄為必填" : ""}
-        />
-      )}
-      sx={{ mb: 3 }}
-    />
+                  {/* 贊助截止時間 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    type="date"
+                    value={cooperationReturn}
+                    onChange={(e) => setCooperationReturn(e.target.value)}
+                    sx={{ mb: 3 }}
+                    InputLabelProps={{ shrink: true }}
+                    error={errors.cooperationReturn}
+                    helperText={
+                      errors.cooperationReturn
+                        ? "此欄為必填，且不可晚於活動時間"
+                        : ""
+                    }
+                  />
 
-    {/* 回饋方式 */}
-    <TextField
-      fullWidth
-      label="回饋方式"
-      placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
-      multiline
-      rows={2}
-      value={demandDescription}
-      onChange={(e) => setDemandDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
+                  {/* 活動起訖時間 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動開始日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventDate}
+                      helperText={errors.eventDate ? "此欄為必填" : ""}
+                    />
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動結束日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventEndDate}
+                      onChange={(e) => setEventEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventEndDate}
+                      helperText={errors.eventEndDate ? "此欄為必填" : ""}
+                    />
+                  </Box>
 
-    {/* 教育推廣內容說明 */}
-    <TextField
-      fullWidth
-      label="內容說明"
-      placeholder="請具體說明推廣活動的形式與內容，例如：講座安排、互動活動設計等"
-      multiline
-      rows={3}
-      value={eventDescription}
-      onChange={(e) => setEventDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
-  </Box>
-)}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        需求物資 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={customItems[0] || ""}
+                    onChange={(e) => setCustomItems([e.target.value])}
+                    error={errors.customItems}
+                    helperText={errors.customItems ? "此欄為必填" : ""}
+                    sx={{ mb: 3 }}
+                  />
 
-{purposeType === "社區服務" && (
-  <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
-    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-      社區服務內容說明
-    </Typography>
+                  {/* 合作方式 */}
+                  <Autocomplete
+                    options={[
+                      "物資捐贈（如清潔用品、食品、衣物...）",
+                      "人力支援",
+                      "專業支援（如法律、醫療、心理諮詢...）",
+                      "場地提供或租借協助",
+                      "金錢贊助",
+                      "工具與設備提供（如掃具、音響、帳篷...）",
+                    ]}
+                    value={participationType}
+                    onChange={(_, newValue) =>
+                      setParticipationType(newValue ?? "")
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            希望企業參與方式{" "}
+                            <span style={{ color: "#d32f2f" }}>*</span>
+                          </>
+                        }
+                        variant="standard"
+                        error={errors.participationType}
+                        helperText={
+                          errors.participationType ? "此欄為必填" : ""
+                        }
+                      />
+                    )}
+                    sx={{ mb: 3 }}
+                  />
 
-    {/* 服務主題 */}
-    <TextField
-      fullWidth
-      label={
-        <>
-          服務主題 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      placeholder="例如：社區清潔 / 陪伴長者 / 街道美化"
-      value={eventName}
-      onChange={(e) => setEventName(e.target.value)}
-      sx={{ mb: 3 }}
-      error={errors.eventName}
-      helperText={errors.eventName ? "此欄為必填" : ""}
-    />
+                  {/* 回饋方式 */}
+                  <TextField
+                    fullWidth
+                    label="回饋方式"
+                    placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
+                    multiline
+                    rows={2}
+                    value={demandDescription}
+                    onChange={(e) => setDemandDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
 
-    {/* 並排：預估人數、活動地點、服務對象 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        label={
-          <>
-            預估參與人數 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="number"
-        value={estimatedParticipants}
-        onChange={(e) => setEstimatedParticipants(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.estimatedParticipants}
-        helperText={errors.estimatedParticipants ? "此欄為必填" : ""}
-      />
-      <TextField
-        label={
-          <>
-            活動地點 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.location}
-        helperText={errors.location ? "此欄為必填" : ""}
-      />
-      <Autocomplete
-        options={[
-          "高齡長者",
-          "兒童與青少年",
-          "身心障礙者",
-          "偏鄉居民",
-          "一般社區居民",
-          "其他",
-        ]}
-        value={eventType}
-        onChange={(_, newValue) => setEventType(newValue ?? "")}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label={
-              <>
-                服務對象 <span style={{ color: "#d32f2f" }}>*</span>
-              </>
-            }
-            variant="standard"
-            error={errors.eventType}
-            helperText={errors.eventType ? "此欄為必填" : ""}
-          />
-        )}
-        sx={{ flex: 1 }}
-      />
-    </Box>
+                  {/* 服務內容簡介 */}
+                  <TextField
+                    fullWidth
+                    label="內容說明"
+                    placeholder="例如：清潔打掃、環境綠美化、社區義診等"
+                    multiline
+                    rows={3}
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
+                </Box>
+              )}
 
-    {/* 贊助截止時間 */}
-    <TextField
-      fullWidth
-      label={
-        <>
-          贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      type="date"
-      value={cooperationReturn}
-      onChange={(e) => setCooperationReturn(e.target.value)}
-      sx={{ mb: 3 }}
-      InputLabelProps={{ shrink: true }}
-      error={errors.cooperationReturn}
-      helperText={
-        errors.cooperationReturn ? "此欄為必填，且不可晚於活動時間" : ""
-      }
-    />
+              {purposeType === "校園宣傳" && (
+                <Box
+                  sx={{
+                    backgroundColor: "#f9f9f9",
+                    p: 2,
+                    borderRadius: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    校園宣傳內容說明
+                  </Typography>
 
-    {/* 活動起訖時間 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        fullWidth
-        label={
-          <>
-            活動開始日期 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="date"
-        value={eventDate}
-        onChange={(e) => setEventDate(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        error={errors.eventDate}
-        helperText={errors.eventDate ? "此欄為必填" : ""}
-      />
-      <TextField
-        fullWidth
-        label={
-          <>
-            活動結束日期 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="date"
-        value={eventEndDate}
-        onChange={(e) => setEventEndDate(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        error={errors.eventEndDate}
-        helperText={errors.eventEndDate ? "此欄為必填" : ""}
-      />
-    </Box>
-    
-    <TextField
-  fullWidth
-  label={
-    <>
-      需求物資 <span style={{ color: "#d32f2f" }}>*</span>
-    </>
-  }
-  variant="standard"
-  value={customItems[0] || ""}
-  onChange={(e) => setCustomItems([e.target.value])}
-  error={errors.customItems}
-  helperText={errors.customItems ? "此欄為必填" : ""}
-  sx={{ mb: 3 }}
-/>
+                  {/* 宣傳主題 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        宣傳主題 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    placeholder="例如：品牌推廣 / 環保理念教育 / 活動宣傳"
+                    value={promotionTopic}
+                    onChange={(e) => setPromotionTopic(e.target.value)}
+                    sx={{ mb: 3 }}
+                    error={errors.promotionTopic}
+                    helperText={errors.promotionTopic ? "此欄為必填" : ""}
+                  />
 
+                  {/* 並排：目標對象 + 宣傳形式 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <Autocomplete
+                      options={[
+                        "國小學生",
+                        "國中學生",
+                        "高中職學生",
+                        "大專院校",
+                        "教職員工",
+                        "家長",
+                        "社區民眾",
+                      ]}
+                      value={promotionTarget}
+                      onChange={(_, newValue) =>
+                        setPromotionTarget(newValue ?? "")
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={
+                            <>
+                              目標對象{" "}
+                              <span style={{ color: "#d32f2f" }}>*</span>
+                            </>
+                          }
+                          variant="standard"
+                          error={errors.promotionTarget}
+                          helperText={
+                            errors.promotionTarget ? "此欄為必填" : ""
+                          }
+                        />
+                      )}
+                      sx={{ flex: 1 }}
+                    />
+                    <Autocomplete
+                      options={[
+                        "校園宣講",
+                        "海報展示",
+                        "攤位設置",
+                        "社群媒體宣傳",
+                        "其他",
+                      ]}
+                      value={promotionForm}
+                      onChange={(_, newValue) =>
+                        setPromotionForm(newValue ?? "")
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={
+                            <>
+                              宣傳形式{" "}
+                              <span style={{ color: "#d32f2f" }}>*</span>
+                            </>
+                          }
+                          variant="standard"
+                          error={errors.promotionForm}
+                          helperText={errors.promotionForm ? "此欄為必填" : ""}
+                        />
+                      )}
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
 
+                  {/* 並排：活動地點 + 預估參與人數 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      label={
+                        <>
+                          預估參與人數{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="number"
+                      value={estimatedParticipants}
+                      onChange={(e) => setEstimatedParticipants(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.estimatedParticipants}
+                      helperText={
+                        errors.estimatedParticipants ? "此欄為必填" : ""
+                      }
+                    />
+                    <TextField
+                      label={
+                        <>
+                          欲宣傳學校名稱{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ flex: 1 }}
+                      error={errors.schoolName}
+                      helperText={errors.schoolName ? "此欄為必填" : ""}
+                    />
+                  </Box>
 
-    {/* 合作方式 */}
-    <Autocomplete
-      options={[
-        "物資捐贈（如清潔用品、食品、衣物...）",
-        "人力支援",
-        "專業支援（如法律、醫療、心理諮詢...）",
-        "場地提供或租借協助",
-        "金錢贊助",
-        "工具與設備提供（如掃具、音響、帳篷...）",
-      ]}
-      value={participationType}
-      onChange={(_, newValue) => setParticipationType(newValue ?? "")}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={
-            <>
-              希望企業參與方式 <span style={{ color: "#d32f2f" }}>*</span>
-            </>
-          }
-          variant="standard"
-          error={errors.participationType}
-          helperText={errors.participationType ? "此欄為必填" : ""}
-        />
-      )}
-      sx={{ mb: 3 }}
-    />
+                  {/* 贊助截止時間 */}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    type="date"
+                    value={cooperationReturn}
+                    onChange={(e) => setCooperationReturn(e.target.value)}
+                    sx={{ mb: 3 }}
+                    InputLabelProps={{ shrink: true }}
+                    error={errors.cooperationReturn}
+                    helperText={
+                      errors.cooperationReturn
+                        ? "贊助截止時間不可晚於活動時間"
+                        : ""
+                    }
+                  />
 
-    {/* 回饋方式 */}
-    <TextField
-      fullWidth
-      label="回饋方式"
-      placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
-      multiline
-      rows={2}
-      value={demandDescription}
-      onChange={(e) => setDemandDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
+                  {/* 並排：開始與結束日期 */}
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動開始日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventDate}
+                      helperText={errors.eventDate ? "此欄為必填" : ""}
+                    />
+                    <TextField
+                      fullWidth
+                      label={
+                        <>
+                          活動結束日期{" "}
+                          <span style={{ color: "#d32f2f" }}>*</span>
+                        </>
+                      }
+                      type="date"
+                      value={eventEndDate}
+                      onChange={(e) => setEventEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      error={errors.eventEndDate}
+                      helperText={errors.eventEndDate ? "此欄為必填" : ""}
+                    />
+                  </Box>
 
-    {/* 服務內容簡介 */}
-    <TextField
-      fullWidth
-      label="內容說明"
-      placeholder="例如：清潔打掃、環境綠美化、社區義診等"
-      multiline
-      rows={3}
-      value={eventDescription}
-      onChange={(e) => setEventDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
-  </Box>
-)}
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        需求物資 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={customItems}
+                    sx={{ mb: 3 }}
+                    error={errors.customItems}
+                    helperText={errors.customItems ? "此欄為必填" : ""}
+                  />
 
+                  {/* 合作方式 */}
+                  <Autocomplete
+                    options={[
+                      "宣傳物資（如 DM、海報...）",
+                      "現場人力支援",
+                      "攤位道具贊助（如帳篷、音響、展架...）",
+                      "金錢贊助",
+                      "聯名活動贊助品",
+                    ]}
+                    value={participationType}
+                    onChange={(_, newValue) =>
+                      setParticipationType(newValue ?? "")
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={
+                          <>
+                            希望企業參與方式{" "}
+                            <span style={{ color: "#d32f2f" }}>*</span>
+                          </>
+                        }
+                        variant="standard"
+                        error={errors.participationType}
+                        helperText={
+                          errors.participationType ? "此欄為必填" : ""
+                        }
+                      />
+                    )}
+                    sx={{ mb: 3 }}
+                  />
 
-{purposeType === "校園宣傳" && (
-  <Box sx={{ backgroundColor: "#f9f9f9", p: 2, borderRadius: 2, mb: 3 }}>
-    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-      校園宣傳內容說明
-    </Typography>
+                  {/* 回饋方式 */}
+                  <TextField
+                    fullWidth
+                    label="回饋方式"
+                    placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
+                    multiline
+                    rows={2}
+                    value={demandDescription}
+                    onChange={(e) => setDemandDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
 
-    {/* 宣傳主題 */}
-    <TextField
-      fullWidth
-      label={
-        <>
-          宣傳主題 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      placeholder="例如：品牌推廣 / 環保理念教育 / 活動宣傳"
-      value={promotionTopic}
-      onChange={(e) => setPromotionTopic(e.target.value)}
-      sx={{ mb: 3 }}
-      error={errors.promotionTopic}
-      helperText={errors.promotionTopic ? "此欄為必填" : ""}
-    />
-
-    {/* 並排：目標對象 + 宣傳形式 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <Autocomplete
-        options={["國小學生", "國中學生", "高中職學生", "大專院校", "教職員工", "家長", "社區民眾"]}
-        value={promotionTarget}
-        onChange={(_, newValue) => setPromotionTarget(newValue ?? "")}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label={
-              <>
-                目標對象 <span style={{ color: "#d32f2f" }}>*</span>
-              </>
-            }
-            variant="standard"
-            error={errors.promotionTarget}
-            helperText={errors.promotionTarget ? "此欄為必填" : ""}
-          />
-        )}
-        sx={{ flex: 1 }}
-      />
-      <Autocomplete
-        options={["校園宣講", "海報展示", "攤位設置", "社群媒體宣傳", "其他"]}
-        value={promotionForm}
-        onChange={(_, newValue) => setPromotionForm(newValue ?? "")}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label={
-              <>
-                宣傳形式 <span style={{ color: "#d32f2f" }}>*</span>
-              </>
-            }
-            variant="standard"
-            error={errors.promotionForm}
-            helperText={errors.promotionForm ? "此欄為必填" : ""}
-          />
-        )}
-        sx={{ flex: 1 }}
-      />
-    </Box>
-
-    {/* 並排：活動地點 + 預估參與人數 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        label={
-          <>
-            預估參與人數 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="number"
-        value={estimatedParticipants}
-        onChange={(e) => setEstimatedParticipants(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.estimatedParticipants}
-        helperText={errors.estimatedParticipants ? "此欄為必填" : ""}
-      />
-      <TextField
-        label={
-          <>
-            欲宣傳學校名稱 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        sx={{ flex: 1 }}
-        error={errors.schoolName}
-        helperText={errors.schoolName ? "此欄為必填" : ""}
-      />
-    </Box>
-
-    {/* 贊助截止時間 */}
-    <TextField
-      fullWidth
-      label={
-        <>
-          贊助截止日期 <span style={{ color: "#d32f2f" }}>*</span>
-        </>
-      }
-      type="date"
-      value={cooperationReturn}
-      onChange={(e) => setCooperationReturn(e.target.value)}
-      sx={{ mb: 3 }}
-      InputLabelProps={{ shrink: true }}
-      error={errors.cooperationReturn}
-      helperText={
-        errors.cooperationReturn
-          ? "贊助截止時間不可晚於活動時間"
-          : ""
-      }
-    />
-
-    {/* 並排：開始與結束日期 */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-      <TextField
-        fullWidth
-        label={
-          <>
-            活動開始日期 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="date"
-        value={eventDate}
-        onChange={(e) => setEventDate(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        error={errors.eventDate}
-        helperText={errors.eventDate ? "此欄為必填" : ""}
-      />
-      <TextField
-        fullWidth
-        label={
-          <>
-            活動結束日期 <span style={{ color: "#d32f2f" }}>*</span>
-          </>
-        }
-        type="date"
-        value={eventEndDate}
-        onChange={(e) => setEventEndDate(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        error={errors.eventEndDate}
-        helperText={errors.eventEndDate ? "此欄為必填" : ""}
-      />
-    </Box>
-
-    <TextField
-  fullWidth
-  label={
-    <>
-      需求物資 <span style={{ color: "#d32f2f" }}>*</span>
-    </>
-  }
-  variant="standard"
-  value={customItems}
-  sx={{ mb: 3 }}
-  error={errors.customItems}
-  helperText={errors.customItems ? "此欄為必填" : ""}
-/>
-
-    {/* 合作方式 */}
-    <Autocomplete
-      options={[
-        "宣傳物資（如 DM、海報...）",
-        "現場人力支援",
-        "攤位道具贊助（如帳篷、音響、展架...）",
-        "金錢贊助",
-        "聯名活動贊助品"
-      ]}
-      value={participationType}
-      onChange={(_, newValue) => setParticipationType(newValue ?? "")}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={
-            <>
-              希望企業參與方式 <span style={{ color: "#d32f2f" }}>*</span>
-            </>
-          }
-          variant="standard"
-          error={errors.participationType}
-          helperText={errors.participationType ? "此欄為必填" : ""}
-        />
-      )}
-      sx={{ mb: 3 }}
-    />
-
-    {/* 回饋方式 */}
-    <TextField
-      fullWidth
-      label="回饋方式"
-      placeholder="例如：於社群平台標註企業、提供合作成果報告、活動現場感謝詞等"
-      multiline
-      rows={2}
-      value={demandDescription}
-      onChange={(e) => setDemandDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
-
-    {/* 補充說明 */}
-    <TextField
-      fullWidth
-      label="內容說明"
-      placeholder="例如：活動安排流程、企業曝光位置等"
-      multiline
-      rows={3}
-      value={eventDescription}
-      onChange={(e) => setEventDescription(e.target.value)}
-      sx={{ mb: 3 }}
-    />
-  </Box>
-)}
-
-
-
+                  {/* 補充說明 */}
+                  <TextField
+                    fullWidth
+                    label="內容說明"
+                    placeholder="例如：活動安排流程、企業曝光位置等"
+                    multiline
+                    rows={3}
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    sx={{ mb: 3 }}
+                  />
+                </Box>
+              )}
 
               {/* ➤ 按鈕區塊 */}
               <Box

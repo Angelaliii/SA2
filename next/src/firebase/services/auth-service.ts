@@ -33,13 +33,19 @@ export const authServices = {
       console.error("Login error:", error);
       let message = "登入失敗，請檢查您的帳號密碼";
 
+      // 處理各種常見 Firebase 錯誤
       if (
         error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
       ) {
         message = "帳號或密碼錯誤，請重新輸入";
       } else if (error.code === "auth/too-many-requests") {
         message = "嘗試次數過多，請稍後再試或重設密碼";
+      } else if (error.code === "auth/user-disabled") {
+        message = "此帳號已被停用，請聯繫管理員";
+      } else if (error.code === "auth/network-request-failed") {
+        message = "網路連線失敗，請確認您的網路狀態";
       }
 
       return {

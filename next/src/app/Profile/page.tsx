@@ -28,6 +28,8 @@ import ArticleEditDialog from "../../components/article/ArticleEditDialog";
 import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDialog";
 import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
 import FavoriteArticlesManager from "../../components/article/FavoriteArticlesManager";
+import CollaborationList from "../../components/collaboration/CollaborationList";
+import CollaborationReviewDialog from "../../components/collaboration/CollaborationReviewDialog";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
@@ -41,8 +43,6 @@ import {
   companyServices,
 } from "../../firebase/services/company-service";
 import { ClientOnly } from "../../hooks/useHydration";
-import CollaborationList from "../../components/collaboration/CollaborationList";
-import CollaborationReviewDialog from "../../components/collaboration/CollaborationReviewDialog";
 
 function TabPanel(props: {
   children?: React.ReactNode;
@@ -107,7 +107,9 @@ export default function Profile() {
   const [articleEditDialogOpen, setArticleEditDialogOpen] = useState(false);
   const [articleDeleteDialogOpen, setArticleDeleteDialogOpen] = useState(false);
   // 合作請求相關狀態
-  const [selectedCollaborationId, setSelectedCollaborationId] = useState<string | null>(null);
+  const [selectedCollaborationId, setSelectedCollaborationId] = useState<
+    string | null
+  >(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   const handleOpenReview = (id: string) => {
@@ -536,13 +538,13 @@ export default function Profile() {
             backgroundColor: "#f2f2f7",
           }}
         >
-        <SideNavbar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          selectedTag={selectedTag}
-          setSelectedTag={setSelectedTag}
-          drawerWidth={drawerWidth}
-        />
+          <SideNavbar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedTag={selectedTag}
+            setSelectedTag={setSelectedTag}
+            drawerWidth={drawerWidth}
+          />
 
           <Box
             component="main"
@@ -864,23 +866,27 @@ export default function Profile() {
 
                 <TabPanel value={value} index={4}>
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      sx={{ fontWeight: "bold" }}
+                    >
                       <HandshakeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
                       合作記錄與請求
                     </Typography>
                   </Box>
-                  
+
                   {/* 合作記錄列表 - 已經連接到合作服務 */}
-                  <CollaborationList userType={userType} onOpenReview={handleOpenReview} />
-                  
+                  <CollaborationList onOpenReview={handleOpenReview} />
+
                   {/* 顯示合作請求評價對話框 */}
-                    {selectedCollaborationId && (
+                  {selectedCollaborationId && (
                     <CollaborationReviewDialog
-                      open={reviewDialogOpen}  
+                      open={reviewDialogOpen}
                       onClose={handleCloseReview}
                       collaborationId={selectedCollaborationId}
                     />
-                    )}
+                  )}
                 </TabPanel>
               </Paper>
             </Container>
