@@ -35,6 +35,7 @@ export default function CollaborationList({
   visibleTabs = ["pending", "active", "review", "complete", "cancel"],
   onOpenReview,
 }: Readonly<CollaborationListProps>) {
+  // 初始化所有state為固定的預設值，確保伺服器和客戶端渲染一致
   const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [acceptedCollaborations, setAcceptedCollaborations] = useState<any[]>(
@@ -132,10 +133,13 @@ export default function CollaborationList({
       setLoading(false);
     }
   };
-
+  // useEffect 確保僅在客戶端運行時才載入資料
   useEffect(() => {
+    // 防止在服務器端運行
+    if (typeof window === "undefined") return;
+
     loadCollaborations();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const loadCollaborationPartners = async () => {

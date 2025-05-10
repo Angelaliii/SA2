@@ -123,5 +123,7 @@ export interface DemandPostData {
   tags: string[];
   authorId: string;
   isDraft: boolean;
-  email?: string; 
+  email?: string;
+  eventEndDate?: string; // 添加活動結束日期
+  customItems?: string[]; // 添加自訂項目
 }

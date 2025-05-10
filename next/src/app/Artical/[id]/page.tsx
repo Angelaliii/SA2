@@ -167,6 +167,7 @@ export default function DemandPostDetailPage() {
               color="text.secondary"
               sx={{ mb: 1 }}
             >
+              {" "}
               發布社團：
               {clubInfo ? (
                 <Box sx={{ display: "inline-block", mb: 2 }}>

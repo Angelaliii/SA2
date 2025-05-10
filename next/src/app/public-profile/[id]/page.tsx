@@ -2,6 +2,7 @@
 "use client";
 
 import ArticleIcon from "@mui/icons-material/Article";
+import HandshakeIcon from "@mui/icons-material/Handshake";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import {
@@ -15,15 +16,7 @@ import {
   Snackbar,
   Typography,
 } from "@mui/material";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -33,6 +26,7 @@ import CollaborationList from "../../../components/collaboration/CollaborationLi
 import ClubProfileForm from "../../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../../components/profile/CompanyProfileForm";
 import { auth, db } from "../../../firebase/config";
+import { subscriptionServices } from "../../../firebase/services/subscription-service";
 import { getUserById } from "../../../firebase/services/user-service";
 
 export default function PublicProfilePage() {
@@ -56,40 +50,64 @@ export default function PublicProfilePage() {
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success"
   );
-
+  // 檢查是否為當前用戶自己的資料
+  const [isCurrentUser, setIsCurrentUser] = useState(false);
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
-      const data = await getUserById(id as string);
-      if (data) {
-        setUserData(data);
-        // 確保類型安全
-        if (data.type === "club" || data.type === "company") {
-          setUserType(data.type);
+      console.log("嘗試獲取組織資料，ID:", id);
+
+      if (!id) {
+        console.error("無效的組織 ID");
+        setUserType("unknown");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getUserById(id as string);
+        console.log("獲取到的組織資料:", data);
+
+        if (data) {
+          setUserData(data);
+          // 確保類型安全
+          if (data.type === "club" || data.type === "company") {
+            setUserType(data.type);
+          } else {
+            setUserType("unknown");
+          }
+
+          // 檢查是否為當前用戶
+          if (auth.currentUser) {
+            setIsCurrentUser(auth.currentUser.uid === id);
+          }
         } else {
           setUserType("unknown");
+          console.error("未找到對應的組織資料");
         }
-      } else {
+      } catch (error) {
+        console.error("獲取組織資料時出錯:", error);
         setUserType("unknown");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    if (id) fetchUser();
-  }, [id]);
 
+    fetchUser();
+  }, [id]);
   useEffect(() => {
     const checkSubscriptionStatus = async () => {
       if (!auth.currentUser) return;
 
       try {
         const currentUserId = auth.currentUser.uid;
-        const subscriptionsQuery = query(
-          collection(db, "subscriptions"),
-          where("subscriberId", "==", currentUserId),
-          where("subscribeToId", "==", id)
-        );
-        const snapshot = await getDocs(subscriptionsQuery);
-        setIsSubscribed(!snapshot.empty);
+        // 使用新的訂閱服務
+        const isAlreadySubscribed =
+          await subscriptionServices.checkSubscription(
+            currentUserId,
+            id as string
+          );
+        setIsSubscribed(isAlreadySubscribed);
       } catch (error) {
         console.error("檢查訂閱狀態失敗:", error);
       }
@@ -208,7 +226,6 @@ export default function PublicProfilePage() {
       </>
     );
   }
-
   const handleSubscribe = async () => {
     if (!auth.currentUser) {
       setSnackbarMessage("請先登入才能訂閱");
@@ -222,31 +239,25 @@ export default function PublicProfilePage() {
       const currentUserId = auth.currentUser.uid;
 
       if (isSubscribed) {
-        // 取消訂閱
-        const subscriptionsQuery = query(
-          collection(db, "subscriptions"),
-          where("subscriberId", "==", currentUserId),
-          where("subscribeToId", "==", id)
+        // 使用新的服務取消訂閱
+        await subscriptionServices.unsubscribeFromOrganization(
+          currentUserId,
+          id as string
         );
-        const snapshot = await getDocs(subscriptionsQuery);
-
-        if (!snapshot.empty) {
-          const subscriptionDoc = snapshot.docs[0];
-          await deleteDoc(doc(db, "subscriptions", subscriptionDoc.id));
-          setIsSubscribed(false);
-          setSnackbarMessage("取消訂閱成功");
-          setSnackbarSeverity("success");
-        }
+        setIsSubscribed(false);
+        setSnackbarMessage("取消訂閱成功");
+        setSnackbarSeverity("success");
       } else {
-        // 新增訂閱
+        // 使用新的服務添加訂閱
+        const organizationType = userType === "club" ? "club" : "company";
         const targetName = getDisplayName();
-        await addDoc(collection(db, "subscriptions"), {
-          subscriberId: currentUserId,
-          subscribeToId: id,
-          subscribedAt: new Date(),
-          targetName: targetName,
-          targetType: userType,
-        });
+
+        await subscriptionServices.subscribeToOrganization(
+          currentUserId,
+          id as string,
+          organizationType as "club" | "company"
+        );
+
         setIsSubscribed(true);
         setSnackbarMessage(`成功訂閱 ${targetName}`);
         setSnackbarSeverity("success");
@@ -320,7 +331,7 @@ export default function PublicProfilePage() {
       );
     }
 
-    return <Typography>找不到使用者資料</Typography>;
+    return <Typography>找不到使用者資料，請確認連結是否正確</Typography>;
   };
 
   // 渲染文章內容部分
@@ -473,7 +484,7 @@ export default function PublicProfilePage() {
     );
   };
 
-  // 主要內容渲染函數 - 簡化
+  // 主要內容渲染函數 - 簡化  // 主要內容渲染函數 - 優化
   const renderContent = () => {
     switch (selectedTag) {
       case "個人檔案":
@@ -481,13 +492,43 @@ export default function PublicProfilePage() {
       case "已發佈文章":
         return renderPublishedArticles();
       case "活動資訊":
-        return renderActivities();
+        return (
+          <>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                mb: 2,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <ArticleIcon sx={{ mr: 1 }} />
+              活動資訊
+            </Typography>
+            {renderActivities()}
+          </>
+        );
       case "合作記錄":
         return (
-          <CollaborationList
-            userId={id as string}
-            visibleTabs={["complete", "cancel"]}
-          />
+          <>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                mb: 2,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <HandshakeIcon sx={{ mr: 1 }} />
+              合作記錄
+            </Typography>
+            <CollaborationList
+              userId={id as string}
+              visibleTabs={["complete", "cancel"]}
+            />
+          </>
         );
       default:
         return null;
@@ -524,7 +565,7 @@ export default function PublicProfilePage() {
           selectedTag={selectedTag}
           setSelectedTag={setSelectedTag}
           drawerWidth={drawerWidth}
-          hideTabs={["我的收藏"]}
+          hideTabs={["我的收藏", "已訂閱組織"]}
         />
 
         <Box
@@ -537,32 +578,78 @@ export default function PublicProfilePage() {
           }}
         >
           <Container sx={{ pb: 5 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 2, sm: 3, md: 4 },
-                borderRadius: 3,
-                border: "1px solid rgba(0, 0, 0, 0.05)",
-                boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
-                backgroundColor: "#fff",
-              }}
-            >
+            {loading ? (
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent: "space-between",
+                  justifyContent: "center",
                   alignItems: "center",
-                  mb: 2,
+                  height: "50vh",
+                  flexDirection: "column",
                 }}
               >
-                <Typography
-                  variant="h4"
-                  sx={{ fontWeight: 700, color: "primary.main" }}
-                >
-                  {getDisplayName()}的個人檔案
+                <CircularProgress size={60} />
+                <Typography variant="h6" color="text.secondary" sx={{ mt: 3 }}>
+                  載入組織資料中...
                 </Typography>
-                {/* 修改訂閱按鈕的條件邏輯，使其更容易顯示 */}
-                {userData?.type && auth.currentUser && (
+              </Box>
+            ) : !userData ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2, sm: 3, md: 4 },
+                  borderRadius: 3,
+                  border: "1px solid rgba(0, 0, 0, 0.05)",
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
+                  backgroundColor: "#fff",
+                  textAlign: "center",
+                  py: 8,
+                }}
+              >
+                <Typography variant="h5" color="error" gutterBottom>
+                  找不到組織資料
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  找不到 ID 為「{id}」的組織。請確認連結是否正確。
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component={Link}
+                  href="/OrganizationList"
+                  sx={{ mt: 4 }}
+                >
+                  返回組織列表
+                </Button>
+              </Paper>
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2, sm: 3, md: 4 },
+                  borderRadius: 3,
+                  border: "1px solid rgba(0, 0, 0, 0.05)",
+                  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.06)",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 2,
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: "primary.main" }}
+                  >
+                    {isCurrentUser ? "您的" : `${getDisplayName()}的`}個人檔案
+                  </Typography>
+                </Box>{" "}
+                {/* 訂閱按鈕只在查看其他組織時顯示 */}
+                {userData?.type && auth.currentUser && !isCurrentUser && (
                   <Button
                     variant={isSubscribed ? "outlined" : "contained"}
                     color="primary"
@@ -583,10 +670,15 @@ export default function PublicProfilePage() {
                     {getButtonText()}
                   </Button>
                 )}
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              {renderContent()}
-            </Paper>
+                {isCurrentUser && (
+                  <Typography variant="subtitle1" color="primary">
+                    這是您的資料頁面
+                  </Typography>
+                )}
+                <Divider sx={{ my: 2 }} />
+                {renderContent()}
+              </Paper>
+            )}
           </Container>
         </Box>
       </Box>

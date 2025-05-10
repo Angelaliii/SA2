@@ -119,8 +119,8 @@ export default function HomePage() {
         const data = doc.data();
         return {
           id: doc.id,
-          name: data.name || "",
-          content: data.content || "",
+          name: data.name ?? "",
+          content: data.content ?? "",
           date: data.date,
           type: data.type,
           participants: data.participants,

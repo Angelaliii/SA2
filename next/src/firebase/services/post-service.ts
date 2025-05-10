@@ -45,6 +45,8 @@ export interface DemandPostData extends PostData {
   eventName?: string; // 添加活動名稱
   eventType?: string; // 添加活動類型
   email?: string; // ✅ 在這裡加一行
+  eventEndDate?: string; // 添加活動結束日期
+  customItems?: string[]; // 添加自訂項目
 }
 
 export const getOrganizationName = async (
@@ -101,21 +103,17 @@ export const createPost = async (postData: Omit<PostData, "createdAt">) => {
       });
       return { id: docRef.id, success: true };
     }
-    
+
     // 不是草稿，發布並通知訂閱者
     const postsCollection = collection(db, "posts");
     const docRef = await addDoc(postsCollection, {
       ...postData,
       createdAt: serverTimestamp(),
     });
-    
+
     // 發送通知給訂閱者（只在不是草稿時）
-    await notifySubscribers(
-      postData.authorId,
-      docRef.id,
-      postData.title
-    );
-    
+    await notifySubscribers(postData.authorId, docRef.id, postData.title);
+
     return { id: docRef.id, success: true };
   } catch (error) {
     console.error("Error creating post:", error);
@@ -202,29 +200,25 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
 export const publishDraft = async (draftId: string, userEmail?: string) => {
   try {
     const draftRef = doc(db, "posts", draftId);
-    
+
     // 獲取文章資訊
     const draftDoc = await getDoc(draftRef);
     if (!draftDoc.exists()) {
       return { success: false, error: "找不到文章" };
     }
-    
+
     const draftData = draftDoc.data();
-    
+
     // 更新為已發布
     await updateDoc(draftRef, {
       isDraft: false,
       publishedAt: serverTimestamp(),
       authorEmail: userEmail ?? null,
     });
-    
+
     // 發送通知給訂閱者
-    await notifySubscribers(
-      draftData.authorId,
-      draftId,
-      draftData.title
-    );
-    
+    await notifySubscribers(draftData.authorId, draftId, draftData.title);
+
     return { success: true };
   } catch (error) {
     console.error("Error publishing draft:", error);

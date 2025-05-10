@@ -136,8 +136,8 @@ export default function EnterpriseDetailPage() {
           setPost({
             id: postData.id ?? id,
             title: postData.title || "無標題",
-            companyName: postData.companyName || "未知企業",
-            email: postData.email || "",
+            companyName: postData.companyName ?? "未知企業",
+            email: postData.email ?? "",
             content: postData.content || "",
             createdAt: postData.createdAt || new Date(),
             status: postData.status || "active",
@@ -353,10 +353,27 @@ export default function EnterpriseDetailPage() {
                   mb: 2,
                 }}
               >
+                {" "}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {" "}
                   <BusinessIcon color="primary" />
                   <Typography variant="subtitle1">
-                    {post.companyName}
+                    {post.authorId ? (
+                      <Link
+                        href={`/public-profile/${post.authorId}`}
+                        underline="hover"
+                        sx={{
+                          color: "primary.main",
+                          "&:hover": {
+                            color: "primary.dark",
+                          },
+                        }}
+                      >
+                        {post.companyName}
+                      </Link>
+                    ) : (
+                      post.companyName
+                    )}
                   </Typography>
                 </Box>
                 {post.email && (

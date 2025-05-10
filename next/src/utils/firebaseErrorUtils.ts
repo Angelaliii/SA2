@@ -6,7 +6,13 @@ import { FirebaseError } from "firebase/app";
  * @returns 用戶友好的錯誤信息
  */
 export function handleFirebaseAuthError(error: unknown): string {
+  console.log("處理Firebase錯誤:", error);
+
   if (!(error instanceof FirebaseError)) {
+    if (error instanceof Error) {
+      console.error("非Firebase錯誤:", error.message);
+      return `發生錯誤: ${error.message}`;
+    }
     return "發生未知錯誤，請稍後再試";
   }
 
@@ -21,6 +27,8 @@ export function handleFirebaseAuthError(error: unknown): string {
       return "嘗試次數過多，請稍後再試或重設密碼";
     case "auth/user-disabled":
       return "此帳號已被停用，請聯繫管理員";
+    case "auth/invalid-login-credentials":
+      return "登入憑證無效，請確認您的帳號和密碼";
 
     // 電子郵件相關錯誤
     case "auth/invalid-email":
@@ -39,6 +47,6 @@ export function handleFirebaseAuthError(error: unknown): string {
     // 其他錯誤
     default:
       console.error("Firebase錯誤:", error.code, error.message);
-      return "登入過程中發生錯誤，請稍後再試";
+      return `登入過程中發生錯誤 (${error.code})，請稍後再試`;
   }
 }

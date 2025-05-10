@@ -6,6 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import EventIcon from "@mui/icons-material/Event";
 import HandshakeIcon from "@mui/icons-material/Handshake";
+import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
 import {
   Alert,
   Box,
@@ -34,6 +35,7 @@ import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../components/profile/CompanyProfileForm";
+import SubscribedOrganizations from "../../components/profile/SubscribedOrganizations";
 import SideNavbar from "../../components/SideNavbar";
 import { db } from "../../firebase/config";
 import { authServices } from "../../firebase/services/auth-service";
@@ -206,60 +208,57 @@ export default function Profile() {
       }
     };
 
-    fetchUserActivities();
-
-    // Fetch published articles
+    fetchUserActivities(); // Fetch published articles - 優化查詢方式同時獲取兩種文章類型
     const fetchPublishedArticles = async () => {
       const currentUser = authServices.getCurrentUser();
       if (!currentUser) return;
 
       setLoadingArticles(true);
       try {
-        const q = query(
+        // 查詢普通文章
+        const postsQuery = query(
           collection(db, "posts"),
           where("authorId", "==", currentUser.uid),
           where("isDraft", "==", false) // Only fetch published articles
         );
-        const snapshot = await getDocs(q);
-        const articles = snapshot.docs.map((doc) => ({
+
+        // 同時查詢企業公告
+        const announcementsQuery = query(
+          collection(db, "enterprisePosts"),
+          where("authorId", "==", currentUser.uid)
+        );
+
+        // 並行執行兩個查詢
+        const [postsSnapshot, announcementsSnapshot] = await Promise.all([
+          getDocs(postsQuery),
+          getDocs(announcementsQuery),
+        ]);
+
+        // 處理普通文章結果
+        const articles = postsSnapshot.docs.map((doc) => ({
           id: doc.id,
+          source: "posts", // 標記來源以便區分
           ...doc.data(),
         }));
+
+        // 處理企業公告結果
+        const announcements = announcementsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          source: "enterprisePosts", // 標記來源以便區分
+          ...doc.data(),
+        }));
+
+        // 更新狀態
         setPublishedArticles(articles);
+        setPublishedEnterpriseAnnouncements(announcements);
       } catch (err) {
-        console.error("Error fetching published articles:", err);
+        console.error("Error fetching published content:", err);
       } finally {
         setLoadingArticles(false);
       }
     };
 
     fetchPublishedArticles();
-
-    const fetchPublishedEnterpriseAnnouncements = async () => {
-      const currentUser = authServices.getCurrentUser();
-      if (!currentUser) return;
-
-      try {
-        // 從 Firebase 直接查詢當前用戶的企業公告
-        const q = query(
-          collection(db, "enterprisePosts"),
-          where("authorId", "==", currentUser.uid)
-        );
-        const snapshot = await getDocs(q);
-        const announcements = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPublishedEnterpriseAnnouncements(announcements);
-      } catch (err) {
-        console.error(
-          "Error fetching published enterprise announcements:",
-          err
-        );
-      }
-    };
-
-    fetchPublishedEnterpriseAnnouncements();
 
     return () => unsubscribe();
   }, [isAuthenticated, value]);
@@ -385,55 +384,62 @@ export default function Profile() {
     setSelectedAnnouncement(announcement);
     setAnnouncementDeleteDialogOpen(true);
   };
-
-  // 重新獲取企業公告列表
+  // 重新獲取企業公告列表 - 使用綜合刷新函數
   const refreshAnnouncements = async () => {
-    const currentUser = authServices.getCurrentUser();
-    if (!currentUser) return;
-
-    try {
-      const q = query(
-        collection(db, "enterprisePosts"),
-        where("authorId", "==", currentUser.uid)
-      );
-      const snapshot = await getDocs(q);
-      const announcements = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setPublishedEnterpriseAnnouncements(announcements);
-      setSuccess("操作成功！");
-      setSnackbarOpen(true);
-    } catch (err) {
-      console.error("Error refreshing enterprise announcements:", err);
-      setError("刷新企業公告列表時發生錯誤，請稍後再試");
-      setSnackbarOpen(true);
-    }
+    await refreshAllPublishedContent();
   };
 
-  // 重新獲取需求文章列表
+  // 重新獲取需求文章列表 - 使用綜合刷新函數
   const refreshArticles = async () => {
+    await refreshAllPublishedContent();
+  }; // 綜合刷新所有文章(同時刷新普通文章和企業公告)
+  const refreshAllPublishedContent = async () => {
     const currentUser = authServices.getCurrentUser();
     if (!currentUser) return;
 
     setLoadingArticles(true);
     try {
-      const q = query(
+      // 查詢普通文章
+      const postsQuery = query(
         collection(db, "posts"),
         where("authorId", "==", currentUser.uid),
-        where("isDraft", "==", false)
+        where("isDraft", "==", false) // Only fetch published articles
       );
-      const snapshot = await getDocs(q);
-      const articles = snapshot.docs.map((doc) => ({
+
+      // 同時查詢企業公告
+      const announcementsQuery = query(
+        collection(db, "enterprisePosts"),
+        where("authorId", "==", currentUser.uid)
+      );
+
+      // 並行執行兩個查詢
+      const [postsSnapshot, announcementsSnapshot] = await Promise.all([
+        getDocs(postsQuery),
+        getDocs(announcementsQuery),
+      ]);
+
+      // 處理普通文章結果
+      const articles = postsSnapshot.docs.map((doc) => ({
         id: doc.id,
+        source: "posts", // 標記來源以便區分
         ...doc.data(),
       }));
+
+      // 處理企業公告結果
+      const announcements = announcementsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        source: "enterprisePosts", // 標記來源以便區分
+        ...doc.data(),
+      }));
+
+      // 更新狀態
       setPublishedArticles(articles);
-      setSuccess("操作成功！");
+      setPublishedEnterpriseAnnouncements(announcements);
+      setSuccess("內容已成功刷新！");
       setSnackbarOpen(true);
     } catch (err) {
-      console.error("Error refreshing articles:", err);
-      setError("刷新文章列表時發生錯誤，請稍後再試");
+      console.error("Error refreshing published content:", err);
+      setError("刷新內容時發生錯誤，請稍後再試");
       setSnackbarOpen(true);
     } finally {
       setLoadingArticles(false);
@@ -593,7 +599,6 @@ export default function Profile() {
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                 </Box>
-
                 <TabPanel value={value} index={0}>
                   {userType === "club" && clubData && (
                     <ClubProfileForm
@@ -611,7 +616,6 @@ export default function Profile() {
                     <Typography>請先完成註冊流程以管理您的個人資料</Typography>
                   )}
                 </TabPanel>
-
                 <TabPanel value={value} index={1}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
@@ -651,7 +655,7 @@ export default function Profile() {
                                 }}
                               >
                                 <Typography variant="h6">
-                                  {article.title || "(未命名文章)"}
+                                  {article.title ?? "(未命名文章)"}
                                 </Typography>
                                 <Box>
                                   <IconButton
@@ -685,7 +689,7 @@ export default function Profile() {
                                   WebkitBoxOrient: "vertical",
                                 }}
                               >
-                                {article.demandDescription || "(無內容)"}
+                                {article.demandDescription ?? "(無內容)"}
                               </Typography>
                               <Typography
                                 variant="caption"
@@ -716,7 +720,7 @@ export default function Profile() {
                                   }}
                                 >
                                   <Typography variant="h6">
-                                    {announcement.title || "(未命名公告)"}
+                                    {announcement.title ?? "(未命名公告)"}
                                   </Typography>
                                   <Box>
                                     <IconButton
@@ -770,9 +774,19 @@ export default function Profile() {
                       )}
                     </Box>
                   )}
-                </TabPanel>
-
+                </TabPanel>{" "}
                 <TabPanel value={value} index={2}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      <SubscriptionsIcon
+                        sx={{ mr: 1, verticalAlign: "middle" }}
+                      />
+                      已訂閱組織
+                    </Typography>
+                  </Box>
+                  <SubscribedOrganizations />
+                </TabPanel>
+                <TabPanel value={value} index={3}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       <BookmarkIcon sx={{ mr: 1, verticalAlign: "middle" }} />
@@ -781,8 +795,7 @@ export default function Profile() {
                   </Box>
                   <FavoriteArticlesManager />
                 </TabPanel>
-
-                <TabPanel value={value} index={3}>
+                <TabPanel value={value} index={4}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       <EventIcon sx={{ mr: 1, verticalAlign: "middle" }} />
@@ -878,9 +891,8 @@ export default function Profile() {
                       )}
                     </Box>
                   )}
-                </TabPanel>
-
-                <TabPanel value={value} index={4}>
+                </TabPanel>{" "}
+                <TabPanel value={value} index={5}>
                   <Box sx={{ mb: 3 }}>
                     <Typography
                       variant="h6"
@@ -890,11 +902,20 @@ export default function Profile() {
                       <HandshakeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
                       合作記錄與請求
                     </Typography>
-                  </Box>
-
-                  {/* 合作記錄列表 - 已經連接到合作服務 */}
-                  <CollaborationList onOpenReview={handleOpenReview} />
-
+                  </Box>{" "}
+                  {/* 合作記錄列表 - 使用ClientOnly確保避免水合錯誤 */}
+                  <ClientOnly>
+                    <CollaborationList
+                      onOpenReview={handleOpenReview}
+                      visibleTabs={[
+                        "pending",
+                        "active",
+                        "review",
+                        "complete",
+                        "cancel",
+                      ]}
+                    />
+                  </ClientOnly>
                   {/* 顯示合作請求評價對話框 */}
                   {selectedCollaborationId && (
                     <CollaborationReviewDialog
@@ -982,7 +1003,7 @@ export default function Profile() {
         onClose={() => setArticleEditDialogOpen(false)}
         onSuccess={() => {
           setArticleEditDialogOpen(false);
-          refreshArticles();
+          refreshAllPublishedContent();
         }}
         article={selectedArticle}
       />
@@ -992,7 +1013,7 @@ export default function Profile() {
         onClose={() => setArticleDeleteDialogOpen(false)}
         onSuccess={() => {
           setArticleDeleteDialogOpen(false);
-          refreshArticles();
+          refreshAllPublishedContent();
         }}
         article={selectedArticle}
       />

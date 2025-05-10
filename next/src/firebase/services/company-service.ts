@@ -71,10 +71,11 @@ export const companyServices = {
           companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status ?? "pending",
+          status: "approved", // 強制設定為已批准
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
+          userId: data.userId || "",
         };
       });
 
@@ -90,7 +91,6 @@ export const companyServices = {
     try {
       const docRef = doc(db, COMPANIES_COLLECTION, id);
       const docSnap: DocumentSnapshot = await getDoc(docRef);
-
       if (docSnap.exists()) {
         const data = docSnap.data();
         return {
@@ -104,7 +104,7 @@ export const companyServices = {
           companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status ?? "pending",
+          status: "approved", // 強制設定為已批准
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -117,13 +117,12 @@ export const companyServices = {
       throw error;
     }
   },
-
-  // Get companies by status
+  // Get companies by status - 在移除驗證機制後仍保留此方法以向後兼容，但現在總是返回帶有 "approved" 狀態的企業
   getCompaniesByStatus: async (status: string): Promise<Company[]> => {
     try {
+      // 不再根據狀態過濾，只排序
       const companiesQuery = query(
         collection(db, COMPANIES_COLLECTION),
-        where("status", "==", status),
         orderBy("registrationDate", "desc")
       );
 
@@ -142,10 +141,11 @@ export const companyServices = {
           companyDescription: data.companyDescription ?? "",
           logoURL: data.logoURL,
           businessCertificateURL: data.businessCertificateURL,
-          status: data.status ?? "pending",
+          status: "approved", // 強制設定為已批准
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
+          userId: data.userId || "",
         };
       });
 
@@ -208,14 +208,20 @@ export const companyServices = {
       throw error;
     }
   },
-
   // Add new company
   addCompany: async (company: Omit<Company, "id">): Promise<string> => {
     try {
-      const docRef = await addDoc(collection(db, COMPANIES_COLLECTION), {
+      // 確保所有新建立的企業都被標記為已批准
+      const companyData = {
         ...company,
+        status: "approved", // 強制設定為已批准
         registrationDate: Timestamp.now(),
-      });
+      };
+
+      const docRef = await addDoc(
+        collection(db, COMPANIES_COLLECTION),
+        companyData
+      );
 
       return docRef.id;
     } catch (error) {

@@ -20,17 +20,34 @@ export const authServices = {
   // Login with email and password
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
+      // 在登入前檢查配置
+      if (!auth) {
+        console.error("Auth instance is not initialized");
+        return {
+          success: false,
+          error: "身份驗證服務未初始化，請重新載入頁面",
+        };
+      }
+
+      console.log("嘗試登入:", { email, passwordLength: password?.length });
+
       const userCredential: UserCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
+
+      console.log("登入成功, 使用者:", userCredential.user.uid);
+
       return {
         success: true,
         user: userCredential.user,
       };
     } catch (error: any) {
       console.error("Login error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+
       let message = "登入失敗，請檢查您的帳號密碼";
 
       // 處理各種常見 Firebase 錯誤

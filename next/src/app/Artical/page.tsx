@@ -370,34 +370,36 @@ export default function DemandPostPage() {
       setLoadingDrafts(false);
     }
   };
-
   // 加載特定草稿
   const loadDraft = async (draftId: string) => {
     try {
       const draft = await postService.getPostById(draftId);
       if (!draft) throw new Error("找不到指定草稿");
 
-      setTitle(draft.title || "");
-      setCurrentDraftId(draftId);
-
-      setSelectedDemands(draft.selectedDemands || []);
-      setDemandDescription(draft.demandDescription || "未填寫");
-      setCooperationReturn(draft.cooperationReturn || "未填寫");
-      setEstimatedParticipants(draft.estimatedParticipants || "未填寫");
-      setEventDate(draft.eventDate || "未填寫");
-      setEventDescription(draft.eventDescription || "未填寫");
-      setEventName(draft.eventName || "未填寫");
-      setEventType(draft.eventType || "未填寫");
-      // 使用eventDate而不是不存在的eventEndDate
-      setEventEndDate(draft.eventDate || "未填寫");
-
-      // 確保demandDescription使用而不是customItems
-      setCustomItems(["未填寫"]);
-
-      setSnackbarMessage("草稿已載入");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      // 先關閉對話框，防止DOM更新衝突
       setOpenDraftsDialog(false);
+
+      // 延遲設置狀態，確保對話框完全關閉後再更新
+      setTimeout(() => {
+        setTitle(draft.title || "");
+        setCurrentDraftId(draftId);
+
+        setSelectedDemands(draft.selectedDemands || []);
+        setDemandDescription(draft.demandDescription ?? "未填寫");
+        setCooperationReturn(draft.cooperationReturn ?? "未填寫");
+        setEstimatedParticipants(draft.estimatedParticipants ?? "未填寫");
+        setEventDate(draft.eventDate ?? "未填寫");
+        setEventDescription(draft.eventDescription ?? "未填寫");
+        setEventName(draft.eventName ?? "未填寫");
+        setEventType(draft.eventType ?? "未填寫");
+        setEventEndDate(draft.eventEndDate ?? "未填寫");
+
+        setCustomItems(draft.customItems || ["未填寫"]);
+
+        setSnackbarMessage("草稿已載入");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+      }, 100);
     } catch (error) {
       console.error("載入草稿時出錯:", error);
       setSnackbarMessage("無法載入草稿");
@@ -411,29 +413,33 @@ export default function DemandPostPage() {
     setDraftToDelete(draftId);
     setOpenDeleteDialog(true);
   };
-
   // 刪除草稿
   const deleteDraft = async () => {
     if (!draftToDelete) return;
 
     try {
-      // 從資料庫刪除草稿
-      await postService.deletePost(draftToDelete);
-
-      // 更新本地草稿列表
-      setDrafts(drafts.filter((draft) => draft.id !== draftToDelete));
-
-      // 如果刪除的是當前正在編輯的草稿，則重置表單
-      if (currentDraftId === draftToDelete) {
-        clearForm();
-      }
-
-      // 更新UI通知
-      setSnackbarMessage("草稿已刪除");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      // 先關閉對話框，防止DOM更新衝突
       setOpenDeleteDialog(false);
       setDraftToDelete(null);
+
+      // 延遲執行刪除操作，確保對話框完全關閉
+      setTimeout(async () => {
+        // 從資料庫刪除草稿
+        await postService.deletePost(draftToDelete);
+
+        // 更新本地草稿列表
+        setDrafts(drafts.filter((draft) => draft.id !== draftToDelete));
+
+        // 如果刪除的是當前正在編輯的草稿，則重置表單
+        if (currentDraftId === draftToDelete) {
+          clearForm();
+        }
+
+        // 更新UI通知
+        setSnackbarMessage("草稿已刪除");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+      }, 100);
     } catch (error) {
       console.error("刪除草稿時出錯:", error);
       setSnackbarMessage("無法刪除草稿");

@@ -61,19 +61,19 @@ export const clubServices = {
         const data = doc.data();
         return {
           id: doc.id,
-          clubName: data.clubName || "",
-          schoolName: data.schoolName || "",
-          clubType: data.clubType || "", // Added clubType field
-          email: data.email || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          clubDescription: data.clubDescription || "",
-          logoURL: data.logoURL || "",
-          status: data.status || "pending",
+          clubName: data.clubName ?? "",
+          schoolName: data.schoolName ?? "",
+          clubType: data.clubType ?? "", // Added clubType field
+          email: data.email ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          clubDescription: data.clubDescription ?? "",
+          logoURL: data.logoURL ?? "",
+          status: "approved", // 強制設定為已批准
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
-          userId: data.userId || "",
+          userId: data.userId ?? "",
         };
       });
 
@@ -89,24 +89,23 @@ export const clubServices = {
     try {
       const docRef = doc(db, CLUBS_COLLECTION, id);
       const docSnap: DocumentSnapshot = await getDoc(docRef);
-
       if (docSnap.exists()) {
         const data = docSnap.data();
         return {
           id: docSnap.id,
-          clubName: data.clubName || "",
-          schoolName: data.schoolName || "",
-          clubType: data.clubType || "", // Added clubType field
-          email: data.email || "",
-          contactName: data.contactName || "",
-          contactPhone: data.contactPhone || "",
-          clubDescription: data.clubDescription || "",
-          logoURL: data.logoURL || "",
-          status: data.status || "pending",
+          clubName: data.clubName ?? "",
+          schoolName: data.schoolName ?? "",
+          clubType: data.clubType ?? "", // Added clubType field
+          email: data.email ?? "",
+          contactName: data.contactName ?? "",
+          contactPhone: data.contactPhone ?? "",
+          clubDescription: data.clubDescription ?? "",
+          logoURL: data.logoURL ?? "",
+          status: "approved", // 強制設定為已批准
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
-          userId: data.userId || "",
+          userId: data.userId ?? "",
         };
       } else {
         return null;
@@ -116,13 +115,12 @@ export const clubServices = {
       throw error;
     }
   },
-
-  // Get clubs by status
+  // Get clubs by status - 在移除驗證機制後仍保留此方法以向後兼容，但現在總是返回帶有 "approved" 狀態的社團
   getClubsByStatus: async (status: string): Promise<Club[]> => {
     try {
+      // 不再根據狀態過濾，只排序
       const clubsQuery = query(
         collection(db, CLUBS_COLLECTION),
-        where("status", "==", status),
         orderBy("registrationDate", "desc")
       );
 
@@ -140,7 +138,7 @@ export const clubServices = {
           contactPhone: data.contactPhone || "",
           clubDescription: data.clubDescription || "",
           logoURL: data.logoURL || "",
-          status: data.status || "pending",
+          status: "approved", // 強制設定為已批准
           registrationDate: data.registrationDate
             ? convertTimestampToString(data.registrationDate)
             : new Date().toISOString(),
@@ -168,14 +166,17 @@ export const clubServices = {
       throw error;
     }
   },
-
   // Add new club
   addClub: async (club: Omit<Club, "id">): Promise<string> => {
     try {
-      const docRef = await addDoc(collection(db, CLUBS_COLLECTION), {
+      // 確保所有新建立的社團都被標記為已批准
+      const clubData = {
         ...club,
+        status: "approved", // 強制設定為已批准
         registrationDate: Timestamp.now(),
-      });
+      };
+
+      const docRef = await addDoc(collection(db, CLUBS_COLLECTION), clubData);
 
       return docRef.id;
     } catch (error) {

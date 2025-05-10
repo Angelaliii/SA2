@@ -11,9 +11,6 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../config";
 
-// 添加一個標志來檢查是否在客戶端環境中
-const isClient = typeof window !== "undefined";
-
 /**
  * 創建一個新的通知
  */
@@ -33,11 +30,6 @@ export const createNotification = async ({
   entityId?: string | null;
 }) => {
   try {
-    // 如果不在客戶端環境中，返回一個模擬結果以防止水合錯誤
-    if (!isClient) {
-      return { success: true, id: "server-side-placeholder" };
-    }
-
     const notificationData = {
       userId,
       title,
@@ -83,28 +75,16 @@ export const notifySubscribers = async (
   postTitle: string
 ) => {
   try {
-    // 如果不在客戶端環境中，返回一個模擬結果以防止水合錯誤
-    if (!isClient) {
-      return { success: true, notified: 0 };
-    }
-
-    console.log(
-      `開始發送訂閱通知 - 作者: ${authorId}, 文章: ${postId}, 標題: ${postTitle}`
-    );
-
     // 獲取所有訂閱者
     const subscriptionsQuery = query(
       collection(db, "subscriptions"),
-      where("subscribeToId", "==", authorId)
+      where("organizationId", "==", authorId)
     );
     const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
 
     if (subscriptionsSnapshot.empty) {
-      console.log(`沒有找到作者 ${authorId} 的訂閱者`);
       return { success: true, notified: 0 };
     }
-
-    console.log(`找到 ${subscriptionsSnapshot.size} 位訂閱者`);
 
     // 獲取作者資料
     let authorName = "某個組織";
@@ -125,15 +105,12 @@ export const notifySubscribers = async (
       console.error("Error fetching author info:", err);
     }
 
-    console.log(`作者名稱: ${authorName}`);
-
     // 為每個訂閱者創建通知
     const notificationPromises = subscriptionsSnapshot.docs.map((subDoc) => {
       const subscriberData = subDoc.data();
-      console.log(`準備發送通知給訂閱者: ${subscriberData.subscriberId}`);
 
       return createNotification({
-        userId: subscriberData.subscriberId,
+        userId: subscriberData.userId,
         title: `${authorName}發布了新文章`,
         message: `您訂閱的${authorName}剛剛發布了新文章「${postTitle}」`,
         link: `/Artical/${postId}`,
@@ -143,66 +120,31 @@ export const notifySubscribers = async (
     });
 
     // 等待所有通知創建完成
-    const notificationResults = await Promise.all(notificationPromises);
-    console.log(`通知創建結果:`, notificationResults);
+    await Promise.all(notificationPromises);
 
     // 同時發送到 messages 集合以確保通知能在通知中心顯示
-    const messagePromises = subscriptionsSnapshot.docs.map(async (subDoc) => {
+    for (const subDoc of subscriptionsSnapshot.docs) {
       const subscriberData = subDoc.data();
-      console.log(`準備發送消息給訂閱者: ${subscriberData.subscriberId}`);
 
       try {
-        const messageData = {
+        await addDoc(collection(db, "messages"), {
           senderId: authorId,
-          receiverId: subscriberData.subscriberId,
+          receiverId: subscriberData.userId,
           messageContent: `您訂閱的${authorName}剛剛發布了新文章「${postTitle}」`,
           timestamp: serverTimestamp(),
           type: "subscription_notification",
           isRead: false,
           postTitle: postTitle,
           postId: postId,
-        };
-
-        // 防止在服務器端創建時出現水合錯誤
-        if (!isClient) {
-          return {
-            success: true,
-            messageId: "server-side-placeholder",
-            receiverId: subscriberData.subscriberId,
-          };
-        }
-
-        const messageRef = await addDoc(
-          collection(db, "messages"),
-          messageData
-        );
-        return {
-          success: true,
-          messageId: messageRef.id,
-          receiverId: subscriberData.subscriberId,
-        };
+        });
       } catch (err) {
-        console.error(
-          `Error sending message notification to ${subscriberData.subscriberId}:`,
-          err
-        );
-        return {
-          success: false,
-          error: err,
-          receiverId: subscriberData.subscriberId,
-        };
+        console.error("Error sending message notification:", err);
       }
-    });
-
-    // 等待所有消息創建完成
-    const messageResults = await Promise.all(messagePromises);
-    console.log(`消息創建結果:`, messageResults);
+    }
 
     return {
       success: true,
       notified: subscriptionsSnapshot.size,
-      notificationResults,
-      messageResults,
     };
   } catch (error) {
     console.error("Error notifying subscribers:", error);
@@ -215,11 +157,6 @@ export const notifySubscribers = async (
  */
 export const getUserNotifications = async (userId: string, limit = 50) => {
   try {
-    // 如果不在客戶端環境中，返回空數組以防止水合錯誤
-    if (!isClient) {
-      return [];
-    }
-
     const q = query(
       collection(db, "notifications"),
       where("userId", "==", userId)

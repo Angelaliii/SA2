@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../assets/globals.module.css";
 import ThemeRegistry from "../components/ThemeRegistry";
 import { AuthProvider } from "../hooks/useAuth"; // ✅ 加這行
+import { NotificationProvider } from "../hooks/useNotifications"; // ✅ 加入通知提供者
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeRegistry>
           <AuthProvider>
-            {children}
+            <NotificationProvider>{children}</NotificationProvider>
           </AuthProvider>
         </ThemeRegistry>
       </body>

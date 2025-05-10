@@ -1,20 +1,15 @@
 "use client";
 
-import { ClientOnly } from "../hooks/useHydration";
 import ArticleIcon from "@mui/icons-material/Article";
 import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import EventIcon from "@mui/icons-material/Event";
 import FolderIcon from "@mui/icons-material/Folder";
-import PersonIcon from "@mui/icons-material/Person";
 import HandshakeIcon from "@mui/icons-material/Handshake";
-import {
-  Box,
-  Chip,
-  Drawer,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
+import { Box, Chip, Drawer, Typography, useTheme } from "@mui/material";
 import { useState } from "react";
+import { ClientOnly } from "../hooks/useHydration";
 
 interface SideNavbarProps {
   searchTerm: string;
@@ -34,23 +29,32 @@ export default function SideNavbar({
 }: SideNavbarProps) {
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
-
   // 原始標籤清單
-  const allTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊", "合作記錄"];
+  const allTags = [
+    "個人檔案",
+    "已發佈文章",
+    "已訂閱組織",
+    "我的收藏",
+    "活動資訊",
+    "合作記錄",
+  ];
 
   // 過濾要隱藏的標籤
-  const availableTags = allTags.filter(tag => !hideTabs.includes(tag));
+  const availableTags = allTags.filter((tag) => !hideTabs.includes(tag));
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
   const handleTagClick = (tag: string) => {
     setSelectedTag(tag);
-    const index = availableTags.indexOf(tag);
-    setSearchTerm(index.toString());
+    // 合作記錄特殊處理
+    if (tag === "合作記錄") {
+      setSearchTerm("5");
+    } else {
+      const index = availableTags.indexOf(tag);
+      setSearchTerm(index.toString());
+    }
   };
-
   const drawerContent = (
     <Box
       sx={{
@@ -59,6 +63,7 @@ export default function SideNavbar({
         width: drawerWidth,
         height: "100%",
         backgroundColor: theme.palette.background.default,
+        overflow: "hidden",
       }}
     >
       <Typography
@@ -66,13 +71,26 @@ export default function SideNavbar({
         sx={{ mb: 3, fontWeight: "bold", color: theme.palette.primary.main }}
       >
         個人中心
-      </Typography>
-
+      </Typography>{" "}
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
           gap: 1.5,
+          maxHeight: "calc(100vh - 150px)",
+          overflowY: "auto",
+          pr: 1,
+          mr: -1,
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: theme.palette.primary.light,
+            borderRadius: "4px",
+          },
         }}
       >
         {availableTags.map((tag) => {
@@ -83,6 +101,9 @@ export default function SideNavbar({
               break;
             case "已發佈文章":
               icon = <ArticleIcon fontSize="small" />;
+              break;
+            case "已訂閱組織":
+              icon = <SubscriptionsIcon fontSize="small" />;
               break;
             case "活動資訊":
               icon = <EventIcon fontSize="small" />;

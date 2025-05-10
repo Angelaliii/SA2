@@ -42,14 +42,26 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
     if (email.length > 0 || password.length > 0) {
       setError("");
     }
-  }, [email, password]);
-  // Handle form submission for login
+  }, [email, password]); // Handle form submission for login
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
+    if (!email.trim()) {
+      setError("請輸入電子郵件地址");
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError("請輸入密碼");
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log("開始嘗試登入...");
       const result = await authServices.login(email, password);
 
       if (result.success) {
@@ -60,6 +72,7 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
           router.push("/"); // 導向首頁或儀表板
         }
       } else {
+        console.error("登入失敗:", result.error);
         setError(result.error ?? "登入失敗");
       }
     } catch (err) {
