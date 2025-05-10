@@ -13,6 +13,7 @@ import { Company } from "../../firebase/services/company-service";
 interface CompanyProfileFormProps {
   companyData: Company;
   onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
+  readonly?: boolean;
 }
 
 // Industry types options
@@ -32,7 +33,47 @@ const industryTypes = [
 const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
   companyData,
   onSubmit,
+  readonly = false 
 }) => {
+
+  if (readonly) {
+    return (
+      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          企業資料
+        </Typography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <Typography><strong>企業名稱：</strong> {companyData.companyName}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography><strong>統一編號：</strong> {companyData.businessId}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography><strong>產業類型：</strong> {companyData.industryType}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography><strong>聯絡人姓名：</strong> {companyData.contactName}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography><strong>聯絡電話：</strong> {companyData.contactPhone}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography><strong>電子郵件：</strong> {companyData.email}</Typography>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography sx={{ mt: 2 }}><strong>企業簡介：</strong></Typography>
+            <Typography sx={{ whiteSpace: "pre-line" }}>
+              {companyData.companyDescription}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+    );
+  }
+
   const [formData, setFormData] = useState<Partial<Company>>({
     companyName: companyData.companyName || "",
     businessId: companyData.businessId || "",

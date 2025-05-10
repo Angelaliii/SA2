@@ -2,9 +2,11 @@
 
 import EventIcon from "@mui/icons-material/Event";
 import GroupIcon from "@mui/icons-material/Group";
+import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import RedeemIcon from "@mui/icons-material/Redeem";
 import SearchIcon from "@mui/icons-material/Search";
+
 import {
   Box,
   Button,
@@ -14,7 +16,6 @@ import {
   Container,
   IconButton,
   InputAdornment,
-  MenuItem,
   Pagination,
   Paper,
   Stack,
@@ -61,6 +62,10 @@ interface Post {
   eventName?: string;
   eventDescription?: string;
   email?: string;
+  // ⭐ 新增這幾個欄位
+  customItems?: string[];
+  purposeType?: string;
+  participationType?: string;
 }
 
 const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
@@ -78,7 +83,7 @@ export default function DemandListPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  const [selectedTag] = useState<string>("全部");
+  const [selectedTag, setSelectedTag] = useState<string>("全部");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每頁顯示8筆資料
@@ -237,10 +242,7 @@ export default function DemandListPage() {
 
     // Filter by tag
     const matchTag =
-      selectedTag === "全部"
-        ? true
-        : Array.isArray(post.selectedDemands) &&
-          post.selectedDemands.includes(selectedTag ?? "");
+      selectedTag === "全部" ? true : post.purposeType === selectedTag;
 
     return matchSearch && matchTag;
   });
@@ -493,39 +495,6 @@ export default function DemandListPage() {
                 }}
               />
             </Box>
-            {/* 活動類型和需求物資篩選 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <TextField
-                fullWidth
-                label="活動類型"
-                select
-                value={filters.selectedEventType}
-                onChange={handleFilterChange}
-                name="selectedEventType"
-              >
-                <MenuItem value="">全部</MenuItem>
-                {eventTypes.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {type}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                fullWidth
-                label="需求物資類型"
-                select
-                value={filters.selectedDemand}
-                onChange={handleFilterChange}
-                name="selectedDemand"
-              >
-                <MenuItem value="">全部</MenuItem>
-                {demandItems.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
             {/* 參與人數篩選 */}
             <Box>
               <TextField
@@ -538,8 +507,39 @@ export default function DemandListPage() {
               />
             </Box>
           </Paper>
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "flex-start",
+                gap: 1,
+                mb: 3,
+              }}
+            >
+              {["全部", "活動支援", "教育推廣", "社區服務", "校園宣傳"].map(
+                (label) => (
+                  <Button
+                    key={label}
+                    variant={selectedTag === label ? "contained" : "outlined"}
+                    onClick={() => setSelectedTag(label)}
+                    sx={{
+                      borderRadius: "30px", // 更小的橢圓
+                      px: 2, // 左右 padding 縮小
+                      py: 0.5, // 上下 padding 縮小
+                      fontSize: "0.75rem", // 字體縮小
+                      minWidth: "auto", // 不強制最小寬度
+                      textTransform: "none", // 保持正常大小寫
+                    }}
+                  >
+                    {label}
+                  </Button>
+                )
+              )}
+            </Box>
+          </Box>
 
-          {/* 貼文卡片列表區塊 */}
+          {/* 把這段放進你的 return 區域對應位置 */}
+
           <Stack spacing={3}>
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
@@ -616,12 +616,9 @@ export default function DemandListPage() {
                     }}
                   >
                     <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
+                      sx={{ display: "flex", justifyContent: "space-between" }}
                     >
-                      {/* 卡片中間區域（主資訊區） */}
+                      {/* 主資訊區 */}
                       <Box sx={{ flex: 1 }}>
                         <Typography
                           variant="h6"
@@ -633,7 +630,29 @@ export default function DemandListPage() {
                         >
                           {post.title ?? "(無標題)"}
                         </Typography>
-
+                        <Box sx={{ mb: 2 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 1,
+                            }}
+                          >
+                            <InfoIcon fontSize="small" sx={{ mr: 1 }} />
+                            <Typography variant="body2">
+                              需求目的類型
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
+                            <Chip
+                              label={post.purposeType ?? "未提供"}
+                              size="small"
+                              color="primary"
+                            />
+                          </Box>
+                        </Box>
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 1 }}
                         >
@@ -646,7 +665,6 @@ export default function DemandListPage() {
                               : "未設定日期"}
                           </Typography>
                         </Box>
-
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 1 }}
                         >
@@ -654,34 +672,29 @@ export default function DemandListPage() {
                           <Typography variant="body2">
                             {post.estimatedParticipants ?? "0"}人
                           </Typography>
-                        </Box>
-
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 0.5 }}
-                        >
-                          來自：{post.organizationName ?? "未知組織"}
-                        </Typography>
-
-                        {/* 新增物資需求說明 */}
-                        {post.demandDescription && (
+                        </Box>{" "}
+                        <Box sx={{ mb: 0.5 }}>
                           <Typography
                             variant="body2"
                             color="text.secondary"
-                            sx={{
-                              mb: 1,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                            }}
+                            component="span"
                           >
-                            物資需求說明：{post.demandDescription}
+                            來自：
                           </Typography>
-                        )}
-
+                          <Link href={`/public-profile/${post.authorId}`}>
+                            <Typography
+                              variant="body2"
+                              component="span"
+                              sx={{
+                                ml: 1,
+                                color: "primary.main", // 藍色字
+                                cursor: "pointer",
+                              }}
+                            >
+                              {post.organizationName}
+                            </Typography>
+                          </Link>
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
                           發布時間：
                           {post.createdAt
@@ -692,7 +705,7 @@ export default function DemandListPage() {
                         </Typography>
                       </Box>
 
-                      {/* 卡片右側區域（補充資訊區） */}
+                      {/* 右側補充資訊區 */}
                       <Box
                         sx={{
                           display: "flex",
@@ -716,7 +729,10 @@ export default function DemandListPage() {
                           <Box
                             sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
                           >
-                            {(post.selectedDemands ?? []).map((item) => (
+                            {(post.customItems && post.customItems.length > 0
+                              ? post.customItems
+                              : ["未提供"]
+                            ).map((item) => (
                               <Chip
                                 key={`${post.id}-${item}`}
                                 label={item}
@@ -736,7 +752,9 @@ export default function DemandListPage() {
                             }}
                           >
                             <RedeemIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">回饋方式</Typography>
+                            <Typography variant="body2">
+                              希望企業參與方式
+                            </Typography>
                           </Box>
                           <Typography
                             variant="body2"
@@ -751,7 +769,7 @@ export default function DemandListPage() {
                               maxWidth: "100%",
                             }}
                           >
-                            {post.cooperationReturn ?? "未提供回饋方式"}
+                            {post.participationType ?? "未提供"}
                           </Typography>
                         </Box>
                       </Box>

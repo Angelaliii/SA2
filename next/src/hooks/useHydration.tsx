@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from "react";
 
 /**
@@ -20,7 +21,7 @@ export default function useHydration() {
 
 /**
  * Client-only component wrapper that only renders its children after hydration
- * Enhanced to better handle Material-UI style injection
+ * Enhanced to better handle Material-UI style injection and prevent hydration mismatches
  */
 export function ClientOnly({
   children,

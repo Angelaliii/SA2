@@ -58,7 +58,13 @@ export default function DemandDraftManager({
           <List>
             {drafts.map((draft) => (
               <ListItem key={draft.id} disablePadding divider>
-                <ListItemButton onClick={() => onLoadDraft(draft.id)}>
+                <ListItemButton
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onLoadDraft(draft.id);
+                  }}
+                >
                   <Box width="100%">
                     <Box
                       display="flex"
@@ -94,10 +100,15 @@ export default function DemandDraftManager({
                   </Box>
                 </ListItemButton>
                 <ListItemSecondaryAction>
+                  {" "}
                   <IconButton
                     edge="end"
                     aria-label="delete"
-                    onClick={() => onDeleteDraft(draft.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onDeleteDraft(draft.id);
+                    }}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -111,9 +122,16 @@ export default function DemandDraftManager({
             您目前沒有已儲存的需求草稿
           </Typography>
         )}
-      </DialogContent>
+      </DialogContent>{" "}
       <DialogActions>
-        <Button onClick={onClose}>關閉</Button>
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            onClose();
+          }}
+        >
+          關閉
+        </Button>
       </DialogActions>
     </Dialog>
   );

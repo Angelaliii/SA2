@@ -14,6 +14,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Debug configuration for troubleshooting
+console.log("Firebase Config (API Key hidden):", {
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  hasApiKey: !!firebaseConfig.apiKey,
+});
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
