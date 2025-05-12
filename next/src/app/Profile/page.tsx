@@ -123,13 +123,25 @@ export default function Profile() {
     setReviewDialogOpen(false);
     setSelectedCollaborationId(null);
   };
-
   // Combine all useEffect hooks into a single one to ensure consistent order
   useEffect(() => {
     // Auth state listener
     const unsubscribe = authServices.onAuthStateChanged((user) => {
       setIsAuthenticated(!!user);
     });
+
+    // 檢查是否需要刷新文章列表
+    const refreshFlag = localStorage.getItem("refreshArticles");
+    if (refreshFlag === "true") {
+      // 清除標記
+      localStorage.removeItem("refreshArticles");
+      // 延遲執行以確保頁面加載完成
+      setTimeout(() => {
+        if (isAuthenticated) {
+          fetchPublishedArticles();
+        }
+      }, 500);
+    }
 
     // Fetch user profile
     const fetchUserProfile = async () => {
@@ -257,11 +269,71 @@ export default function Profile() {
         setLoadingArticles(false);
       }
     };
-
     fetchPublishedArticles();
 
     return () => unsubscribe();
   }, [isAuthenticated, value]);
+
+  // 定義獲取已發布文章的函數
+  const fetchPublishedArticles = async () => {
+    const currentUser = authServices.getCurrentUser();
+    if (!currentUser) return;
+
+    setLoadingArticles(true);
+    try {
+      // 查詢普通文章
+      const postsQuery = query(
+        collection(db, "posts"),
+        where("authorId", "==", currentUser.uid),
+        where("isDraft", "==", false) // Only fetch published articles
+      );
+
+      // 同時查詢企業公告
+      const announcementsQuery = query(
+        collection(db, "enterprisePosts"),
+        where("authorId", "==", currentUser.uid)
+      );
+
+      // 並行執行兩個查詢
+      const [postsSnapshot, announcementsSnapshot] = await Promise.all([
+        getDocs(postsQuery),
+        getDocs(announcementsQuery),
+      ]);
+
+      // 處理普通文章結果
+      const articles = postsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        source: "posts", // 標記來源以便區分
+        ...doc.data(),
+      }));
+
+      // 處理企業公告結果
+      const announcements = announcementsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        source: "enterprisePosts", // 標記來源以便區分
+        ...doc.data(),
+      }));
+
+      // 更新狀態
+      setPublishedArticles(articles);
+      setPublishedEnterpriseAnnouncements(announcements);
+    } catch (err) {
+      console.error("Error fetching published content:", err);
+    } finally {
+      setLoadingArticles(false);
+    }
+  };
+
+  // 添加路由監聽，當用戶從發布頁面返回時刷新資料
+  useEffect(() => {
+    // 當頂部標籤是「我的文章與企業公告」時執行刷新
+    if (value === 1) {
+      // 檢查函數存在性
+      if (typeof fetchPublishedArticles === "function") {
+        fetchPublishedArticles();
+      }
+    }
+  }, [value]);
 
   // When searchTerm changes, update the tab index
   useEffect(() => {

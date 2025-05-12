@@ -334,7 +334,7 @@ export default function EnterpriseDetailPage() {
             }}
           >
             {/* 標題與企業資訊 */}
-            <Box sx={{ textAlign: "center", mb: 4 }}>
+            <Box sx={{ textAlign: "center", mb: 4, position: "relative" }}>
               <Typography
                 variant="h4"
                 gutterBottom
@@ -342,8 +342,8 @@ export default function EnterpriseDetailPage() {
                 color="primary"
               >
                 {post.title}
-              </Typography>
-
+              </Typography>{" "}
+              {/* 移除這裡的收藏按鈕，只保留下方的按鈕 */}
               {/* 企業資訊與聯絡方式 */}
               <Box
                 sx={{
@@ -375,11 +375,12 @@ export default function EnterpriseDetailPage() {
                       post.companyName
                     )}
                   </Typography>
+                  <Typography variant="body1">{post.companyName}</Typography>
                 </Box>
                 {post.email && (
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <EmailIcon color="primary" />
-                    <Typography variant="subtitle1">
+                    <Typography variant="body1">
                       <Link
                         href={`mailto:${post.email}`}
                         underline="hover"
@@ -399,9 +400,8 @@ export default function EnterpriseDetailPage() {
               <Typography variant="body2" color="text.secondary">
                 發布時間：{hydrated ? formatDate(post.createdAt) : "載入中..."}
               </Typography>
-            </Box>
-
-            {/* 收藏按鈕 */}
+            </Box>{" "}
+            {/* 改進收藏按鈕樣式 */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
               <Button
                 variant={isFavorite ? "contained" : "outlined"}
@@ -411,14 +411,23 @@ export default function EnterpriseDetailPage() {
                 }
                 onClick={handleToggleFavorite}
                 disabled={favoriteLoading}
-                size="small"
+                size="medium"
+                sx={{
+                  borderRadius: "20px",
+                  px: 2,
+                  boxShadow: isFavorite ? 2 : 0,
+                  "&:hover": {
+                    boxShadow: 1,
+                  },
+                }}
               >
-                {isFavorite ? "已收藏" : "加入收藏"}
+                {favoriteLoading ? (
+                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                ) : null}
+                {isFavorite ? "已加入收藏" : "加入收藏"}
               </Button>
             </Box>
-
             <Divider sx={{ mb: 3 }} />
-
             {/* 根據公告類型顯示特定欄位 */}
             {post.announcementType && (
               <Box sx={{ mb: 4 }}>
@@ -848,9 +857,7 @@ export default function EnterpriseDetailPage() {
                 </Box>
               </Box>
             )}
-
             <Divider sx={{ mb: 3 }} />
-
             {/* 內容區 */}
             <Box
               sx={{
@@ -884,7 +891,6 @@ export default function EnterpriseDetailPage() {
                 {post.content ?? "尚無合作內容說明"}
               </Typography>
             </Box>
-
             {/* 聯絡按鈕和返回列表按鈕 */}
             <Box
               sx={{
@@ -907,24 +913,31 @@ export default function EnterpriseDetailPage() {
                 <Button
                   variant="contained"
                   color="primary"
-                  startIcon={<EmailIcon />}
+                  component={Link}
                   href={`mailto:${post.email}`}
+                  startIcon={<EmailIcon />}
                 >
                   聯絡企業
                 </Button>
               ) : (
-                <Typography color="text.secondary">
-                  此企業尚未提供聯絡方式
-                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  disabled
+                  startIcon={<EmailIcon />}
+                >
+                  無聯絡方式
+                </Button>
               )}
             </Box>
           </Paper>
         </Container>
-      </Box>
+      </Box>{" "}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}

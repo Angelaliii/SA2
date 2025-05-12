@@ -1,6 +1,8 @@
 "use client";
 
 import EventIcon from "@mui/icons-material/Event";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -9,13 +11,24 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Container,
+  IconButton,
   Link as MuiLink,
   Paper,
   Snackbar,
   Typography,
 } from "@mui/material";
-import { addDoc, collection } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import NextLink from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -44,6 +57,10 @@ export default function DemandPostDetailPage() {
     "success"
   );
 
+  // 收藏相關狀態
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setIsLoggedIn(!!user);
@@ -68,8 +85,30 @@ export default function DemandPostDetailPage() {
     };
 
     fetchPost();
+
+    // 檢查用戶是否已收藏該需求文章
+    const checkFavoriteStatus = async () => {
+      if (!auth.currentUser || !id) return;
+
+      try {
+        const q = query(
+          collection(db, "favorites"),
+          where("userId", "==", auth.currentUser.uid),
+          where("articleId", "==", id)
+        );
+
+        const snapshot = await getDocs(q);
+        setIsFavorite(!snapshot.empty);
+      } catch (error) {
+        console.error("Error checking favorite status:", error);
+      }
+    };
+
+    checkFavoriteStatus();
+
     return () => unsubscribe();
   }, [id]);
+
   if (!post) return null;
 
   // 使用一種固定格式，避免水合錯誤
@@ -145,6 +184,68 @@ export default function DemandPostDetailPage() {
     }
   };
 
+  // 處理收藏功能
+  const handleToggleFavorite = async () => {
+    if (!auth.currentUser) {
+      setSnackbarMessage("請先登入後再進行收藏");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    if (!id || !post) return;
+
+    setFavoriteLoading(true);
+
+    try {
+      const userId = auth.currentUser.uid;
+
+      // 檢查是否已收藏
+      const q = query(
+        collection(db, "favorites"),
+        where("userId", "==", userId),
+        where("articleId", "==", id)
+      );
+
+      const snapshot = await getDocs(q);
+
+      // 目前未收藏，進行收藏
+      if (snapshot.empty) {
+        const favoriteData = {
+          userId,
+          articleId: id,
+          postType: "demand",
+          title: post.title,
+          organizationName: post.organizationName,
+          content: post.content ?? post.demandDescription ?? "",
+          createdAt: new Date().toISOString(),
+        };
+
+        await setDoc(doc(collection(db, "favorites")), favoriteData);
+        setIsFavorite(true);
+        setSnackbarMessage("已成功加入收藏！");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+      }
+      // 已收藏，取消收藏
+      else {
+        const docToDelete = snapshot.docs[0];
+        await deleteDoc(doc(db, "favorites", docToDelete.id));
+        setIsFavorite(false);
+        setSnackbarMessage("已取消收藏");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
+      }
+    } catch (error) {
+      console.error("收藏操作失敗:", error);
+      setSnackbarMessage("操作失敗，請稍後再試");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
   // 導航到社團的合作列表頁面
   const handleNavigateToCollaborationList = () => {
     router.push(`/Profile?searchTerm=4`); // 導航到合作記錄標籤
@@ -156,10 +257,30 @@ export default function DemandPostDetailPage() {
       <Container maxWidth="md" sx={{ pt: 10, pb: 8 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, minHeight: "80vh" }}>
           {/* 標題 + 社團資訊 */}
-          <Box sx={{ textAlign: "center", mb: 4 }}>
+          <Box sx={{ textAlign: "center", mb: 4, position: "relative" }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
               {post.title}
             </Typography>
+
+            {/* 收藏按鈕 */}
+            <IconButton
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
+              sx={{
+                position: "absolute",
+                right: 0,
+                top: 0,
+                fontSize: "1.8rem",
+              }}
+            >
+              {favoriteLoading ? (
+                <CircularProgress size={20} />
+              ) : isFavorite ? (
+                "❤️"
+              ) : (
+                "🤍"
+              )}
+            </IconButton>
 
             {/* 社團名稱 */}
             <Typography
@@ -199,7 +320,19 @@ export default function DemandPostDetailPage() {
               {post.email ?? "未提供"}
             </Typography>
           </Box>
-
+          {/* 收藏按鈕區塊 */}{" "}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+            <Button
+              variant={isFavorite ? "contained" : "outlined"}
+              color={isFavorite ? "error" : "primary"}
+              startIcon={isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
+              size="small"
+            >
+              {isFavorite ? "已收藏" : "加入收藏"}
+            </Button>
+          </Box>
           {/* 需求物資 */}
           <Box
             sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
@@ -224,7 +357,6 @@ export default function DemandPostDetailPage() {
               <strong>需求說明：</strong> {post.demandDescription ?? "未填寫"}
             </Typography>
           </Box>
-
           {/* 活動資訊 */}
           <Box
             sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2, mb: 3 }}
@@ -250,7 +382,6 @@ export default function DemandPostDetailPage() {
               {post.eventDate ?? "未填寫"}
             </Typography>
           </Box>
-
           {/* 回饋與補充說明 */}
           <Box sx={{ backgroundColor: "#f9f9f9", p: 3, borderRadius: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -264,7 +395,6 @@ export default function DemandPostDetailPage() {
               <strong>補充說明：</strong> {post.eventDescription ?? "未填寫"}
             </Typography>
           </Box>
-
           {/* 發送訊息按鈕 */}
           {isLoggedIn && (
             <Box
@@ -306,6 +436,22 @@ export default function DemandPostDetailPage() {
               </Typography>
             </Box>
           )}
+          {/* 收藏按鈕 */}
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <IconButton
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
+              color="primary"
+            >
+              {favoriteLoading ? (
+                <CircularProgress size={24} />
+              ) : isFavorite ? (
+                <FavoriteIcon />
+              ) : (
+                <FavoriteBorderIcon />
+              )}
+            </IconButton>
+          </Box>
         </Paper>
       </Container>
 

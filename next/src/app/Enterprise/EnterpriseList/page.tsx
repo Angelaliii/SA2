@@ -1,8 +1,7 @@
 "use client";
 
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添加 Icon
 import BusinessIcon from "@mui/icons-material/Business";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
@@ -31,8 +30,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { companyServices } from "../../../firebase/services/company-service";
 import { enterpriseService } from "../../../firebase/services/enterprise-service";
-import { ClientOnly } from "../../../hooks/useHydration";
 import useHydration from "../../../hooks/useHydration";
 
 interface EnterprisePost {
@@ -45,8 +44,14 @@ interface EnterprisePost {
   status?: string;
   authorId?: string;
   isDraft?: boolean;
-  announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation";
+  announcementType?:
+    | "specialOfferPartnership"
+    | "activityCooperation"
+    | "internshipCooperation";
 }
+
+// 只在客戶端環境中使用 sessionStorage
+const isBrowser = typeof window !== "undefined";
 
 export default function EnterpriseListPage() {
   const [posts, setPosts] = useState<EnterprisePost[]>([]);
@@ -54,10 +59,11 @@ export default function EnterpriseListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  
+  const [isCompany, setIsCompany] = useState(false); // 添加公司權限檢查狀態
+
   // 修改：添加篩選類型狀態，預設為「全部」
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  
+
   const itemsPerPage = 8;
 
   // 獲取收藏狀態
@@ -105,6 +111,49 @@ export default function EnterpriseListPage() {
     };
 
     fetchPosts();
+  }, []);
+
+  // 檢查當前用戶是否為企業用戶
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setIsCompany(false);
+        return;
+      }
+
+      try {
+        // 檢查用戶是否是企業用戶
+        const companies = await companyServices.getCompaniesByUserId(user.uid);
+        console.log(
+          "企業用戶檢查:",
+          user.uid,
+          "找到企業:",
+          companies.length > 0 ? "是" : "否"
+        );
+        setIsCompany(companies.length > 0);
+
+        // 將企業用戶狀態保存到 sessionStorage，防止頁面刷新後丟失狀態
+        if (isBrowser) {
+          if (companies.length > 0) {
+            sessionStorage.setItem("isCompanyUser", "true");
+          } else {
+            sessionStorage.removeItem("isCompanyUser");
+          }
+        }
+      } catch (error) {
+        console.error("檢查用戶類型時出錯:", error);
+        setIsCompany(false);
+      }
+    };
+
+    // 先檢查 sessionStorage
+    const savedIsCompany =
+      isBrowser && sessionStorage.getItem("isCompanyUser") === "true";
+    setIsCompany(savedIsCompany);
+
+    // 再從伺服器獲取最新狀態
+    checkUserRole();
   }, []);
 
   // 处理收藏
@@ -197,12 +246,12 @@ export default function EnterpriseListPage() {
       // Use a consistent format that doesn't depend on locale settings
       const date = new Date(dateStr);
       // During hydration, return a simple string to avoid mismatches
-      return date.toISOString().split('T')[0];
+      return date.toISOString().split("T")[0];
     } catch (e) {
       return "日期格式錯誤";
     }
   };
-  
+
   const hydrated = useHydration();
 
   return (
@@ -242,28 +291,34 @@ export default function EnterpriseListPage() {
               borderColor: "divider",
             }}
           >
-            {" "}
-            <TextField
-              fullWidth
-              placeholder="搜尋企業名稱或合作內容..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />
-                ),
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
               }}
-              sx={{ bgcolor: "background.paper" }}
-            />
-          </Paper>{" "}
-          
+            >
+              <TextField
+                sx={{ flexGrow: 1 }}
+                placeholder="搜尋企業名稱或合作內容..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <SearchIcon sx={{ color: "action.active", mr: 1 }} />
+                  ),
+                }}
+              />
+            </Box>
+          </Paper>
           {/* 公告類型篩選按鈕 */}
-          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ mb: 4, display: "flex", flexDirection: "column", gap: 2 }}>
             <Typography variant="subtitle1" fontWeight="medium">
               公告類型篩選
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button 
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
                 variant={selectedType === null ? "contained" : "outlined"}
                 onClick={() => {
                   setSelectedType(null);
@@ -273,8 +328,12 @@ export default function EnterpriseListPage() {
               >
                 全部公告
               </Button>
-              <Button 
-                variant={selectedType === "specialOfferPartnership" ? "contained" : "outlined"}
+              <Button
+                variant={
+                  selectedType === "specialOfferPartnership"
+                    ? "contained"
+                    : "outlined"
+                }
                 onClick={() => {
                   setSelectedType("specialOfferPartnership");
                   setCurrentPage(1);
@@ -284,8 +343,12 @@ export default function EnterpriseListPage() {
               >
                 特約商店
               </Button>
-              <Button 
-                variant={selectedType === "activityCooperation" ? "contained" : "outlined"}
+              <Button
+                variant={
+                  selectedType === "activityCooperation"
+                    ? "contained"
+                    : "outlined"
+                }
                 onClick={() => {
                   setSelectedType("activityCooperation");
                   setCurrentPage(1);
@@ -295,8 +358,12 @@ export default function EnterpriseListPage() {
               >
                 活動合作
               </Button>
-              <Button 
-                variant={selectedType === "internshipCooperation" ? "contained" : "outlined"}
+              <Button
+                variant={
+                  selectedType === "internshipCooperation"
+                    ? "contained"
+                    : "outlined"
+                }
                 onClick={() => {
                   setSelectedType("internshipCooperation");
                   setCurrentPage(1);
@@ -308,7 +375,6 @@ export default function EnterpriseListPage() {
               </Button>
             </Box>
           </Box>
-          
           {/* 貼文列表 */}
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -329,6 +395,7 @@ export default function EnterpriseListPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.08 }}
                 >
+                  {" "}
                   <Card
                     sx={{
                       borderRadius: "16px",
@@ -339,6 +406,10 @@ export default function EnterpriseListPage() {
                         transform: "translateY(-4px)",
                         transition: "all 0.3s ease",
                       },
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      window.location.href = `/Enterprise/${post.id}`;
                     }}
                   >
                     <Box
@@ -363,52 +434,55 @@ export default function EnterpriseListPage() {
                         {/* 顯示公告類型標籤 */}
                         {post.announcementType && (
                           <Box sx={{ mb: 1.5 }}>
-                            {post.announcementType === "specialOfferPartnership" && (
+                            {post.announcementType ===
+                              "specialOfferPartnership" && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="primary"
                                 disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
                                   textTransform: "none",
                                   borderRadius: "12px",
-                                  mr: 1
+                                  mr: 1,
                                 }}
                               >
                                 特約商店
                               </Button>
                             )}
-                            {post.announcementType === "activityCooperation" && (
+                            {post.announcementType ===
+                              "activityCooperation" && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="secondary"
                                 disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
                                   textTransform: "none",
                                   borderRadius: "12px",
-                                  mr: 1
+                                  mr: 1,
                                 }}
                               >
                                 活動合作
                               </Button>
                             )}
-                            {post.announcementType === "internshipCooperation" && (
+                            {post.announcementType ===
+                              "internshipCooperation" && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="success"
                                 disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
                                   textTransform: "none",
                                   borderRadius: "12px",
-                                  mr: 1
+                                  mr: 1,
                                 }}
                               >
                                 實習合作
@@ -423,16 +497,16 @@ export default function EnterpriseListPage() {
                           <BusinessIcon fontSize="small" sx={{ mr: 1 }} />
 
                           <Link href={`/public-profile/${post.authorId}`}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "primary.main", // 藍色字
-                              cursor: "pointer",
-                            }}
-                          >
-                            {post.companyName ?? "未知企業"}
-                          </Typography>
-                        </Link>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "primary.main", // 藍色字
+                                cursor: "pointer",
+                              }}
+                            >
+                              {post.companyName ?? "未知企業"}
+                            </Typography>
+                          </Link>
                         </Box>
 
                         <Typography
@@ -469,6 +543,7 @@ export default function EnterpriseListPage() {
                           ml: 2,
                         }}
                       >
+                        {" "}
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -476,19 +551,15 @@ export default function EnterpriseListPage() {
                             toggleFavorite(post);
                           }}
                           sx={{ mb: 1 }}
-                          color={favorites[post.id] ? "error" : "default"}
                         >
-                          {favorites[post.id] ? (
-                            <FavoriteIcon />
-                          ) : (
-                            <FavoriteBorderIcon />
-                          )}
-                        </IconButton>
-
+                          {favorites[post.id] ? "❤️" : "🤍"}
+                        </IconButton>{" "}
                         <Button
                           variant="outlined"
-                          component={Link}
-                          href={`/Enterprise/${post.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/Enterprise/${post.id}`;
+                          }}
                           size="small"
                           sx={{ whiteSpace: "nowrap" }}
                         >
@@ -515,6 +586,41 @@ export default function EnterpriseListPage() {
           )}
         </Container>
       </Box>
+
+      {/* 浮動發布企業公告按鈕 - 只有企業用戶能看到 */}
+      {(isCompany ||
+        (isBrowser && sessionStorage.getItem("isCompanyUser") === "true")) && (
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 30,
+            right: 30,
+            zIndex: 999,
+          }}
+        >
+          <Button
+            component={Link}
+            href="/Enterprise"
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<AddCircleOutlineIcon />}
+            sx={{
+              borderRadius: 30,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+              "&:hover": {
+                boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                transform: "translateY(-2px)",
+                transition: "all 0.3s ease",
+              },
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            發布企業公告
+          </Button>
+        </Box>
+      )}
     </>
   );
 }

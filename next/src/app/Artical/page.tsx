@@ -525,11 +525,13 @@ export default function DemandPostPage() {
         setTimeout(() => {
           router.push("/Artical/DemandList"); // 這邊對應你紅筆框起來的路徑
         }, 2000);
-      }
-      // ✅ 加入跳轉邏輯（2 秒後跳轉）
+      } // ✅ 加入跳轉邏輯（2 秒後跳轉）
 
       setSnackbarSeverity("success");
       clearForm();
+
+      // 觸發資料刷新
+      localStorage.setItem("refreshArticles", "true");
     } catch (error) {
       console.error("發布文章時出錯:", error);
       setSnackbarMessage("發布失敗，請稍後再試");

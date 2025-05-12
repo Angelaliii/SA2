@@ -393,12 +393,13 @@ export default function FavoriteArticlesManager() {
               ))}
           </Stack>
         )}
-      </Box>
+      </Box>{" "}
       {/* Success/Error Snackbar */}
       <Snackbar
         open={!!success}
         autoHideDuration={3000}
         onClose={() => setSuccess("")}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert severity="success" sx={{ width: "100%" }}>
           {success}
@@ -408,6 +409,7 @@ export default function FavoriteArticlesManager() {
         open={!!error}
         autoHideDuration={3000}
         onClose={() => setError("")}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert severity="error" sx={{ width: "100%" }}>
           {error}

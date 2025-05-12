@@ -64,6 +64,7 @@ export default function SideNavbar({
         height: "100%",
         backgroundColor: theme.palette.background.default,
         overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
       <Typography
@@ -79,6 +80,7 @@ export default function SideNavbar({
           gap: 1.5,
           maxHeight: "calc(100vh - 150px)",
           overflowY: "auto",
+          overflowX: "hidden",
           pr: 1,
           mr: -1,
           "&::-webkit-scrollbar": {
@@ -179,6 +181,7 @@ export default function SideNavbar({
               position: "fixed",
               top: { xs: "56px", sm: "64px" },
               height: "calc(100% - 64px)",
+              overflowX: "hidden",
               overflowY: "hidden",
               backgroundColor: theme.palette.background.default,
               zIndex: theme.zIndex.drawer,

@@ -275,7 +275,6 @@ export default function ArticleManager() {
           </Box>
         )}
       </Box>
-
       {/* Edit Dialog */}
       <Dialog
         open={editDialogOpen}
@@ -313,7 +312,6 @@ export default function ArticleManager() {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
@@ -335,25 +333,23 @@ export default function ArticleManager() {
             刪除
           </Button>
         </DialogActions>
-      </Dialog>
-
+      </Dialog>{" "}
       {/* Success/Error Snackbar */}
       <Snackbar
         open={!!success}
         autoHideDuration={3000}
         onClose={() => setSuccess("")}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert severity="success" sx={{ width: "100%" }}>
           {success}
         </Alert>
       </Snackbar>
-
       <Snackbar
         open={!!error}
         autoHideDuration={3000}
         onClose={() => setError("")}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert severity="error" sx={{ width: "100%" }}>
           {error}

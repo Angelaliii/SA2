@@ -65,7 +65,8 @@ export default function Navbar({
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false); // Initialize to false explicitly
   const [openLogoutDialog, setOpenLogoutDialog] = useState<boolean>(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [userType, setUserType] = useState<"club" | "company" | "unknown">(
+  // 使用 userRole 而不是 userType，因為 userType 的值被使用了
+  const [userRole, setUserRole] = useState<"club" | "company" | "unknown">(
     "unknown"
   );
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
@@ -102,36 +103,41 @@ export default function Navbar({
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
-      if (!user) {
+      if (user) {
+        try {
+          // Try to find user in clubs collection first
+          const clubData = await clubServices.getClubByUserId(user.uid);
+          if (clubData) {
+            setUserName(clubData.clubName);
+            setUserRole("club");
+            return;
+          }
+
+          // If not found in clubs, try to find in companies collection
+          const companies = await companyServices.getCompaniesByUserId(
+            user.uid
+          );
+          if (companies && companies.length > 0) {
+            setUserName(companies[0].companyName);
+            setUserRole("company");
+            return;
+          }
+
+          // If still not found, use default display name
+          const displayName =
+            user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
+          setUserName(displayName);
+          setUserRole("unknown");
+        } catch (error) {
+          console.error("無法獲取組織名稱:", error);
+          const displayName =
+            user.displayName ?? user.email?.split("@")[0] ?? "夥伴";
+          setUserName(displayName);
+          setUserRole("unknown");
+        }
+      } else {
         setUserName(null);
-        setUserType("unknown");
-        return;
-      }
-
-      try {
-        // Try to find user in clubs collection first
-        const clubData = await clubServices.getClubByUserId(user.uid);
-        if (clubData) {
-          setUserName(clubData.clubName);
-          setUserType("club");
-          return;
-        }
-
-        // If not found in clubs, try to find in companies collection
-        const companies = await companyServices.getCompaniesByUserId(user.uid);
-        if (companies?.length > 0) {
-          setUserName(companies[0].companyName);
-          setUserType("company");
-          return;
-        }
-
-        // If still not found, use default display name
-        setUserName(user.displayName ?? user.email?.split("@")[0] ?? "夥伴");
-        setUserType("unknown");
-      } catch (error) {
-        console.error("無法獲取組織名稱:", error);
-        setUserName(user.displayName ?? user.email?.split("@")[0] ?? "夥伴");
-        setUserType("unknown");
+        setUserRole("unknown");
       }
     });
 
@@ -268,13 +274,14 @@ export default function Navbar({
                       href={page.path}
                     >
                       <Typography textAlign="center" component="span">
+                        {" "}
                         {page.name === "通知中心" ? (
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Badge
                               color="error"
                               variant="dot"
                               overlap="circular"
-                              invisible={isHydrated ? !displayUnread : true} // 確保服務器端渲染時始終不顯示紅點
+                              invisible={!hasUnread} // 使用 props 傳進來的 hasUnread
                             >
                               <NotificationsIcon sx={{ mr: 1 }} />
                             </Badge>
@@ -285,29 +292,8 @@ export default function Navbar({
                         )}
                       </Typography>
                     </MenuItem>
-                  ))}
-                  {isLoggedIn && userType === "company" && (
-                    <MenuItem
-                      onClick={handleCloseNavMenu}
-                      component={Link}
-                      href="/Enterprise"
-                    >
-                      <Typography textAlign="center" component="span">
-                        發布企業公告
-                      </Typography>
-                    </MenuItem>
-                  )}
-                  {isLoggedIn && userType === "club" && (
-                    <MenuItem
-                      onClick={handleCloseNavMenu}
-                      component={Link}
-                      href="/Artical"
-                    >
-                      <Typography textAlign="center" component="span">
-                        發布需求
-                      </Typography>
-                    </MenuItem>
-                  )}
+                  ))}{" "}
+                  {/* 移動按鈕到對應的頁面 */}
                 </Menu>
               </ClientOnly>
             </Box>
@@ -363,27 +349,8 @@ export default function Navbar({
                   >
                     {page.name}
                   </Button>
-                ))}
-                {isLoggedIn && userType === "company" && (
-                  <Button
-                    component={Link}
-                    href="/Enterprise"
-                    onClick={handleCloseNavMenu}
-                    sx={{ color: "white", mx: 0.5, height: 40 }}
-                  >
-                    發布企業公告
-                  </Button>
-                )}
-                {isLoggedIn && userType === "club" && (
-                  <Button
-                    component={Link}
-                    href="/Artical"
-                    onClick={handleCloseNavMenu}
-                    sx={{ color: "white", mx: 0.5, height: 40 }}
-                  >
-                    發布需求
-                  </Button>
-                )}
+                ))}{" "}
+                {/* 移動按鈕到對應的頁面 */}
               </ClientOnly>
             </Box>
             {/* User Greeting */}
@@ -429,11 +396,12 @@ export default function Navbar({
                   href="/messages"
                   sx={{ color: "white", mr: 2 }}
                 >
+                  {" "}
                   <Badge
                     color="error"
                     variant="dot"
                     overlap="circular"
-                    invisible={!displayUnread}
+                    invisible={!hasUnread}
                   >
                     <NotificationsIcon />
                   </Badge>
@@ -481,8 +449,24 @@ export default function Navbar({
                         component={Link}
                         href={option.path}
                       >
+                        {" "}
                         <Typography textAlign="center" component="span">
-                          {option.name}
+                          {(() => {
+                            // 使用立即執行函數來處理邏輯判斷
+                            if (
+                              userRole === "club" &&
+                              option.name === "社團註冊"
+                            ) {
+                              return null;
+                            }
+                            if (
+                              userRole === "company" &&
+                              option.name === "企業註冊"
+                            ) {
+                              return null;
+                            }
+                            return option.name;
+                          })()}
                         </Typography>
                       </MenuItem>
                     ))
@@ -492,25 +476,22 @@ export default function Navbar({
             </Box>
           </Toolbar>
         </Container>
-
         {/* Logout Confirmation */}
-        <ClientOnly>
-          <Dialog
-            open={openLogoutDialog}
-            onClose={() => setOpenLogoutDialog(false)}
-          >
-            <DialogTitle>確認登出</DialogTitle>
-            <DialogContent>
-              <DialogContentText>您確定要登出嗎？</DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
-              <Button onClick={handleLogout} color="primary" autoFocus>
-                確認登出
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </ClientOnly>
+        <Dialog
+          open={openLogoutDialog}
+          onClose={() => setOpenLogoutDialog(false)}
+        >
+          <DialogTitle>確認登出</DialogTitle>
+          <DialogContent>
+            <DialogContentText>您確定要登出嗎？</DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
+            <Button onClick={handleLogout} color="primary" autoFocus>
+              確認登出
+            </Button>
+          </DialogActions>
+        </Dialog>{" "}
       </AppBar>
     </ClientOnly>
   );

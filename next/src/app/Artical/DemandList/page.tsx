@@ -1,5 +1,6 @@
 "use client";
 
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添加 Icon
 import EventIcon from "@mui/icons-material/Event";
 import GroupIcon from "@mui/icons-material/Group";
 import InfoIcon from "@mui/icons-material/Info";
@@ -37,6 +38,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { clubServices } from "../../../firebase/services/club-service"; // 添加 clubServices
 import { scrollToTop } from "../../../utils/clientUtils";
 
 // Add interfaces for proper typing
@@ -62,7 +64,6 @@ interface Post {
   eventName?: string;
   eventDescription?: string;
   email?: string;
-  // ⭐ 新增這幾個欄位
   customItems?: string[];
   purposeType?: string;
   participationType?: string;
@@ -87,6 +88,7 @@ export default function DemandListPage() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每頁顯示8筆資料
+  const [isClub, setIsClub] = useState(false); // 添加社團權限檢查狀態
 
   // 獲取收藏狀態
   useEffect(() => {
@@ -406,6 +408,28 @@ export default function DemandListPage() {
     return filteredResults;
   };
 
+  // 檢查當前用戶是否為社團用戶
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setIsClub(false);
+        return;
+      }
+
+      try {
+        // 檢查用戶是否是社團用戶
+        const clubData = await clubServices.getClubByUserId(user.uid);
+        setIsClub(!!clubData);
+      } catch (error) {
+        console.error("檢查用戶類型時出錯:", error);
+        setIsClub(false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -438,25 +462,32 @@ export default function DemandListPage() {
               borderRadius: "12px",
             }}
           >
-            {" "}
             {/* 搜尋欄位 */}
-            <TextField
-              fullWidth
-              placeholder="搜尋需求…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ mb: 2 }}
-              // Using slotProps instead of deprecated InputProps
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                },
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
               }}
-            />
+            >
+              <TextField
+                sx={{ flexGrow: 1 }}
+                placeholder="搜尋需求…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                // Using slotProps instead of deprecated InputProps
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Box>
             {/* 日期篩選區域 */}
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <TextField
@@ -467,12 +498,12 @@ export default function DemandListPage() {
                 onChange={handleFilterChange}
                 name="startDate"
                 variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                // We can use sx to replace InputLabelProps
+                // 使用 sx 屬性設定標籤樣式
                 sx={{
                   "& .MuiInputLabel-root": {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                  },
+                  "& .MuiInputLabel-shrink": {
                     transform: "translate(14px, -9px) scale(0.75)",
                   },
                 }}
@@ -485,11 +516,12 @@ export default function DemandListPage() {
                 onChange={handleFilterChange}
                 name="endDate"
                 variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
+                // 使用 sx 屬性設定標籤樣式
                 sx={{
                   "& .MuiInputLabel-root": {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                  },
+                  "& .MuiInputLabel-shrink": {
                     transform: "translate(14px, -9px) scale(0.75)",
                   },
                 }}
@@ -537,8 +569,6 @@ export default function DemandListPage() {
               )}
             </Box>
           </Box>
-
-          {/* 把這段放進你的 return 區域對應位置 */}
 
           <Stack spacing={3}>
             {loading ? (
@@ -603,6 +633,7 @@ export default function DemandListPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.08 }}
                 >
+                  {" "}
                   <Card
                     sx={{
                       borderRadius: "16px",
@@ -613,6 +644,10 @@ export default function DemandListPage() {
                         transform: "translateY(-4px)",
                         transition: "all 0.3s ease",
                       },
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      window.location.href = `/Artical/${post.id}`;
                     }}
                   >
                     <Box
@@ -793,12 +828,13 @@ export default function DemandListPage() {
                           sx={{ mb: 1 }}
                         >
                           {favorites[post.id] ? "❤️" : "🤍"}
-                        </IconButton>
-
+                        </IconButton>{" "}
                         <Button
                           variant="outlined"
-                          component={Link}
-                          href={`/Artical/${post.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/Artical/${post.id}`;
+                          }}
                           size="small"
                           sx={{ whiteSpace: "nowrap" }}
                         >
@@ -826,6 +862,40 @@ export default function DemandListPage() {
           )}
         </Container>
       </Box>
+
+      {/* 浮動發布需求按鈕 - 只有社團用戶能看到 */}
+      {isClub && (
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 30,
+            right: 30,
+            zIndex: 999,
+          }}
+        >
+          <Button
+            component={Link}
+            href="/Artical"
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<AddCircleOutlineIcon />}
+            sx={{
+              borderRadius: 30,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+              "&:hover": {
+                boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                transform: "translateY(-2px)",
+                transition: "all 0.3s ease",
+              },
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            發布需求
+          </Button>
+        </Box>
+      )}
     </>
   );
 }

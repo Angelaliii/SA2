@@ -48,6 +48,7 @@ interface Organization {
   contactName?: string;
   contactPhone?: string;
   email?: string;
+  userId?: string; // 新增 userId 字段
   additionalInfo?: Record<string, any>; // 額外資訊，根據組織類型不同
 }
 
@@ -81,7 +82,6 @@ export default function OrganizationListPage() {
   const handleTabChange = (_event: SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
-
   // 處理訂閱/取消訂閱
   const handleSubscription = async (
     orgId: string,
@@ -90,6 +90,13 @@ export default function OrganizationListPage() {
     const currentUser = authServices.getCurrentUser();
     if (!currentUser) {
       setSnackbarMessage("請先登入才能訂閱組織");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // 檢查是否是訂閱自己的組織
+    if (currentUser.uid === orgId) {
+      setSnackbarMessage("無法訂閱自己的組織");
       setSnackbarOpen(true);
       return;
     }
@@ -176,9 +183,7 @@ export default function OrganizationListPage() {
           const companiesData = await companyServices.getAllCompanies();
 
           console.log("獲取的社團數量:", clubsData.length);
-          console.log("獲取的企業數量:", companiesData.length);
-
-          // 將社團資料轉換為統一格式
+          console.log("獲取的企業數量:", companiesData.length); // 將社團資料轉換為統一格式
           const clubOrganizations: Organization[] = clubsData.map((club) => ({
             id: club.id,
             name: club.clubName,
@@ -189,14 +194,13 @@ export default function OrganizationListPage() {
             contactName: club.contactName,
             contactPhone: club.contactPhone,
             email: club.email,
+            userId: club.userId, // 添加 userId 字段
             additionalInfo: {
               clubType: club.clubType,
               schoolName: club.schoolName,
               status: club.status,
             },
-          }));
-
-          // 將企業資料轉換為統一格式
+          })); // 將企業資料轉換為統一格式
           const companyOrganizations: Organization[] = companiesData.map(
             (company) => ({
               id: company.id,
@@ -208,6 +212,7 @@ export default function OrganizationListPage() {
               contactName: company.contactName,
               contactPhone: company.contactPhone,
               email: company.email,
+              userId: company.userId, // 添加 userId 字段
               additionalInfo: {
                 industryType: company.industryType,
                 businessId: company.businessId,
@@ -500,9 +505,10 @@ export default function OrganizationListPage() {
                             },
                           }}
                         >
+                          {" "}
                           <CardActionArea
                             component={Link}
-                            href={`/public-profile/${org.id}`}
+                            href={`/public-profile/${org.userId || org.id}`}
                             sx={{
                               flexGrow: 1,
                               display: "flex",
@@ -683,29 +689,35 @@ export default function OrganizationListPage() {
                             }}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Tooltip
-                              title={
-                                subscribedOrganizations.includes(org.id)
-                                  ? "取消訂閱"
-                                  : "訂閱組織"
-                              }
-                            >
-                              <IconButton
-                                color={
+                            {" "}
+                            {/* 只對非自己的組織顯示訂閱按鈕 */}
+                            {(!authServices.getCurrentUser() ||
+                              authServices.getCurrentUser()?.uid !==
+                                org.id) && (
+                              <Tooltip
+                                title={
                                   subscribedOrganizations.includes(org.id)
-                                    ? "primary"
-                                    : "default"
+                                    ? "取消訂閱"
+                                    : "訂閱組織"
                                 }
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSubscription(org.id, org.type);
-                                }}
-                                disabled={!isAuthenticated}
                               >
-                                <SubscriptionsIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                                <IconButton
+                                  color={
+                                    subscribedOrganizations.includes(org.id)
+                                      ? "primary"
+                                      : "default"
+                                  }
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSubscription(org.id, org.type);
+                                  }}
+                                  disabled={!isAuthenticated}
+                                >
+                                  <SubscriptionsIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Box>
                         </Card>
                       </Grid>

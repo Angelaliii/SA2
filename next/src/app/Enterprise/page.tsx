@@ -122,7 +122,6 @@ export default function EnterprisePostPage() {
   ];
   // 合約期限選項
   const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
-
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
@@ -135,6 +134,11 @@ export default function EnterprisePostPage() {
           if (companies && companies.length > 0) {
             setCompanyName(companies[0].companyName);
             setCompanyEmail(companies[0].email ?? user.email ?? "");
+
+            // 標記用戶為企業用戶
+            sessionStorage.setItem("isCompanyUser", "true");
+          } else {
+            console.log("用戶不是企業用戶，無法獲取企業信息");
           }
         } catch (error) {
           console.error("Error fetching company info:", error);
@@ -390,7 +394,6 @@ export default function EnterprisePostPage() {
           throw new Error(isDraftParam ? "儲存草稿失敗" : "發布失敗"); // 使用函數參數
         }
       }
-
       setSnackbarSeverity("success");
 
       // 清空表單
@@ -399,6 +402,19 @@ export default function EnterprisePostPage() {
       setAnnouncementType("");
       setPartnershipName("");
       setContractPeriodDuration("");
+
+      // 觸發資料刷新
+      localStorage.setItem("refreshArticles", "true");
+
+      // 標記用戶為企業用戶，確保發布按鈕在列表頁顯示
+      sessionStorage.setItem("isCompanyUser", "true");
+
+      // 添加跳轉
+      if (!isDraftParam) {
+        setTimeout(() => {
+          router.push("/Enterprise/EnterpriseList");
+        }, 2000);
+      }
       setContactName("");
       setContactPhone("");
       setContactEmail("");
@@ -1033,6 +1049,7 @@ export default function EnterprisePostPage() {
         open={openSnackbar}
         autoHideDuration={6000}
         onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={() => setOpenSnackbar(false)}

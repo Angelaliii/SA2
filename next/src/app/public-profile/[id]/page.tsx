@@ -136,10 +136,9 @@ export default function PublicProfilePage() {
     };
     if (id) fetchActivities();
   }, [selectedTag, id]);
-
   useEffect(() => {
     const fetchPublishedArticles = async () => {
-      if (selectedTag !== "已發佈文章") return;
+      // 無論當前選中的是哪個標籤，都預先加載文章數據
       setLoadingArticles(true);
       try {
         // 定義更具體的類型
@@ -161,6 +160,7 @@ export default function PublicProfilePage() {
           where("isDraft", "==", false)
         );
         const demandsSnapshot = await getDocs(demandsQuery);
+        console.log(`獲取到 ${demandsSnapshot.docs.length} 篇需求文章`);
         const demandArticles = demandsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -174,6 +174,7 @@ export default function PublicProfilePage() {
           where("isDraft", "==", false)
         );
         const enterpriseSnapshot = await getDocs(enterpriseQuery);
+        console.log(`獲取到 ${enterpriseSnapshot.docs.length} 篇企業公告`);
         const enterpriseArticles = enterpriseSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -234,10 +235,17 @@ export default function PublicProfilePage() {
       return;
     }
 
+    // 檢查是否是訂閱自己的組織
+    const currentUserId = auth.currentUser.uid;
+    if (currentUserId === id) {
+      setSnackbarMessage("無法訂閱自己的組織");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
+
     setSubscribing(true);
     try {
-      const currentUserId = auth.currentUser.uid;
-
       if (isSubscribed) {
         // 使用新的服務取消訂閱
         await subscriptionServices.unsubscribeFromOrganization(
@@ -483,12 +491,20 @@ export default function PublicProfilePage() {
       </Box>
     );
   };
-
-  // 主要內容渲染函數 - 簡化  // 主要內容渲染函數 - 優化
+  // 主要內容渲染函數 - 優化
   const renderContent = () => {
     switch (selectedTag) {
       case "個人檔案":
-        return renderProfileContent();
+        return (
+          <>
+            {renderProfileContent()}
+            {/* 在個人檔案頁面底部顯示已發佈文章 */}
+            <Box sx={{ mt: 4 }}>
+              <Divider sx={{ my: 3 }} />
+              {renderPublishedArticles()}
+            </Box>
+          </>
+        );
       case "已發佈文章":
         return renderPublishedArticles();
       case "活動資訊":
