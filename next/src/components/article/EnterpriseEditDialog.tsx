@@ -133,6 +133,15 @@ export default function EnterpriseEditDialog({
         return;
       }
       
+      // 檢查活動合作的申請截止日期必須早於活動開始日期
+      if (formData.announcementType === "activityCooperation" && 
+          formData.applicationDeadline && 
+          formData.activityStartDate && 
+          formData.applicationDeadline >= formData.activityStartDate) {
+        alert("申請截止日期必須早於活動開始日期");
+        return;
+      }
+      
       // Create a clean data object that matches EnterprisePost type
       const cleanData: Partial<EnterprisePost> = {
         ...Object.fromEntries(
