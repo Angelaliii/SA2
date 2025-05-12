@@ -296,6 +296,14 @@ export default function EnterprisePostPage() {
         setOpenSnackbar(true);
         return;
       }
+      
+      // 檢查申請截止日期必須早於活動開始日期
+      if (applicationDeadline && activityStartDate && applicationDeadline >= activityStartDate) {
+        setSnackbarMessage("申請截止日期必須早於活動開始日期");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        return;
+      }
     } else if (announcementType === "internshipCooperation") {
       if (
         !internshipTitle ||
