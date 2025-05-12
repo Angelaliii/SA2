@@ -100,24 +100,20 @@ export default function EnterprisePostPage() {
     "工作坊",
     "展覽",
     "比賽",
-    "營隊",
     "其他",
   ];
   // 合作方式選項
-  const cooperationTypeOptions = [
-    "贊助",
-    "場地提供",
-    "技術支援",
-    "媒體宣傳",
-    "其他",
-  ];
+  // const cooperationTypeOptions = [
+  //   "贊助",
+  //   "場地提供",
+  //   "技術支援",
+  //   "媒體宣傳",
+  //   "其他",
+  // ];
   // 面試方式選項
   const interviewMethodOptions = [
     "線上面試",
     "實體面試",
-    "電話面試",
-    "專案測試",
-    "多輪面試",
     "其他",
   ];
   // 合約期限選項

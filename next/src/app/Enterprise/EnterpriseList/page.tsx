@@ -217,7 +217,7 @@ export default function EnterpriseListPage() {
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ mb: 4 }}>
+          <Box sx={{ textAlign: "center", mb: 3 }}>
             <Typography
               variant="h4"
               component="h1"
