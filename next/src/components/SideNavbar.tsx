@@ -4,16 +4,12 @@ import ArticleIcon from "@mui/icons-material/Article";
 import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import EventIcon from "@mui/icons-material/Event";
 import FolderIcon from "@mui/icons-material/Folder";
+import HandshakeIcon from "@mui/icons-material/Handshake";
 import PersonIcon from "@mui/icons-material/Person";
-import {
-  Box,
-  Chip,
-  Drawer,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
+import { Box, Chip, Drawer, Typography, useTheme } from "@mui/material";
 import { useState } from "react";
+import { ClientOnly } from "../hooks/useHydration";
 
 interface SideNavbarProps {
   searchTerm: string;
@@ -21,35 +17,44 @@ interface SideNavbarProps {
   selectedTag: string | null;
   setSelectedTag: (tag: string | null) => void;
   drawerWidth?: number;
+  hideTabs?: string[]; // 新增可選 props
 }
 
 export default function SideNavbar({
-  searchTerm,
   setSearchTerm,
   selectedTag,
   setSelectedTag,
   drawerWidth = 240,
+  hideTabs = [], // 預設為空
 }: SideNavbarProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  // 原始標籤清單
+  const allTags = [
+    "個人檔案",
+    "已發佈文章",
+    "已訂閱組織",
+    "我的收藏",
+    "活動資訊",
+    "合作記錄",
+  ];
 
-  // 直接在組件內部定義標籤列表
-  const availableTags = ["個人檔案", "已發佈文章", "我的收藏", "活動資訊"];
+  // 過濾要隱藏的標籤
+  const availableTags = allTags.filter((tag) => !hideTabs.includes(tag));
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
-  // 處理標籤點擊，設置選中的標籤
   const handleTagClick = (tag: string) => {
     setSelectedTag(tag);
-    // 根據標籤設置對應的索引值
-    const index = availableTags.indexOf(tag);
-    // 如果 setSearchTerm 是用來設置 tab index 的，也可以更新它
-    setSearchTerm(index.toString());
+    // 合作記錄特殊處理
+    if (tag === "合作記錄") {
+      setSearchTerm("5");
+    } else {
+      const index = availableTags.indexOf(tag);
+      setSearchTerm(index.toString());
+    }
   };
-
   const drawerContent = (
     <Box
       sx={{
@@ -58,6 +63,7 @@ export default function SideNavbar({
         width: drawerWidth,
         height: "100%",
         backgroundColor: theme.palette.background.default,
+        overflow: "hidden",
       }}
     >
       <Typography
@@ -65,17 +71,29 @@ export default function SideNavbar({
         sx={{ mb: 3, fontWeight: "bold", color: theme.palette.primary.main }}
       >
         個人中心
-      </Typography>
-
+      </Typography>{" "}
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
           gap: 1.5,
+          maxHeight: "calc(100vh - 150px)",
+          overflowY: "auto",
+          pr: 1,
+          mr: -1,
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: theme.palette.primary.light,
+            borderRadius: "4px",
+          },
         }}
       >
         {availableTags.map((tag) => {
-          // Determine the appropriate icon for each tag
           let icon;
           switch (tag) {
             case "個人檔案":
@@ -84,11 +102,17 @@ export default function SideNavbar({
             case "已發佈文章":
               icon = <ArticleIcon fontSize="small" />;
               break;
+            case "已訂閱組織":
+              icon = <SubscriptionsIcon fontSize="small" />;
+              break;
             case "活動資訊":
               icon = <EventIcon fontSize="small" />;
               break;
             case "我的收藏":
               icon = <BookmarksIcon fontSize="small" />;
+              break;
+            case "合作記錄":
+              icon = <HandshakeIcon fontSize="small" />;
               break;
             default:
               icon = <FolderIcon fontSize="small" />;
@@ -143,27 +167,28 @@ export default function SideNavbar({
       component="nav"
       sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
     >
-      {/* Permanent drawer for desktop */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: "none", md: "block" },
-          "& .MuiDrawer-paper": {
-            boxSizing: "border-box",
-            width: drawerWidth,
-            borderRight: "1px solid rgba(0, 0, 0, 0.08)",
-            position: "fixed",
-            top: { xs: "56px", sm: "64px" }, // 根據 MUI AppBar 的高度調整
-            height: "calc(100% - 64px)",
-            overflowY: "hidden", // Changed from 'auto' to 'hidden' to remove scrollbar
-            backgroundColor: theme.palette.background.default,
-            zIndex: theme.zIndex.drawer,
-          },
-        }}
-        open
-      >
-        {drawerContent}
-      </Drawer>
+      <ClientOnly>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+              borderRight: "1px solid rgba(0, 0, 0, 0.08)",
+              position: "fixed",
+              top: { xs: "56px", sm: "64px" },
+              height: "calc(100% - 64px)",
+              overflowY: "hidden",
+              backgroundColor: theme.palette.background.default,
+              zIndex: theme.zIndex.drawer,
+            },
+          }}
+          open
+        >
+          {drawerContent}
+        </Drawer>
+      </ClientOnly>
     </Box>
   );
 }

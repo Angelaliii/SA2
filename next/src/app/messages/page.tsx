@@ -24,10 +24,12 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase/config";
+import HandshakeIcon from '@mui/icons-material/Handshake';
 
 type NotificationItem = {
   id: string;
@@ -41,9 +43,11 @@ type NotificationItem = {
 };
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [hasCollaborationMessages, setHasCollaborationMessages] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -121,6 +125,16 @@ export default function NotificationsPage() {
         );
 
         setNotifications(enriched);
+
+        // 檢查是否有合作相關的訊息
+        const hasCollaboration = enriched.some(msg => 
+          msg.messageContent.includes('合作') || 
+          msg.messageContent.includes('申請') || 
+          msg.messageContent.includes('婉拒') ||
+          msg.messageContent.includes('邀請') ||
+          msg.messageContent.includes('意願')
+        );
+        setHasCollaborationMessages(hasCollaboration);
       } catch (error) {
         console.error("Error fetching notifications:", error);
       } finally {
@@ -184,6 +198,67 @@ export default function NotificationsPage() {
     }
   };
 
+  const navigateToCollaborations = () => {
+    router.push("/Profile?searchTerm=4");
+  };
+
+  const renderMessageWithClickableTitle = (messageContent: string, postId?: string, postTitle?: string) => {
+    if (!postTitle || !postId) return messageContent;
+
+    // 檢查訊息中是否包含文章標題，如「文章標題」這樣的格式
+    const regex = new RegExp(`「([^」]*)」`, 'g');
+    let matches;
+    let lastIndex = 0;
+    const result = [];
+    let foundMatch = false;
+    
+    while ((matches = regex.exec(messageContent)) !== null) {
+      const matchText = matches[1];
+      
+      // 只有當匹配到的文字是文章標題時才處理
+      if (matchText === postTitle) {
+        foundMatch = true;
+        // 添加匹配前的文字
+        if (matches.index > lastIndex) {
+          result.push(messageContent.substring(lastIndex, matches.index + 1)); // +1 to include the opening quote
+        }
+        
+        // 添加帶有鏈接的標題
+        result.push(
+          <Link key={matches.index} href={`/Artical/${postId}`} style={{ 
+            color: "#1976d2", 
+            textDecoration: "none", 
+            fontWeight: "medium" 
+          }}>
+            {matchText}
+          </Link>
+        );
+        
+        // 更新 lastIndex 為匹配結束位置
+        lastIndex = matches.index + matches[0].length - 1; // -1 to exclude the closing quote
+      }
+    }
+    
+    // 添加剩餘的文字
+    if (lastIndex < messageContent.length) {
+      result.push(messageContent.substring(lastIndex));
+    }
+    
+    // 如果沒有找到匹配，但有 postTitle 和 postId，強制添加一個隱藏的連結
+    if (!foundMatch && postTitle && postId) {
+      return (
+        <>
+          {messageContent}
+          <Box sx={{ display: 'none' }}>
+            <Link href={`/Artical/${postId}`}>{postTitle}</Link>
+          </Box>
+        </>
+      );
+    }
+    
+    return result.length > 0 ? <>{result}</> : messageContent;
+  };
+
   return (
     <>
       <Navbar hasUnread={notifications.some((n) => !n.isRead)} />
@@ -223,6 +298,8 @@ export default function NotificationsPage() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     mb: 2,
+                    flexWrap: 'wrap',
+                    gap: 1
                   }}
                 >
                   <Typography
@@ -236,13 +313,25 @@ export default function NotificationsPage() {
                   >
                     通知中心
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    onClick={markAllAsRead}
-                    disabled={notifications.every((n) => n.isRead)}
-                  >
-                    全部標記為已讀
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {hasCollaborationMessages && (
+                      <Button 
+                        variant="outlined" 
+                        color="primary"
+                        startIcon={<HandshakeIcon />}
+                        onClick={navigateToCollaborations}
+                      >
+                        查看合作請求
+                      </Button>
+                    )}
+                    <Button
+                      variant="outlined"
+                      onClick={markAllAsRead}
+                      disabled={notifications.every((n) => n.isRead)}
+                    >
+                      全部標記為已讀
+                    </Button>
+                  </Box>
                 </Box>
                 <Divider sx={{ my: 2 }} />
 
@@ -307,7 +396,7 @@ export default function NotificationsPage() {
                             </Typography>
                           </Box>
                           <Typography sx={{ mt: 1, mb: 1 }}>
-                            {msg.messageContent}
+                            {renderMessageWithClickableTitle(msg.messageContent, msg.postId, msg.postTitle)}
                           </Typography>
                           {msg.postTitle && (
                             <Box
@@ -332,6 +421,23 @@ export default function NotificationsPage() {
                                   {msg.postTitle}
                                 </Link>
                               </Typography>
+                            </Box>
+                          )}
+                          
+                          {msg.messageContent.includes('合作') && (
+                            <Box sx={{ mt: 2, alignSelf: 'flex-end' }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<HandshakeIcon />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateToCollaborations();
+                                }}
+                              >
+                                前往審核合作請求
+                              </Button>
                             </Box>
                           )}
                         </ListItem>
