@@ -326,6 +326,7 @@ export default function CompanyRegister() {
               >
                 {/* 企業名稱 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="companyName"
                   label="企業名稱"
                   value={formData.companyName}
@@ -334,10 +335,26 @@ export default function CompanyRegister() {
                   helperText={errors.companyName}
                   fullWidth
                   required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
+                    },
+                  }}
                 />
 
                 {/* 統一編號 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="businessId"
                   label="統一編號"
                   value={formData.businessId}
@@ -347,8 +364,18 @@ export default function CompanyRegister() {
                   fullWidth
                   required
                   sx={{
-                    "& .MuiInputBase-input": {
-                      maxLength: 8,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
                     },
                   }}
                 />
@@ -383,6 +410,7 @@ export default function CompanyRegister() {
 
                 {/* 聯絡人姓名 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="contactName"
                   label="聯絡人姓名"
                   value={formData.contactName}
@@ -391,10 +419,26 @@ export default function CompanyRegister() {
                   helperText={errors.contactName}
                   fullWidth
                   required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
+                    },
+                  }}
                 />
 
                 {/* 聯絡人電話 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="contactPhone"
                   label="聯絡人電話"
                   value={formData.contactPhone}
@@ -403,10 +447,26 @@ export default function CompanyRegister() {
                   helperText={errors.contactPhone}
                   fullWidth
                   required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
+                    },
+                  }}
                 />
 
                 {/* 電子郵件 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="email"
                   label="電子郵件"
                   type="email"
@@ -416,10 +476,26 @@ export default function CompanyRegister() {
                   helperText={errors.email}
                   fullWidth
                   required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
+                    },
+                  }}
                 />
 
                 {/* 密碼 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="password"
                   label="密碼"
                   type="password"
@@ -431,10 +507,26 @@ export default function CompanyRegister() {
                   }
                   fullWidth
                   required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
+                    },
+                  }}
                 />
 
                 {/* 確認密碼 */}
                 <TextField
+                  variant="outlined" // 新增這行！
                   name="confirmPassword"
                   label="確認密碼"
                   type="password"
@@ -444,6 +536,21 @@ export default function CompanyRegister() {
                   helperText={errors.confirmPassword}
                   fullWidth
                   required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,         // 邊角一樣圓滑
+                      height: "56px",           // 高度一樣（跟select對齊）
+                      "& fieldset": {
+                        borderWidth: "1px",     // 邊框厚度
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1976d2", // 滑鼠移上去的框線顏色（可以調）
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2", // 聚焦時的框線顏色
+                      },
+                    },
+                  }}
                 />
 
                 {/* 公司描述 */}

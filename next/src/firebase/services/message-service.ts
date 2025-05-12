@@ -3,7 +3,7 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "../config"; // 引入 Firestore 配置
 
 // 用來發送訊息的函式
-export const sendMessage = async (senderId: string, receiverId: string, postId: string, messageContent: string, isRead: boolean) => {
+export const sendMessage = async (senderId: string, receiverId: string, postId: string, messageContent: string) => {
   try {
     // 向 Firestore 的 "messages" 集合寫入資料
     await addDoc(collection(db, "messages"), {
