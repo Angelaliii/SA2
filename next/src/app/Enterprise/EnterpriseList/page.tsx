@@ -46,6 +46,10 @@ interface EnterprisePost {
   authorId?: string;
   isDraft?: boolean;
   announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation";
+  // 添加子篩選所需欄位
+  contractPeriodDuration?: string; // 合約年限
+  activityType?: string; // 活動類型
+  interviewMethod?: string; // 面試方式
 }
 
 export default function EnterpriseListPage() {
@@ -58,7 +62,17 @@ export default function EnterpriseListPage() {
   // 修改：添加篩選類型狀態，預設為「全部」
   const [selectedType, setSelectedType] = useState<string | null>(null);
   
+  // 添加子篩選項狀態
+  const [contractPeriod, setContractPeriod] = useState<string>("");
+  const [activityType, setActivityType] = useState<string>("");
+  const [interviewMethod, setInterviewMethod] = useState<string>("");
+  
   const itemsPerPage = 8;
+
+  // 篩選選項
+  const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
+  const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "其他"];
+  const interviewMethodOptions = ["線上面試", "實體面試", "其他"];
 
   // 獲取收藏狀態
   useEffect(() => {
@@ -173,6 +187,22 @@ export default function EnterpriseListPage() {
     if (selectedType && post.announcementType !== selectedType) {
       return false;
     }
+    
+    // 應用子篩選條件
+    if (selectedType === "specialOfferPartnership" && contractPeriod && 
+        post.contractPeriodDuration !== contractPeriod) {
+      return false;
+    }
+    
+    if (selectedType === "activityCooperation" && activityType && 
+        post.activityType !== activityType) {
+      return false;
+    }
+    
+    if (selectedType === "internshipCooperation" && interviewMethod && 
+        post.interviewMethod !== interviewMethod) {
+      return false;
+    }
 
     // 如果搜尋詞為空，顯示所有符合類型篩選的非草稿文章
     if (!searchTerm.trim()) return true;
@@ -248,7 +278,6 @@ export default function EnterpriseListPage() {
               placeholder="搜尋企業名稱或合作內容..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              // Use modern approach instead of deprecated InputProps
               slotProps={{
                 input: {
                   startAdornment: (
@@ -258,59 +287,167 @@ export default function EnterpriseListPage() {
               }}
               sx={{ bgcolor: "background.paper" }}
             />
-          </Paper>{" "}
-          
-          {/* 公告類型篩選按鈕 */}
-          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="subtitle1" fontWeight="medium">
-              公告類型篩選
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button 
-                variant={selectedType === null ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType(null);
-                  setCurrentPage(1);
-                }}
-                size="medium"
-              >
-                全部公告
-              </Button>
-              <Button 
-                variant={selectedType === "specialOfferPartnership" ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType("specialOfferPartnership");
-                  setCurrentPage(1);
-                }}
-                size="medium"
-                color="primary"
-              >
-                特約商店
-              </Button>
-              <Button 
-                variant={selectedType === "activityCooperation" ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType("activityCooperation");
-                  setCurrentPage(1);
-                }}
-                size="medium"
-                color="secondary"
-              >
-                活動合作
-              </Button>
-              <Button 
-                variant={selectedType === "internshipCooperation" ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType("internshipCooperation");
-                  setCurrentPage(1);
-                }}
-                size="medium"
-                color="success"
-              >
-                實習合作
-              </Button>
+            
+            {/* 公告類型篩選按鈕 */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                公告類型篩選
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button 
+                  variant={selectedType === null ? "contained" : "outlined"}
+                  onClick={() => {
+                    setSelectedType(null);
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                >
+                  全部公告
+                </Button>
+                <Button 
+                  variant={selectedType === "specialOfferPartnership" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setSelectedType("specialOfferPartnership");
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                  color="primary"
+                >
+                  特約商店
+                </Button>
+                <Button 
+                  variant={selectedType === "activityCooperation" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setSelectedType("activityCooperation");
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                  color="secondary"
+                >
+                  活動合作
+                </Button>
+                <Button 
+                  variant={selectedType === "internshipCooperation" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setSelectedType("internshipCooperation");
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                  color="success"
+                >
+                  實習合作
+                </Button>
+              </Box>
             </Box>
-          </Box>
+          
+            {/* 根據選擇的公告類型顯示對應的子篩選器 */}
+            {selectedType && (
+              <Box sx={{ mt: 2.5, borderTop: '1px solid', borderColor: 'divider', pt: 2.5 }}>
+                {selectedType === "specialOfferPartnership" && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      合約年限
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button 
+                        variant={contractPeriod === "" ? "contained" : "outlined"}
+                        onClick={() => {
+                          setContractPeriod("");
+                          setCurrentPage(1);
+                        }}
+                        size="small"
+                      >
+                        全部
+                      </Button>
+                      {contractPeriodOptions.map(option => (
+                        <Button 
+                          key={option}
+                          variant={contractPeriod === option ? "contained" : "outlined"}
+                          onClick={() => {
+                            setContractPeriod(option);
+                            setCurrentPage(1);
+                          }}
+                          size="small"
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                
+                {selectedType === "activityCooperation" && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      活動類型
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button 
+                        variant={activityType === "" ? "contained" : "outlined"}
+                        onClick={() => {
+                          setActivityType("");
+                          setCurrentPage(1);
+                        }}
+                        size="small"
+                        color="secondary"
+                      >
+                        全部
+                      </Button>
+                      {activityTypeOptions.map(option => (
+                        <Button 
+                          key={option}
+                          variant={activityType === option ? "contained" : "outlined"}
+                          onClick={() => {
+                            setActivityType(option);
+                            setCurrentPage(1);
+                          }}
+                          size="small"
+                          color="secondary"
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                
+                {selectedType === "internshipCooperation" && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      面試方式
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button 
+                        variant={interviewMethod === "" ? "contained" : "outlined"}
+                        onClick={() => {
+                          setInterviewMethod("");
+                          setCurrentPage(1);
+                        }}
+                        size="small"
+                        color="success"
+                      >
+                        全部
+                      </Button>
+                      {interviewMethodOptions.map(option => (
+                        <Button 
+                          key={option}
+                          variant={interviewMethod === option ? "contained" : "outlined"}
+                          onClick={() => {
+                            setInterviewMethod(option);
+                            setCurrentPage(1);
+                          }}
+                          size="small"
+                          color="success"
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Paper>{" "}
           
           {/* 貼文列表 */}
           {loading ? (
