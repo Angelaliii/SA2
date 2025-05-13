@@ -103,6 +103,13 @@ export default function DemandListPage() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每頁顯示8筆資料
+// 分別篩選收起
+  const [selectedFilterType, setSelectedFilterType] = useState<string>("");
+
+const handleDemandTypeClick = (type: string) => {
+  setDemandType(type === "全部" ? "" : type);
+  setSelectedFilterType(type === "全部" ? "" : type);
+};
 
   // 獲取收藏狀態
   useEffect(() => {
@@ -235,7 +242,7 @@ export default function DemandListPage() {
     };
 
     fetchPosts();
-  }, [filters, currentPage, itemsPerPage, searchTerm]);
+  }, [filters, currentPage, itemsPerPage, searchTerm,demandType]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({
@@ -344,90 +351,98 @@ export default function DemandListPage() {
 
   // Helper function to apply filters to posts
   const applyFilters = (posts: Post[]): Post[] => {
-    let filteredResults = [...posts];
+  let filteredResults = [...posts];
 
-    // Filter by demand type
-    if (filters.selectedDemand) {
-      filteredResults = filteredResults.filter((post) => {
-        return (
-          Array.isArray(post.selectedDemands) &&
-          post.selectedDemands?.includes(filters.selectedDemand)
-        );
-      });
-    }
+  // ✅ 篩選：贊助類型（物資／金錢／講師）
+  if (demandType) {
+    filteredResults = filteredResults.filter(
+      (post) => post.demandType === demandType
+    );
+  }
 
-    // Filter by event type
-    if (filters.selectedEventType) {
-      filteredResults = filteredResults.filter(
-        (post) => post.eventType === filters.selectedEventType
+  // 篩選：selectedDemand
+  if (filters.selectedDemand) {
+    filteredResults = filteredResults.filter((post) => {
+      return (
+        Array.isArray(post.selectedDemands) &&
+        post.selectedDemands?.includes(filters.selectedDemand)
       );
-    }
+    });
+  }
 
-    // Filter by event nature
-    if (filters.selectedEventNature) {
-      filteredResults = filteredResults.filter(
-        (post) => post.eventNature === filters.selectedEventNature
-      );
-    }
+  // 篩選：eventType
+  if (filters.selectedEventType) {
+    filteredResults = filteredResults.filter(
+      (post) => post.eventType === filters.selectedEventType
+    );
+  }
 
-    // Filter by date range
-    if (filters.startDate || filters.endDate) {
-      filteredResults = filteredResults.filter((post) => {
-        if (!post.eventDate) return false;
+  // 篩選：eventNature
+  if (filters.selectedEventNature) {
+    filteredResults = filteredResults.filter(
+      (post) => post.eventNature === filters.selectedEventNature
+    );
+  }
 
-        try {
-          const postDate = new Date(post.eventDate);
-          if (isNaN(postDate.getTime())) return false;
+  // 篩選：活動日期範圍
+  if (filters.startDate || filters.endDate) {
+    filteredResults = filteredResults.filter((post) => {
+      if (!post.eventDate) return false;
 
-          if (filters.startDate && filters.endDate) {
-            const start = new Date(filters.startDate);
-            const end = new Date(filters.endDate);
-            end.setHours(23, 59, 59, 999);
-            return postDate >= start && postDate <= end;
-          } else if (filters.startDate) {
-            const start = new Date(filters.startDate);
-            return postDate >= start;
-          } else if (filters.endDate) {
-            const end = new Date(filters.endDate);
-            end.setHours(23, 59, 59, 999);
-            return postDate <= end;
-          }
-          return true;
-        } catch (error) {
-          console.error("日期篩選出錯:", error);
-          return false;
+      try {
+        const postDate = new Date(post.eventDate);
+        if (isNaN(postDate.getTime())) return false;
+
+        if (filters.startDate && filters.endDate) {
+          const start = new Date(filters.startDate);
+          const end = new Date(filters.endDate);
+          end.setHours(23, 59, 59, 999);
+          return postDate >= start && postDate <= end;
+        } else if (filters.startDate) {
+          const start = new Date(filters.startDate);
+          return postDate >= start;
+        } else if (filters.endDate) {
+          const end = new Date(filters.endDate);
+          end.setHours(23, 59, 59, 999);
+          return postDate <= end;
         }
-      });
-    }
+        return true;
+      } catch (error) {
+        console.error("日期篩選出錯:", error);
+        return false;
+      }
+    });
+  }
 
-    // Filter by participant count
-    if (filters.minParticipants && filters.minParticipants !== "0") {
-      filteredResults = filteredResults.filter((post) => {
-        try {
-          const minRequired = parseInt(filters.minParticipants);
-          const actual = parseInt(post.estimatedParticipants ?? "0");
-          return !isNaN(actual) && actual >= minRequired;
-        } catch (error) {
-          console.error("參與人數篩選出錯:", error);
-          return false;
-        }
-      });
-    }
+  // 篩選：參與人數
+  if (filters.minParticipants && filters.minParticipants !== "0") {
+    filteredResults = filteredResults.filter((post) => {
+      try {
+        const minRequired = parseInt(filters.minParticipants);
+        const actual = parseInt(post.estimatedParticipants ?? "0");
+        return !isNaN(actual) && actual >= minRequired;
+      } catch (error) {
+        console.error("參與人數篩選出錯:", error);
+        return false;
+      }
+    });
+  }
 
-    // Filter by search term
-    if (searchTerm) {
-      filteredResults = filteredResults.filter(
-        (post) =>
-          post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          post.organizationName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase())
-      );
-    }
+  // 篩選：關鍵字
+  if (searchTerm) {
+    filteredResults = filteredResults.filter(
+      (post) =>
+        post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        post.organizationName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
+    );
+  }
 
-    return filteredResults;
-  };
+  return filteredResults;
+};
+
 
   return (
     <>
@@ -454,201 +469,190 @@ export default function DemandListPage() {
 
           {/* 篩選條件區塊 */}
           <Paper
-            elevation={1}
-            sx={{
-              p: 3,
-              mb: 4,
-              borderRadius: "12px",
-            }}
+  elevation={1}
+  sx={{
+    p: 3,
+    mb: 4,
+    borderRadius: "12px",
+  }}
+>
+  {/* 🔍 搜尋需求欄位在最上方 */}
+  <TextField
+    fullWidth
+    placeholder="搜尋文章…"
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    sx={{ mb: 3 }}
+    slotProps={{
+      input: {
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      },
+    }}
+  />
+
+  {/* 🔘 類型篩選按鈕 */}
+  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+    {["全部", "物資", "金錢", "講師"].map((type) => (
+      <Button
+        key={type}
+        variant={
+          demandType === type || (type === "全部" && demandType === "")
+            ? "contained"
+            : "outlined"
+        }
+        color={
+          type === "金錢"
+            ? "error"
+            : type === "講師"
+            ? "success"
+            : "primary"
+        }
+        onClick={() => handleDemandTypeClick(type)}
+      >
+        {type}
+      </Button>
+    ))}
+  </Box>
+
+  {/* ⛔ 尚未選擇任何類型時不顯示表單 */}
+  {selectedFilterType && (
+    <>
+      {/* ✅ 以下根據 selectedFilterType 顯示對應篩選表單 */}
+      {selectedFilterType === "物資" && (
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            fullWidth
+            select
+            label="物資類別"
+            value={materialCategory}
+            onChange={(e) => setMaterialCategory(e.target.value)}
+            SelectProps={{ native: true }}
           >
-            {/* 橫向區塊：贊助類型按鈕 + 動態條件 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              {["物資", "金錢", "講師"].map((type) => (
-                <Button
-                  key={type}
-                  variant={demandType === type ? "contained" : "outlined"}
-                  color={type === "金錢" ? "error" : type === "講師" ? "success" : "primary"}
-                  onClick={() => setDemandType(type)}
-                >
-                  {type}
-                </Button>
-              ))}
-            </Box>
-
-            {/* 地區選單 */}
-            <Box sx={{ mb: 2 }}>
-              <TextField
-                select
-                fullWidth
-                label="地區"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                SelectProps={{
-                  native: true,
-                }}
-              >
-                <option value=""></option>
-                {["台北", "新北", "桃園", "台中", "高雄"].map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </TextField>
-            </Box>
-
-            {/* 贊助類型對應條件：物資 */}
-            {demandType === "物資" && (
-              <Box sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="物資類別"
-                  value={materialCategory}
-                  onChange={(e) => setMaterialCategory(e.target.value)}
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
-                  <option value=""></option>
-                  {["飲料", "食物", "生活用品", "戶外用品", "其他"].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </TextField>
-              </Box>
+            <option value=""></option>
+            {["飲料", "食物", "生活用品", "戶外用品", "其他"].map(
+              (option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              )
             )}
+          </TextField>
+        </Box>
+      )}
 
-            {/* 贊助類型對應條件：金錢 */}
-            {demandType === "金錢" && (
-              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                <TextField
-                  label="金額下限（元）"
-                  type="number"
-                  fullWidth
-                  value={minAmount}
-                  onChange={(e) => setMinAmount(e.target.value)}
-                />
-                <TextField
-                  label="金額上限（元）"
-                  type="number"
-                  fullWidth
-                  value={maxAmount}
-                  onChange={(e) => setMaxAmount(e.target.value)}
-                />
-              </Box>
-            )}
+      {selectedFilterType === "金錢" && (
+        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+          <TextField
+            label="金額下限（元）"
+            type="number"
+            fullWidth
+            value={minAmount}
+            onChange={(e) => setMinAmount(e.target.value)}
+          />
+          <TextField
+            label="金額上限（元）"
+            type="number"
+            fullWidth
+            value={maxAmount}
+            onChange={(e) => setMaxAmount(e.target.value)}
+          />
+        </Box>
+      )}
 
-            {/* 贊助類型對應條件：講師 */}
-            {demandType === "講師" && (
-              <Box sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="講師主題"
-                  value={speakerType}
-                  onChange={(e) => setSpeakerType(e.target.value)}
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
-                  <option value=""></option>
-                  {["專業技能", "職涯分享", "產業趨勢", "其他"].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </TextField>
-              </Box>
-            )}
+      {selectedFilterType === "講師" && (
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            select
+            fullWidth
+            label="講師主題"
+            value={speakerType}
+            onChange={(e) => setSpeakerType(e.target.value)}
+            SelectProps={{ native: true }}
+          >
+            <option value=""></option>
+            {["專業技能", "職涯分享", "產業趨勢", "其他"].map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </TextField>
+        </Box>
+      )}
 
-            {/* 下方區塊：文字搜尋與日期範圍 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <TextField
-                fullWidth
-                label="活動名稱關鍵字"
-                value={keywordEvent}
-                onChange={(e) => setKeywordEvent(e.target.value)}
-              />
-              <TextField
-                fullWidth
-                label="組織名稱關鍵字"
-                value={keywordOrg}
-                onChange={(e) => setKeywordOrg(e.target.value)}
-              />
-            </Box>
+      {/* ✅ 共通條件：活動名稱、性質、時間、人數等 */}
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <TextField
+          fullWidth
+          label="活動名稱關鍵字"
+          value={keywordEvent}
+          onChange={(e) => setKeywordEvent(e.target.value)}
+        />
+        <TextField
+          fullWidth
+          label="組織名稱關鍵字"
+          value={keywordOrg}
+          onChange={(e) => setKeywordOrg(e.target.value)}
+        />
+      </Box>
 
-            {/* 活動相關篩選 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <TextField
-                select
-                fullWidth
-                label="活動性質"
-                value={eventNature}
-                onChange={(e) => {
-                  setEventNature(e.target.value);
-                  setFilters({...filters, selectedEventNature: e.target.value});
-                }}
-                SelectProps={{
-                  native: true,
-                }}
-              >
-                <option value=""></option>
-                {["迎新", "講座", "比賽", "展覽", "工作坊", "營隊", "其他"].map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </TextField>
-              
-              <TextField
-                fullWidth
-                type="date"
-                label="活動開始日期"
-                value={eventStartDate}
-                onChange={(e) => setEventStartDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <TextField
+          select
+          fullWidth
+          label="活動性質"
+          value={eventNature}
+          onChange={(e) => {
+            setEventNature(e.target.value);
+            setFilters({
+              ...filters,
+              selectedEventNature: e.target.value,
+            });
+          }}
+          SelectProps={{ native: true }}
+        >
+          <option value=""></option>
+          {["迎新", "講座", "比賽", "展覽", "其他"].map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </TextField>
+        <TextField
+          fullWidth
+          type="date"
+          label="活動開始日期"
+          value={eventStartDate}
+          onChange={(e) => setEventStartDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+      </Box>
 
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                fullWidth
-                type="date"
-                label="活動結束日期"
-                value={eventEndDate}
-                onChange={(e) => setEventEndDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                type="number"
-                label="最少參與人數"
-                value={filters.minParticipants}
-                onChange={handleFilterChange}
-                name="minParticipants"
-              />
-            </Box>
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <TextField
+          fullWidth
+          type="date"
+          label="活動結束日期"
+          value={eventEndDate}
+          onChange={(e) => setEventEndDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+        <TextField
+          fullWidth
+          type="number"
+          label="最少參與人數"
+          value={filters.minParticipants}
+          onChange={handleFilterChange}
+          name="minParticipants"
+        />
+      </Box>
+    </>
+  )}
+</Paper>
 
-            {/* 搜尋欄位 */}
-            <TextField
-              fullWidth
-              placeholder="搜尋需求…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ mt: 2 }}
-              // Using slotProps instead of deprecated InputProps
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Paper>
           {/* Removing the category filter buttons */}
           <Box sx={{ mt: 2, mb: 3 }}></Box>
 
@@ -748,12 +752,7 @@ export default function DemandListPage() {
                         </Typography>
                         
                         <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip 
-                            label={post.eventNature || "未指定"} 
-                            size="small" 
-                            sx={{ backgroundColor: '#E3F2FD', color: '#1565C0' }}
-                          />
-                          <Typography variant="body2" sx={{ color: '#757575' }}>•</Typography>
+                          
                           
                           {/* 不同贊助類型有不同顏色 */}
                           {post.demandType === "物資" && (

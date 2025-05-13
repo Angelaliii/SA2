@@ -214,22 +214,7 @@ export default function DemandPostDetailPage() {
               <Typography variant="h5" fontWeight="bold">
                 {post.title}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                由 {" "}
-                <MuiLink 
-                  href={`/public-profile/${post.authorId}`}
-                  sx={{ 
-                    color: "primary.main", 
-                    textDecoration: "none",
-                    "&:hover": { textDecoration: "underline" } 
-                  }}
-                >
-                  {clubInfo?.clubName ?? post.organizationName ?? "未知社團"}
-                </MuiLink>
-                {" "}｜{" "}
-                {clubInfo?.schoolName ?? "未知學校"}
-                {" "}發布
-              </Typography>
+              
             </Box>
             <IconButton 
               onClick={handleToggleFavorite}

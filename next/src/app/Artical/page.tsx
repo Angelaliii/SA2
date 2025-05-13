@@ -26,7 +26,7 @@ import DemandDraftManager from "../../components/article/DemandDraftManager";
 import DeleteDraftDialog from "../../components/article/DeleteDraftDialog";
 
 // 定義活動性質選項
-const eventNatureOptions = ["迎新", "講座", "比賽", "展覽", "工作坊", "營隊", "其他"];
+const eventNatureOptions = ["迎新", "講座", "比賽", "展覽", "其他"];
 
 export default function DemandPostPage() {
   const router = useRouter();
@@ -358,11 +358,11 @@ export default function DemandPostPage() {
 
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
-      
+
       setTimeout(() => {
         router.push("/Artical/DemandList");
       }, 2000);
-      
+
       clearForm();
     } catch (error) {
       console.error("發布文章時出錯:", error);
@@ -415,7 +415,7 @@ export default function DemandPostPage() {
       };
 
       let result;
-      
+
       if (currentDraftId) {
         // 更新現有草稿
         result = await postService.updatePost(currentDraftId, postData);
@@ -598,8 +598,8 @@ export default function DemandPostPage() {
                 }}
               >
                 <Typography variant="h6" gutterBottom>贊助活動</Typography>
-              
-                
+
+
                 <TextField
                   fullWidth
                   label={
@@ -614,26 +614,26 @@ export default function DemandPostPage() {
                   error={errors.eventName}
                   helperText={errors.eventName ? "此欄為必填" : ""}
                 />
-                
+
                 <Autocomplete
                   options={eventNatureOptions}
                   value={eventNature}
                   onChange={(_, val) => setEventNature(val ?? "")}
                   renderInput={(params) => (
-                    <TextField 
-                      {...params} 
+                    <TextField
+                      {...params}
                       label={
                         <>
                           活動性質 <span style={{ color: "#d32f2f" }}>*</span>
                         </>
-                      } 
+                      }
                       error={errors.eventNature}
                       helperText={errors.eventNature ? "此欄為必填" : ""}
                       sx={{ mb: 3 }}
                     />
                   )}
                 />
-                
+
                 <TextField
                   fullWidth
                   label={
@@ -650,7 +650,7 @@ export default function DemandPostPage() {
                   error={errors.estimatedParticipants}
                   helperText={errors.estimatedParticipants ? "必須大於0" : ""}
                 />
-                
+
                 <TextField
                   fullWidth
                   label="活動地點"
@@ -659,7 +659,7 @@ export default function DemandPostPage() {
                   onChange={(e) => setLocation(e.target.value)}
                   sx={{ mb: 3 }}
                 />
-                
+
                 <TextField
                   fullWidth
                   label={
@@ -675,7 +675,7 @@ export default function DemandPostPage() {
                   error={errors.sponsorDeadline}
                   helperText={errors.sponsorDeadline ? "贊助截止日期必須早於活動開始日期" : ""}
                 />
-                
+
                 <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
                   <TextField
                     fullWidth
@@ -691,7 +691,7 @@ export default function DemandPostPage() {
                     error={errors.eventStart}
                     helperText={errors.eventStart ? "此欄為必填" : ""}
                   />
-                  
+
                   <TextField
                     fullWidth
                     label={
@@ -719,22 +719,22 @@ export default function DemandPostPage() {
                 }}
               >
                 <Typography variant="h6" gutterBottom>公告內容</Typography>
-                
+
                 <Box sx={{ mb: 3 }}>
-                <TextField
-                  fullWidth
-                  label={
-                    <>
-                      標題 <span style={{ color: "#d32f2f" }}>*</span>
-                    </>
-                  }
-                  variant="standard"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  sx={{ mb: 3 }}
-                  error={errors.title}
-                  helperText={errors.title ? "此欄為必填" : ""}
-                />
+                  <TextField
+                    fullWidth
+                    label={
+                      <>
+                        標題 <span style={{ color: "#d32f2f" }}>*</span>
+                      </>
+                    }
+                    variant="standard"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    sx={{ mb: 3 }}
+                    error={errors.title}
+                    helperText={errors.title ? "此欄為必填" : ""}
+                  />
                   <Typography
                     variant="subtitle1"
                     gutterBottom
@@ -749,24 +749,25 @@ export default function DemandPostPage() {
                     <Button
                       variant={demandType === "物資" ? "contained" : "outlined"}
                       onClick={() => setDemandType("物資")}
-                      sx={{ flex: 1 }}
                     >
                       物資
                     </Button>
+
                     <Button
                       variant={demandType === "金錢" ? "contained" : "outlined"}
                       onClick={() => setDemandType("金錢")}
-                      sx={{ flex: 1 }}
                     >
                       金錢
                     </Button>
+
                     <Button
                       variant={demandType === "講師" ? "contained" : "outlined"}
                       onClick={() => setDemandType("講師")}
-                      sx={{ flex: 1 }}
                     >
                       講師
                     </Button>
+
+
                   </Box>
                 </Box>
 
@@ -778,20 +779,20 @@ export default function DemandPostPage() {
                       value={materialCategory}
                       onChange={(_, val) => setMaterialCategory(val)}
                       renderInput={(params) => (
-                        <TextField 
-                          {...params} 
+                        <TextField
+                          {...params}
                           label={
                             <>
                               物資類型 <span style={{ color: "#d32f2f" }}>*</span>
                             </>
-                          } 
+                          }
                           error={errors.materialCategory}
                           helperText={errors.materialCategory ? "請選擇至少一種類型" : ""}
                           sx={{ mb: 3 }}
                         />
                       )}
                     />
-                    
+
                     <TextField
                       fullWidth
                       multiline
@@ -872,20 +873,20 @@ export default function DemandPostPage() {
                       value={speakerType}
                       onChange={(_, val) => setSpeakerType(val ?? "")}
                       renderInput={(params) => (
-                        <TextField 
-                          {...params} 
+                        <TextField
+                          {...params}
                           label={
                             <>
                               講師性質 <span style={{ color: "#d32f2f" }}>*</span>
                             </>
-                          } 
+                          }
                           error={errors.speakerType}
                           helperText={errors.speakerType ? "此欄為必填" : ""}
                           sx={{ mb: 3 }}
                         />
                       )}
                     />
-                    
+
                     <TextField
                       fullWidth
                       multiline
