@@ -14,6 +14,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../config";
+import { notifySubscribers } from "./notification-service";
 
 export interface PostData {
   id?: string;
@@ -32,12 +33,6 @@ export interface PostData {
   isDraft?: boolean;
   viewCount?: number;
   interactionCount?: number;
-  promotionTarget?: string;
-promotionForm?: string;
-purposeType?: string;
-participationType?: string;
-eventEndDate?: string;
-
 }
 
 export interface DemandPostData extends PostData {
@@ -47,16 +42,29 @@ export interface DemandPostData extends PostData {
   cooperationReturn?: string;
   estimatedParticipants?: string;
   eventDescription?: string;
-  eventName?: string; // 添加活動名稱
-  eventType?: string; // 添加活動類型
-  email?: string; // ✅ 在這裡加一行
-  purposeType: string;
-  participationType: string;
-  tags: string[];
-  promotionTarget?: string;
-  promotionForm?: string;
-  eventEndDate?: string;     // ✅ 加這行
-  customItems?: string[];    // ✅ 加這行
+  eventName?: string;
+  eventType?: string;
+  email?: string;
+  eventEndDate?: string;
+  customItems?: string[];
+  // Add the new required fields
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  eventNature?: string;
+  sponsorDeadline?: string;
+  eventStart?: string;
+  eventEnd?: string;
+  demandType?: string;
+  materialCategory?: string[];
+  materialDetails?: string;
+  moneyLowerLimit?: string;
+  moneyUpperLimit?: string;
+  moneyPurpose?: string;
+  speakerType?: string;
+  speakerDetail?: string;
+  feedbackDetails?: string;
+  notes?: string;
 }
 
 export const getOrganizationName = async (
@@ -104,11 +112,26 @@ export const getDemandItems = async (): Promise<string[]> => {
 
 export const createPost = async (postData: Omit<PostData, "createdAt">) => {
   try {
+    // 如果是草稿，不發送通知
+    if (postData.isDraft) {
+      const postsCollection = collection(db, "posts");
+      const docRef = await addDoc(postsCollection, {
+        ...postData,
+        createdAt: serverTimestamp(),
+      });
+      return { id: docRef.id, success: true };
+    }
+
+    // 不是草稿，發布並通知訂閱者
     const postsCollection = collection(db, "posts");
     const docRef = await addDoc(postsCollection, {
       ...postData,
       createdAt: serverTimestamp(),
     });
+
+    // 發送通知給訂閱者（只在不是草稿時）
+    await notifySubscribers(postData.authorId, docRef.id, postData.title);
+
     return { id: docRef.id, success: true };
   } catch (error) {
     console.error("Error creating post:", error);
@@ -195,11 +218,25 @@ export const getUserDrafts = async (userId: string): Promise<PostData[]> => {
 export const publishDraft = async (draftId: string, userEmail?: string) => {
   try {
     const draftRef = doc(db, "posts", draftId);
+
+    // 獲取文章資訊
+    const draftDoc = await getDoc(draftRef);
+    if (!draftDoc.exists()) {
+      return { success: false, error: "找不到文章" };
+    }
+
+    const draftData = draftDoc.data();
+
+    // 更新為已發布
     await updateDoc(draftRef, {
       isDraft: false,
       publishedAt: serverTimestamp(),
       authorEmail: userEmail ?? null,
     });
+
+    // 發送通知給訂閱者
+    await notifySubscribers(draftData.authorId, draftId, draftData.title);
+
     return { success: true };
   } catch (error) {
     console.error("Error publishing draft:", error);
@@ -225,6 +262,20 @@ export const permanentlyDeletePost = async (postId: string) => {
     return { success: true };
   } catch (error) {
     console.error("Error permanently deleting post:", error);
+    return { success: false, error };
+  }
+};
+
+export const updatePost = async (id: string, updateData: Partial<PostData>) => {
+  try {
+    const postRef = doc(db, "posts", id);
+    await updateDoc(postRef, {
+      ...updateData,
+      updatedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating post:", error);
     return { success: false, error };
   }
 };
@@ -329,6 +380,7 @@ export const getPostById = async (
       isDraft: !!postData.isDraft,
       viewCount: postData.viewCount ?? 0,
       interactionCount: postData.interactionCount ?? 0,
+      // Original fields
       organizationName: postData.organizationName ?? "",
       selectedDemands: Array.isArray(postData.selectedDemands)
         ? postData.selectedDemands
@@ -337,11 +389,29 @@ export const getPostById = async (
       cooperationReturn: postData.cooperationReturn ?? "",
       estimatedParticipants: postData.estimatedParticipants ?? "",
       eventDescription: postData.eventDescription ?? "",
-      eventName: postData.eventName ?? "", // 添加活動名稱
-      eventType: postData.eventType ?? "", // 添加活動類型
-      email: postData.email ?? "", // ⭐⭐ 補這一行！⭐⭐
-      purposeType: postData.purposeType ?? "", // ✅ 加這行
-  participationType: postData.participationType ?? "", // ✅ 加這行
+      eventName: postData.eventName ?? "",
+      eventType: postData.eventType ?? "",
+      email: postData.email ?? "",
+      eventEndDate: postData.eventEndDate ?? "",
+      customItems: Array.isArray(postData.customItems) ? postData.customItems : [],
+      // New fields
+      contactName: postData.contactName ?? "",
+      contactPhone: postData.contactPhone ?? "",
+      contactEmail: postData.contactEmail ?? "",
+      eventNature: postData.eventNature ?? "",
+      sponsorDeadline: postData.sponsorDeadline ?? "",
+      eventStart: postData.eventStart ?? "",
+      eventEnd: postData.eventEnd ?? "",
+      demandType: postData.demandType ?? "",
+      materialCategory: Array.isArray(postData.materialCategory) ? postData.materialCategory : [],
+      materialDetails: postData.materialDetails ?? "",
+      moneyLowerLimit: postData.moneyLowerLimit ?? "",
+      moneyUpperLimit: postData.moneyUpperLimit ?? "",
+      moneyPurpose: postData.moneyPurpose ?? "",
+      speakerType: postData.speakerType ?? "",
+      speakerDetail: postData.speakerDetail ?? "",
+      feedbackDetails: postData.feedbackDetails ?? "",
+      notes: postData.notes ?? ""
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);
@@ -387,37 +457,5 @@ export const getPostsByTag = async (tag: string): Promise<PostData[]> => {
   } catch (error) {
     console.error("Error getting posts by tag:", error);
     return [];
-  }
-};
-
-// 收藏
-
-export const checkIfFavorited = async (userId: string, postId: string) => {
-  const q = query(
-    collection(db, "favorites"),
-    where("userId", "==", userId),
-    where("postId", "==", postId)
-  );
-  const querySnapshot = await getDocs(q);
-  return !querySnapshot.empty;
-};
-
-export const addFavorite = async (userId: string, postId: string) => {
-  return await addDoc(collection(db, "favorites"), {
-    userId,
-    postId,
-    createdAt: new Date()
-  });
-};
-
-export const removeFavorite = async (userId: string, postId: string) => {
-  const q = query(
-    collection(db, "favorites"),
-    where("userId", "==", userId),
-    where("postId", "==", postId)
-  );
-  const querySnapshot = await getDocs(q);
-  for (const docSnap of querySnapshot.docs) {
-    await deleteDoc(doc(db, "favorites", docSnap.id));
   }
 };

@@ -1,12 +1,8 @@
 "use client";
-import { ButtonGroup } from "@mui/material";
 
-import EventIcon from "@mui/icons-material/Event";
-import GroupIcon from "@mui/icons-material/Group";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import RedeemIcon from "@mui/icons-material/Redeem";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import SearchIcon from "@mui/icons-material/Search";
-import InfoIcon from "@mui/icons-material/Info";
 
 import {
   Box,
@@ -17,7 +13,6 @@ import {
   Container,
   IconButton,
   InputAdornment,
-  MenuItem,
   Pagination,
   Paper,
   Stack,
@@ -64,14 +59,19 @@ interface Post {
   eventName?: string;
   eventDescription?: string;
   email?: string;
-   // ⭐ 新增這幾個欄位
-   customItems?: string[];
-   purposeType?: string;
-   participationType?: string;
+  // ⭐ 新增這幾個欄位
+  customItems?: string[];
+  purposeType?: string;
+  participationType?: string;
+  eventNature?: string;
+  demandType?: string;
+  itemType?: string;
+  moneyLowerLimit?: string;
+  moneyUpperLimit?: string;
+  speakerType?: string;
+  feedbackDetails?: string;
+  sponsorDeadline?: string;
 }
-
-const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
-const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
 
 export default function DemandListPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -79,10 +79,24 @@ export default function DemandListPage() {
   const [filters, setFilters] = useState({
     selectedDemand: "",
     selectedEventType: "",
+    selectedEventNature: "", // Add new filter for 活動性質
     startDate: "",
     endDate: "",
     minParticipants: "",
   });
+  // 新增篩選條件的狀態
+  const [demandType, setDemandType] = useState<string>("物資");
+  const [location, setLocation] = useState<string>("");
+  const [materialCategory, setMaterialCategory] = useState<string>("");
+  const [minAmount, setMinAmount] = useState<string>("");
+  const [maxAmount, setMaxAmount] = useState<string>("");
+  const [speakerType, setSpeakerType] = useState<string>("");
+  const [keywordEvent, setKeywordEvent] = useState<string>("");
+  const [keywordOrg, setKeywordOrg] = useState<string>("");
+  const [eventStartDate, setEventStartDate] = useState<string>("");
+  const [eventEndDate, setEventEndDate] = useState<string>("");
+  const [eventNature, setEventNature] = useState<string>(""); // Add new state for 活動性質
+
   const [searchTerm, setSearchTerm] = useState("");
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   const [selectedTag, setSelectedTag] = useState<string>("全部");
@@ -170,7 +184,7 @@ export default function DemandListPage() {
         console.log(`備用查詢獲取到 ${snapshot.docs.length} 篇需求文章`);
 
         // Convert to Post objects
-        let results: Post[] = snapshot.docs
+        const results: Post[] = snapshot.docs
           .filter((doc) => !doc.data().isDraft && !doc.data().deleted)
           .map((doc) => {
             const data = doc.data();
@@ -244,10 +258,7 @@ export default function DemandListPage() {
 
     // Filter by tag
     const matchTag =
-    selectedTag === "全部"
-      ? true
-      : post.purposeType === selectedTag;
-  
+      selectedTag === "全部" ? true : post.purposeType === selectedTag;
 
     return matchSearch && matchTag;
   });
@@ -352,6 +363,13 @@ export default function DemandListPage() {
       );
     }
 
+    // Filter by event nature
+    if (filters.selectedEventNature) {
+      filteredResults = filteredResults.filter(
+        (post) => post.eventNature === filters.selectedEventNature
+      );
+    }
+
     // Filter by date range
     if (filters.startDate || filters.endDate) {
       filteredResults = filteredResults.filter((post) => {
@@ -443,14 +461,182 @@ export default function DemandListPage() {
               borderRadius: "12px",
             }}
           >
-            {" "}
+            {/* 橫向區塊：贊助類型按鈕 + 動態條件 */}
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              {["物資", "金錢", "講師"].map((type) => (
+                <Button
+                  key={type}
+                  variant={demandType === type ? "contained" : "outlined"}
+                  color={type === "金錢" ? "error" : type === "講師" ? "success" : "primary"}
+                  onClick={() => setDemandType(type)}
+                >
+                  {type}
+                </Button>
+              ))}
+            </Box>
+
+            {/* 地區選單 */}
+            <Box sx={{ mb: 2 }}>
+              <TextField
+                select
+                fullWidth
+                label="地區"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                <option value=""></option>
+                {["台北", "新北", "桃園", "台中", "高雄"].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </TextField>
+            </Box>
+
+            {/* 贊助類型對應條件：物資 */}
+            {demandType === "物資" && (
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="物資類別"
+                  value={materialCategory}
+                  onChange={(e) => setMaterialCategory(e.target.value)}
+                  SelectProps={{
+                    native: true,
+                  }}
+                >
+                  <option value=""></option>
+                  {["飲料", "食物", "生活用品", "戶外用品", "其他"].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </TextField>
+              </Box>
+            )}
+
+            {/* 贊助類型對應條件：金錢 */}
+            {demandType === "金錢" && (
+              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                <TextField
+                  label="金額下限（元）"
+                  type="number"
+                  fullWidth
+                  value={minAmount}
+                  onChange={(e) => setMinAmount(e.target.value)}
+                />
+                <TextField
+                  label="金額上限（元）"
+                  type="number"
+                  fullWidth
+                  value={maxAmount}
+                  onChange={(e) => setMaxAmount(e.target.value)}
+                />
+              </Box>
+            )}
+
+            {/* 贊助類型對應條件：講師 */}
+            {demandType === "講師" && (
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="講師主題"
+                  value={speakerType}
+                  onChange={(e) => setSpeakerType(e.target.value)}
+                  SelectProps={{
+                    native: true,
+                  }}
+                >
+                  <option value=""></option>
+                  {["專業技能", "職涯分享", "產業趨勢", "其他"].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </TextField>
+              </Box>
+            )}
+
+            {/* 下方區塊：文字搜尋與日期範圍 */}
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <TextField
+                fullWidth
+                label="活動名稱關鍵字"
+                value={keywordEvent}
+                onChange={(e) => setKeywordEvent(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="組織名稱關鍵字"
+                value={keywordOrg}
+                onChange={(e) => setKeywordOrg(e.target.value)}
+              />
+            </Box>
+
+            {/* 活動相關篩選 */}
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <TextField
+                select
+                fullWidth
+                label="活動性質"
+                value={eventNature}
+                onChange={(e) => {
+                  setEventNature(e.target.value);
+                  setFilters({...filters, selectedEventNature: e.target.value});
+                }}
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                <option value=""></option>
+                {["迎新", "講座", "比賽", "展覽", "工作坊", "營隊", "其他"].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </TextField>
+              
+              <TextField
+                fullWidth
+                type="date"
+                label="活動開始日期"
+                value={eventStartDate}
+                onChange={(e) => setEventStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                fullWidth
+                type="date"
+                label="活動結束日期"
+                value={eventEndDate}
+                onChange={(e) => setEventEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                fullWidth
+                type="number"
+                label="最少參與人數"
+                value={filters.minParticipants}
+                onChange={handleFilterChange}
+                name="minParticipants"
+              />
+            </Box>
+
             {/* 搜尋欄位 */}
             <TextField
               fullWidth
               placeholder="搜尋需求…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ mb: 2 }}
+              sx={{ mt: 2 }}
               // Using slotProps instead of deprecated InputProps
               slotProps={{
                 input: {
@@ -462,326 +648,263 @@ export default function DemandListPage() {
                 },
               }}
             />
-            {/* 日期篩選區域 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <TextField
-                fullWidth
-                label="開始日期"
-                type="date"
-                value={filters.startDate}
-                onChange={handleFilterChange}
-                name="startDate"
-                variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                // We can use sx to replace InputLabelProps
-                sx={{
-                  "& .MuiInputLabel-root": {
-                    transform: "translate(14px, -9px) scale(0.75)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="結束日期"
-                type="date"
-                value={filters.endDate}
-                onChange={handleFilterChange}
-                name="endDate"
-                variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                sx={{
-                  "& .MuiInputLabel-root": {
-                    transform: "translate(14px, -9px) scale(0.75)",
-                  },
-                }}
-              />
-            </Box>
-            
-            {/* 參與人數篩選 */}
-            <Box>
-              <TextField
-                fullWidth
-                label="最低參與人數"
-                type="number"
-                value={filters.minParticipants}
-                onChange={handleFilterChange}
-                name="minParticipants"
-              />
-            </Box>
           </Paper>
-          <Box sx={{ mt: 2, display: "flex", justifyContent: "" }}>
-          <Box sx={{ display: "flex", justifyContent: "flex-start", gap: 1, mb: 3 }}>
-  {["全部", "活動支援", "教育推廣", "社區服務", "校園宣傳"].map((label) => (
-    <Button
-      key={label}
-      variant={selectedTag === label ? "contained" : "outlined"}
-      onClick={() => setSelectedTag(label)}
-      sx={{
-        borderRadius: "30px",     // 更小的橢圓
-        px: 2,                    // 左右 padding 縮小
-        py: 0.5,                  // 上下 padding 縮小
-        fontSize: "0.75rem",      // 字體縮小
-        minWidth: "auto",         // 不強制最小寬度
-        textTransform: "none",    // 保持正常大小寫
-      }}
-    >
-      {label}
-    </Button>
-  ))}
-</Box>
+          {/* Removing the category filter buttons */}
+          <Box sx={{ mt: 2, mb: 3 }}></Box>
 
-
-
-
-
-</Box>
-
-          {/* 把這段放進你的 return 區域對應位置 */}
-
-<Stack spacing={3}>
-  {loading ? (
-    <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-      <CircularProgress />
-    </Box>
-  ) : currentPosts.length === 0 ? (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 4,
-        borderRadius: 2,
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "divider",
-        textAlign: "center",
-      }}
-    >
-      <Typography variant="h6" color="text.secondary" gutterBottom>
-        找不到符合的文章
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {searchTerm ||
-        filters.selectedDemand ||
-        filters.selectedEventType ||
-        filters.startDate ||
-        filters.endDate ||
-        filters.minParticipants
-          ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
-          : "目前還沒有任何需求文章"}
-      </Typography>
-      {(searchTerm ||
-        filters.selectedDemand ||
-        filters.selectedEventType ||
-        filters.startDate ||
-        filters.endDate ||
-        filters.minParticipants) && (
-        <Button
-          variant="outlined"
-          color="primary"
-          onClick={() => {
-            setSearchTerm("");
-            setFilters({
-              selectedDemand: "",
-              selectedEventType: "",
-              startDate: "",
-              endDate: "",
-              minParticipants: "",
-            });
-          }}
-          sx={{ mt: 1 }}
-        >
-          清除所有篩選條件
-        </Button>
-      )}
-    </Paper>
-  ) : (
-    currentPosts.map((post, index) => (
-      <motion.div
-        key={post.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: index * 0.08 }}
-      >
-        <Card
-          sx={{
-            borderRadius: "16px",
-            p: 3,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-            "&:hover": {
-              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              transform: "translateY(-4px)",
-              transition: "all 0.3s ease",
-            },
-          }}
-        >
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            {/* 主資訊區 */}
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                variant="h6"
-                sx={{ color: "primary.main", fontWeight: "bold", mb: 1.5 }}
-              >
-                {post.title ?? "(無標題)"}
-              </Typography>
-
-              <Box sx={{ mb: 2 }}>
-  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-    <InfoIcon fontSize="small" sx={{ mr: 1 }} />
-    <Typography variant="body2">需求目的類型</Typography>
-  </Box>
-  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-    <Chip
-      label={post.purposeType ?? "未提供"}
-      size="small"
-      color="primary"
-    />
-  </Box>
-</Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <EventIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  {post.eventDate
-                    ? new Date(post.eventDate).toISOString().split("T")[0]
-                    : "未設定日期"}
-                </Typography>
+          <Stack spacing={3}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+                <CircularProgress />
               </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <GroupIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  {post.estimatedParticipants ?? "0"}人
-                </Typography>
-              </Box>
-
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mb: 0.5 }}
-              >
-                來自：{post.organizationName ?? "未知組織"}
-              </Typography>
-
-              <Typography variant="caption" color="text.secondary">
-                發布時間：
-                {post.createdAt
-                  ? new Date(post.createdAt).toLocaleDateString("zh-TW")
-                  : "未知"}
-              </Typography>
-            </Box>
-
-            {/* 右側補充資訊區 */}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                ml: 2,
-                width: "30%",
-              }}
-            >
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <InventoryIcon fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">需求物資</Typography>
-                </Box>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {(post.customItems && post.customItems.length > 0
-                    ? post.customItems
-                    : ["未提供"]
-                  ).map((item) => (
-                    <Chip
-                      key={`${post.id}-${item}`}
-                      label={item}
-                      size="small"
-                      color="primary"
-                    />
-                  ))}
-                </Box>
-              </Box>
-
-              <Box>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <RedeemIcon fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">希望企業參與方式</Typography>
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    fontSize: "0.875rem",
-                    lineHeight: 1.43,
-                    maxWidth: "100%",
-                  }}
-                >
-                  {post.participationType ?? "未提供"}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* 卡片右邊操作區 */}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "flex-end",
-                ml: 2,
-              }}
-            >
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFavorite(post);
+            ) : currentPosts.length === 0 ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 4,
+                  borderRadius: 2,
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  textAlign: "center",
                 }}
-                sx={{ mb: 1 }}
               >
-                {favorites[post.id] ? "❤️" : "🤍"}
-              </IconButton>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  找不到符合的文章
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {searchTerm ||
+                  filters.selectedDemand ||
+                  filters.selectedEventType ||
+                  filters.startDate ||
+                  filters.endDate ||
+                  filters.minParticipants
+                    ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
+                    : "目前還沒有任何需求文章"}
+                </Typography>
+                {(searchTerm ||
+                  filters.selectedDemand ||
+                  filters.selectedEventType ||
+                  filters.startDate ||
+                  filters.endDate ||
+                  filters.minParticipants) && (
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFilters({
+                        selectedDemand: "",
+                        selectedEventType: "",
+                        selectedEventNature: "", // Add new filter for 活動性質
+                        startDate: "",
+                        endDate: "",
+                        minParticipants: "",
+                      });
+                    }}
+                    sx={{ mt: 1 }}
+                  >
+                    清除所有篩選條件
+                  </Button>
+                )}
+              </Paper>
+            ) : (
+              currentPosts.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.08 }}
+                >
+                  <Card
+                    sx={{
+                      borderRadius: "16px",
+                      p: 3,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                      "&:hover": {
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                        transform: "translateY(-4px)",
+                        transition: "all 0.3s ease",
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      {/* 主資訊區 */}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            color: "primary.main",
+                            fontWeight: "bold",
+                            mb: 1.5,
+                          }}
+                        >
+                          {post.title ?? "(無標題)"}
+                        </Typography>
+                        
+                        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip 
+                            label={post.eventNature || "未指定"} 
+                            size="small" 
+                            sx={{ backgroundColor: '#E3F2FD', color: '#1565C0' }}
+                          />
+                          <Typography variant="body2" sx={{ color: '#757575' }}>•</Typography>
+                          
+                          {/* 不同贊助類型有不同顏色 */}
+                          {post.demandType === "物資" && (
+                            <Chip 
+                              label="物資" 
+                              size="small" 
+                              color="primary"
+                            />
+                          )}
+                          {post.demandType === "金錢" && (
+                            <Chip 
+                              label="金錢" 
+                              size="small" 
+                              color="error"
+                            />
+                          )}
+                          {post.demandType === "講師" && (
+                            <Chip 
+                              label="講師" 
+                              size="small" 
+                              color="success"
+                            />
+                          )}
+                        </Box>
+                        
+                        {/* 根據需求類型顯示不同內容 */}
+                        {post.demandType === "物資" && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {post.itemType ? `物資類型：${post.itemType}` : 
+                                post.customItems && post.customItems.length > 0 ? 
+                                `物資類型：${post.customItems.join(', ')}` : 
+                                "物資類型：未指定"}
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        {post.demandType === "金錢" && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              金額區間：{post.moneyLowerLimit || "未指定"} - {post.moneyUpperLimit || "未指定"} 元
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        {post.demandType === "講師" && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              講師類型：{post.speakerType || "未指定"}
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            回饋方式：{post.feedbackDetails || "未提供"}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            贊助截止時間：{post.sponsorDeadline
+                              ? new Date(post.sponsorDeadline).toLocaleDateString("zh-TW")
+                              : post.eventDate 
+                                ? new Date(post.eventDate).toLocaleDateString("zh-TW") 
+                                : "未設定日期"}
+                            　人數：{post.estimatedParticipants ?? "0"}人
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary" component="span">
+                              來自：
+                              <Link href={`/public-profile/${post.authorId}`} style={{ textDecoration: 'none' }}>
+                                <Typography
+                                  variant="body2"
+                                  component="span"
+                                  sx={{
+                                    color: "primary.main",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {post.organizationName}
+                                </Typography>
+                              </Link>
+                              　發布時間：{post.createdAt
+                                ? new Date(post.createdAt).toLocaleDateString("zh-TW")
+                                : "未知"}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                      
+                      {/* 右側动作區 - 匹配企業牆樣式 */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "flex-end",
+                          ml: 2,
+                        }}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(post);
+                          }}
+                          sx={{ mb: 1 }}
+                          color={favorites[post.id] ? "error" : "default"}
+                        >
+                          {favorites[post.id] ? (
+                            <FavoriteIcon />
+                          ) : (
+                            <FavoriteBorderIcon />
+                          )}
+                        </IconButton>
 
-              <Button
-                variant="outlined"
-                component={Link}
-                href={`/Artical/${post.id}`}
-                size="small"
-                sx={{ whiteSpace: "nowrap" }}
-              >
-                查看更多
-              </Button>
+                        <Button
+                          variant="outlined"
+                          component={Link}
+                          href={`/Artical/${post.id}`}
+                          size="small"
+                          sx={{ whiteSpace: "nowrap" }}
+                        >
+                          查看更多
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Card>
+                </motion.div>
+              ))
+            )}
+          </Stack>
+
+          {/* 分頁控制 */}
+          {totalPages > 1 && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              <Pagination
+                count={totalPages}
+                page={currentPage}
+                onChange={handlePageChange}
+                color="primary"
+                size="large"
+              />
             </Box>
-          </Box>
-        </Card>
-      </motion.div>
-    ))
-  )}
-    </Stack>
-
-{/* 分頁控制 */}
-{totalPages > 1 && (
-  <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-    <Pagination
-      count={totalPages}
-      page={currentPage}
-      onChange={handlePageChange}
-      color="primary"
-      size="large"
-    />
-  </Box>
-)}
-
-</Container>
-</Box>
-</>
-);
+          )}
+        </Container>
+      </Box>
+    </>
+  );
 }
-
-  
-

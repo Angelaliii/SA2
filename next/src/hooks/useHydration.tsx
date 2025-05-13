@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from "react";
 
 /**
@@ -8,9 +9,11 @@ export default function useHydration() {
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // Using requestAnimationFrame ensures we're fully in the client rendering phase
-    // after the initial DOM has been painted
-    setHasMounted(true);
+    // Using setTimeout instead of requestAnimationFrame for more reliable behavior
+    // This ensures we're fully in the client rendering phase after hydration
+    setTimeout(() => {
+      setHasMounted(true);
+    }, 0);
   }, []);
 
   return hasMounted;
@@ -18,7 +21,7 @@ export default function useHydration() {
 
 /**
  * Client-only component wrapper that only renders its children after hydration
- * Enhanced to better handle Material-UI style injection
+ * Enhanced to better handle Material-UI style injection and prevent hydration mismatches
  */
 export function ClientOnly({
   children,
@@ -30,8 +33,11 @@ export function ClientOnly({
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // Set mounted state on the client side only
-    setHasMounted(true);
+    // Use setTimeout instead of requestAnimationFrame for better reliability with MUI
+    // This ensures we're past the initial hydration phase before rendering MUI components
+    setTimeout(() => {
+      setHasMounted(true);
+    }, 0);
   }, []);
 
   // If we haven't mounted yet (server-side or first render), show the fallback
