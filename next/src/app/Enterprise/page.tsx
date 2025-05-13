@@ -100,24 +100,20 @@ export default function EnterprisePostPage() {
     "工作坊",
     "展覽",
     "比賽",
-    "營隊",
     "其他",
   ];
   // 合作方式選項
-  const cooperationTypeOptions = [
-    "贊助",
-    "場地提供",
-    "技術支援",
-    "媒體宣傳",
-    "其他",
-  ];
+  // const cooperationTypeOptions = [
+  //   "贊助",
+  //   "場地提供",
+  //   "技術支援",
+  //   "媒體宣傳",
+  //   "其他",
+  // ];
   // 面試方式選項
   const interviewMethodOptions = [
     "線上面試",
     "實體面試",
-    "電話面試",
-    "專案測試",
-    "多輪面試",
     "其他",
   ];
   // 合約期限選項
@@ -296,6 +292,14 @@ export default function EnterprisePostPage() {
         !contactEmail
       ) {
         setSnackbarMessage("請填寫所有活動合作必填欄位");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        return;
+      }
+      
+      // 檢查申請截止日期必須早於活動開始日期
+      if (applicationDeadline && activityStartDate && applicationDeadline >= activityStartDate) {
+        setSnackbarMessage("申請截止日期必須早於活動開始日期");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
         return;

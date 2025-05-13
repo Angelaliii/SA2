@@ -157,7 +157,20 @@ export default function EnterpriseEditDialog({
       if (!formData.title || !formData.content) {
         alert("標題和內容不能為空");
         return;
-      } // Create a clean data object that matches EnterprisePost type
+      }
+
+      // 檢查活動合作的申請截止日期必須早於活動開始日期
+      if (
+        formData.announcementType === "activityCooperation" &&
+        formData.applicationDeadline &&
+        formData.activityStartDate &&
+        formData.applicationDeadline >= formData.activityStartDate
+      ) {
+        alert("申請截止日期必須早於活動開始日期");
+        return;
+      }
+
+      // Create a clean data object that matches EnterprisePost type
       const cleanData: Partial<EnterprisePost> = {
         ...Object.fromEntries(
           Object.entries(formData).filter(
