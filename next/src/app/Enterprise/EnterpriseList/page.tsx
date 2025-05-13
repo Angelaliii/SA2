@@ -50,6 +50,7 @@ interface EnterprisePost {
   contractPeriodDuration?: string; // 合約年限
   activityType?: string; // 活動類型
   interviewMethod?: string; // 面試方式
+  salary?: string; // 薪資待遇
 }
 
 export default function EnterpriseListPage() {
@@ -500,59 +501,118 @@ export default function EnterpriseListPage() {
                           {post.title}
                         </Typography>
 
-                        {/* 顯示公告類型標籤 */}
+                        {/* 顯示公告類型標籤和對應的附加信息 */}
                         {post.announcementType && (
                           <Box sx={{ mb: 1.5 }}>
                             {post.announcementType === "specialOfferPartnership" && (
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="primary"
-                                disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
-                                  textTransform: "none",
-                                  borderRadius: "12px",
-                                  mr: 1
-                                }}
-                              >
-                                特約商店
-                              </Button>
+                              <>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="primary"
+                                  disableElevation
+                                  sx={{ 
+                                    fontSize: "0.7rem", 
+                                    py: 0.2, 
+                                    textTransform: "none",
+                                    borderRadius: "12px",
+                                    mr: 1
+                                  }}
+                                >
+                                  特約商店
+                                </Button>
+                                {post.contractPeriodDuration && (
+                                  <Typography 
+                                    variant="body2" 
+                                    component="span"
+                                    sx={{ 
+                                      fontSize: "0.7rem",
+                                      color: "text.secondary",
+                                      ml: 0.5
+                                    }}
+                                  >
+                                    合約年限: {post.contractPeriodDuration}
+                                  </Typography>
+                                )}
+                              </>
                             )}
                             {post.announcementType === "activityCooperation" && (
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="secondary"
-                                disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
-                                  textTransform: "none",
-                                  borderRadius: "12px",
-                                  mr: 1
-                                }}
-                              >
-                                活動合作
-                              </Button>
+                              <>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="secondary"
+                                  disableElevation
+                                  sx={{ 
+                                    fontSize: "0.7rem", 
+                                    py: 0.2, 
+                                    textTransform: "none",
+                                    borderRadius: "12px",
+                                    mr: 1
+                                  }}
+                                >
+                                  活動合作
+                                </Button>
+                                {post.activityType && (
+                                  <Typography 
+                                    variant="body2" 
+                                    component="span"
+                                    sx={{ 
+                                      fontSize: "0.7rem",
+                                      color: "text.secondary",
+                                      ml: 0.5
+                                    }}
+                                  >
+                                    活動類型: {post.activityType}
+                                  </Typography>
+                                )}
+                              </>
                             )}
                             {post.announcementType === "internshipCooperation" && (
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="success"
-                                disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
-                                  textTransform: "none",
-                                  borderRadius: "12px",
-                                  mr: 1
-                                }}
-                              >
-                                實習合作
-                              </Button>
+                              <>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  disableElevation
+                                  sx={{ 
+                                    fontSize: "0.7rem", 
+                                    py: 0.2, 
+                                    textTransform: "none",
+                                    borderRadius: "12px",
+                                    mr: 1
+                                  }}
+                                >
+                                  實習合作
+                                </Button>
+                                <Box sx={{ mt: 0.5 }}>
+                                  {post.salary && (
+                                    <Typography 
+                                      variant="body2" 
+                                      component="span"
+                                      sx={{ 
+                                        fontSize: "0.7rem",
+                                        color: "text.secondary",
+                                        mr: 1.5
+                                      }}
+                                    >
+                                      薪資待遇: {post.salary}
+                                    </Typography>
+                                  )}
+                                  {post.interviewMethod && (
+                                    <Typography 
+                                      variant="body2" 
+                                      component="span"
+                                      sx={{ 
+                                        fontSize: "0.7rem",
+                                        color: "text.secondary"
+                                      }}
+                                    >
+                                      面試方式: {post.interviewMethod}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </>
                             )}
                           </Box>
                         )}
