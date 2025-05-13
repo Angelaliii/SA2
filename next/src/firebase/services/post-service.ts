@@ -42,11 +42,29 @@ export interface DemandPostData extends PostData {
   cooperationReturn?: string;
   estimatedParticipants?: string;
   eventDescription?: string;
-  eventName?: string; // 添加活動名稱
-  eventType?: string; // 添加活動類型
-  email?: string; // ✅ 在這裡加一行
-  eventEndDate?: string; // 添加活動結束日期
-  customItems?: string[]; // 添加自訂項目
+  eventName?: string;
+  eventType?: string;
+  email?: string;
+  eventEndDate?: string;
+  customItems?: string[];
+  // Add the new required fields
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  eventNature?: string;
+  sponsorDeadline?: string;
+  eventStart?: string;
+  eventEnd?: string;
+  demandType?: string;
+  materialCategory?: string[];
+  materialDetails?: string;
+  moneyLowerLimit?: string;
+  moneyUpperLimit?: string;
+  moneyPurpose?: string;
+  speakerType?: string;
+  speakerDetail?: string;
+  feedbackDetails?: string;
+  notes?: string;
 }
 
 export const getOrganizationName = async (
@@ -248,6 +266,20 @@ export const permanentlyDeletePost = async (postId: string) => {
   }
 };
 
+export const updatePost = async (id: string, updateData: Partial<PostData>) => {
+  try {
+    const postRef = doc(db, "posts", id);
+    await updateDoc(postRef, {
+      ...updateData,
+      updatedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return { success: false, error };
+  }
+};
+
 const convertTimestampToString = (timestamp: Timestamp | Date): string => {
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
@@ -348,6 +380,7 @@ export const getPostById = async (
       isDraft: !!postData.isDraft,
       viewCount: postData.viewCount ?? 0,
       interactionCount: postData.interactionCount ?? 0,
+      // Original fields
       organizationName: postData.organizationName ?? "",
       selectedDemands: Array.isArray(postData.selectedDemands)
         ? postData.selectedDemands
@@ -356,9 +389,29 @@ export const getPostById = async (
       cooperationReturn: postData.cooperationReturn ?? "",
       estimatedParticipants: postData.estimatedParticipants ?? "",
       eventDescription: postData.eventDescription ?? "",
-      eventName: postData.eventName ?? "", // 添加活動名稱
-      eventType: postData.eventType ?? "", // 添加活動類型
-      email: postData.email ?? "", // ⭐⭐ 補這一行！⭐⭐
+      eventName: postData.eventName ?? "",
+      eventType: postData.eventType ?? "",
+      email: postData.email ?? "",
+      eventEndDate: postData.eventEndDate ?? "",
+      customItems: Array.isArray(postData.customItems) ? postData.customItems : [],
+      // New fields
+      contactName: postData.contactName ?? "",
+      contactPhone: postData.contactPhone ?? "",
+      contactEmail: postData.contactEmail ?? "",
+      eventNature: postData.eventNature ?? "",
+      sponsorDeadline: postData.sponsorDeadline ?? "",
+      eventStart: postData.eventStart ?? "",
+      eventEnd: postData.eventEnd ?? "",
+      demandType: postData.demandType ?? "",
+      materialCategory: Array.isArray(postData.materialCategory) ? postData.materialCategory : [],
+      materialDetails: postData.materialDetails ?? "",
+      moneyLowerLimit: postData.moneyLowerLimit ?? "",
+      moneyUpperLimit: postData.moneyUpperLimit ?? "",
+      moneyPurpose: postData.moneyPurpose ?? "",
+      speakerType: postData.speakerType ?? "",
+      speakerDetail: postData.speakerDetail ?? "",
+      feedbackDetails: postData.feedbackDetails ?? "",
+      notes: postData.notes ?? ""
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);

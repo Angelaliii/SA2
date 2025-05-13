@@ -109,21 +109,40 @@ export interface DemandDraft {
 export interface DemandPostData {
   title: string;
   organizationName: string;
-  selectedDemands: string[];
-  demandDescription?: string;
-  cooperationReturn?: string;
-  estimatedParticipants?: string;
-  eventDate: string;
-  eventDescription?: string;
-  eventName?: string;
-  eventType?: string;
-  content: string;
+  email: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  eventName: string;
+  eventNature: string;
+  estimatedParticipants: string;
   location: string;
+  sponsorDeadline: string;
+  eventStart: string;
+  eventEnd: string;
+  demandType: string;
+  materialCategory: string[];
+  materialDetails: string;
+  moneyLowerLimit: string;
+  moneyUpperLimit: string;
+  moneyPurpose: string;
+  speakerType: string;
+  speakerDetail: string;
+  feedbackDetails: string;
+  notes: string;
   postType: string;
-  tags: string[];
   authorId: string;
   isDraft: boolean;
-  email?: string;
-  eventEndDate?: string; // 添加活動結束日期
-  customItems?: string[]; // 添加自訂項目
+  content: string;
+  tags: string[];
+  createdAt: string;
+  // Keep backward compatibility with existing fields
+  selectedDemands?: string[];
+  demandDescription?: string;
+  cooperationReturn?: string;
+  eventDescription?: string;
+  eventType?: string;
+  eventDate?: string;
+  eventEndDate?: string;
+  customItems?: string[];
 }
