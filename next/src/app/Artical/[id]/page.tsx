@@ -61,6 +61,25 @@ export default function DemandPostDetailPage() {
     }
   }, [post]);
 
+  // 維持社團用戶的身份狀態，確保從詳情頁返回列表頁時不會丟失狀態
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const clubData = await clubServices.getClubByUserId(user.uid);
+          if (clubData && typeof window !== "undefined") {
+            sessionStorage.setItem("isClubUser", "true");
+          }
+        } catch (error) {
+          console.error("檢查社團用戶時出錯:", error);
+        }
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
   // 收藏相關狀態
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -280,11 +299,14 @@ export default function DemandPostDetailPage() {
                     <MuiLink
                       sx={{
                         color: "#1976d2",
+                        fontWeight: "medium",
                         cursor: "pointer",
-                        textDecoration: "underline",
+                        textDecoration: "none",
+                        "&:hover": { textDecoration: "underline" },
                       }}
                     >
-                      {clubInfo.clubName}｜{clubInfo.schoolName}
+                      {clubInfo.clubName}
+                      {clubInfo.schoolName ? `｜${clubInfo.schoolName}` : ""}
                     </MuiLink>
                   </NextLink>
                 </Box>

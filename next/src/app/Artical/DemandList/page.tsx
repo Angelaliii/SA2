@@ -415,20 +415,46 @@ export default function DemandListPage() {
 
   // 檢查當前用戶是否為社團用戶
   useEffect(() => {
+    // 首先檢查 sessionStorage 中是否有保存的狀態
+    if (typeof window !== "undefined") {
+      const savedIsClub = sessionStorage.getItem("isClubUser");
+      if (savedIsClub === "true") {
+        setIsClub(true);
+      }
+    }
+
     const checkUserRole = async () => {
       const user = auth.currentUser;
       if (!user) {
         setIsClub(false);
+        // 清除 sessionStorage 中的狀態
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("isClubUser");
+        }
         return;
       }
 
       try {
         // 檢查用戶是否是社團用戶
         const clubData = await clubServices.getClubByUserId(user.uid);
-        setIsClub(!!clubData);
+        const isUserClub = !!clubData;
+        setIsClub(isUserClub);
+
+        // 將社團用戶狀態保存到 sessionStorage，防止頁面刷新後丟失狀態
+        if (typeof window !== "undefined") {
+          if (isUserClub) {
+            sessionStorage.setItem("isClubUser", "true");
+          } else {
+            sessionStorage.removeItem("isClubUser");
+          }
+        }
       } catch (error) {
         console.error("檢查用戶類型時出錯:", error);
         setIsClub(false);
+        // 發生錯誤時清除 sessionStorage
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("isClubUser");
+        }
       }
     };
 
@@ -721,14 +747,19 @@ export default function DemandListPage() {
                           >
                             來自：
                           </Typography>
-                          <Link href={`/public-profile/${post.authorId}`}>
+                          <Link
+                            href={`/public-profile/${post.authorId}`}
+                            style={{ textDecoration: "none" }}
+                          >
                             <Typography
                               variant="body2"
                               component="span"
                               sx={{
                                 ml: 1,
-                                color: "primary.main", // 藍色字
+                                color: "primary.main",
                                 cursor: "pointer",
+                                fontWeight: "medium",
+                                "&:hover": { textDecoration: "underline" },
                               }}
                             >
                               {post.organizationName}

@@ -128,10 +128,22 @@ export default function EnterpriseListPage() {
 
   // 檢查當前用戶是否為企業用戶
   useEffect(() => {
+    // 首先檢查 sessionStorage 中是否有保存的狀態
+    if (typeof window !== "undefined") {
+      const savedIsCompany = sessionStorage.getItem("isCompanyUser");
+      if (savedIsCompany === "true") {
+        setIsCompany(true);
+      }
+    }
+
     const checkUserRole = async () => {
       const user = auth.currentUser;
       if (!user) {
         setIsCompany(false);
+        // 清除 sessionStorage 中的狀態
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("isCompanyUser");
+        }
         return;
       }
 
@@ -144,11 +156,12 @@ export default function EnterpriseListPage() {
           "找到企業:",
           companies.length > 0 ? "是" : "否"
         );
-        setIsCompany(companies.length > 0);
+        const isUserCompany = companies.length > 0;
+        setIsCompany(isUserCompany);
 
         // 將企業用戶狀態保存到 sessionStorage，防止頁面刷新後丟失狀態
         if (typeof window !== "undefined") {
-          if (companies.length > 0) {
+          if (isUserCompany) {
             sessionStorage.setItem("isCompanyUser", "true");
           } else {
             sessionStorage.removeItem("isCompanyUser");
@@ -157,10 +170,13 @@ export default function EnterpriseListPage() {
       } catch (error) {
         console.error("檢查用戶類型時出錯:", error);
         setIsCompany(false);
+        // 發生錯誤時清除 sessionStorage
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("isCompanyUser");
+        }
       }
     };
 
-    // 從伺服器獲取最新狀態
     checkUserRole();
   }, []);
 
@@ -656,12 +672,17 @@ export default function EnterpriseListPage() {
                         >
                           <BusinessIcon fontSize="small" sx={{ mr: 1 }} />
 
-                          <Link href={`/public-profile/${post.authorId}`}>
+                          <Link
+                            href={`/public-profile/${post.authorId}`}
+                            style={{ textDecoration: "none" }}
+                          >
                             <Typography
                               variant="body2"
                               sx={{
-                                color: "primary.main", // 藍色字
+                                color: "primary.main",
                                 cursor: "pointer",
+                                fontWeight: "medium",
+                                "&:hover": { textDecoration: "underline" },
                               }}
                             >
                               {post.companyName ?? "未知企業"}

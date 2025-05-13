@@ -1,11 +1,13 @@
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import BusinessIcon from "@mui/icons-material/Business";
-import GroupsIcon from "@mui/icons-material/Groups";
+import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
 import HomeIcon from "@mui/icons-material/Home";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import BusinessIcon from "@mui/icons-material/Business";
+import GroupsIcon from "@mui/icons-material/Groups";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import {
   AppBar,
   Avatar,
@@ -22,6 +24,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Paper,
   Toolbar,
   Tooltip,
   Typography,
@@ -271,6 +274,7 @@ export default function Navbar({
                     mt: 1,
                   }}
                 >
+                  {" "}
                   {pages.map((page) => (
                     <MenuItem
                       key={page.name}
@@ -279,6 +283,7 @@ export default function Navbar({
                       href={page.path}
                     >
                       <Typography textAlign="center" component="span">
+                        {" "}
                         {page.name === "通知中心" ? (
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Badge
@@ -296,7 +301,8 @@ export default function Navbar({
                         )}
                       </Typography>
                     </MenuItem>
-                  ))}
+                  ))}{" "}
+                  {/* 移動按鈕到對應的頁面 */}
                 </Menu>
               </ClientOnly>
             </Box>
@@ -356,7 +362,7 @@ export default function Navbar({
                 {/* 移動按鈕到對應的頁面 */}
               </ClientOnly>
             </Box>
-
+            {/* 這裡已經移除了用戶問候語Chip */}
             {/* 添加用戶問候語顯示 */}
             <ClientOnly>
               {isLoggedIn && userName && (
@@ -381,7 +387,6 @@ export default function Navbar({
                 </Box>
               )}
             </ClientOnly>
-
             {/* 通知鈴鐺 */}
             <ClientOnly
               fallback={
@@ -485,162 +490,111 @@ export default function Navbar({
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                   elevation={0}
                 >
-                  {isLoggedIn
-                    ? [
-                        <Box
-                          key="user-header"
-                          sx={{
-                            px: 2.5,
-                            py: 2,
-                            background:
-                              "linear-gradient(to right, #f2f4f7, #e9f0f8)",
-                            borderTopLeftRadius: 8,
-                            borderTopRightRadius: 8,
-                          }}
+                  {isLoggedIn ? (
+                    <>
+                      <Box
+                        sx={{
+                          px: 2.5,
+                          py: 2,
+                          background:
+                            "linear-gradient(to right, #f2f4f7, #e9f0f8)",
+                          borderTopLeftRadius: 8,
+                          borderTopRightRadius: 8,
+                        }}
+                      >
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          個人選項
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 0.5 }}
                         >
-                          <Typography variant="subtitle1" fontWeight="medium">
-                            個人選項
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mt: 0.5 }}
-                          >
-                            管理您的帳號
-                          </Typography>
-                        </Box>,
-                        <Divider key="user-divider" sx={{ my: 0.5 }} />,
-                        <MenuItem
-                          key="profile-menu-item"
-                          onClick={handleCloseUserMenu}
-                          component={Link}
-                          href="/Profile"
-                          sx={{
-                            py: 1.5,
-                            px: 2.5,
-                            "&:hover": {
-                              backgroundColor: "rgba(25, 118, 210, 0.04)",
-                            },
-                          }}
+                          管理您的帳號
+                        </Typography>
+                      </Box>
+                      <Divider sx={{ my: 0.5 }} />
+                      <MenuItem
+                        onClick={handleCloseUserMenu}
+                        component={Link}
+                        href="/Profile"
+                        sx={{
+                          py: 1.5,
+                          px: 2.5,
+                          "&:hover": {
+                            backgroundColor: "rgba(25, 118, 210, 0.04)",
+                          },
+                        }}
+                      >
+                        <AccountCircleIcon
+                          sx={{ mr: 1.5, color: "primary.main" }}
+                        />
+                        <Typography variant="body1" component="span">
+                          個人資料
+                        </Typography>
+                      </MenuItem>
+                      <MenuItem
+                        onClick={handleLogoutClick}
+                        sx={{
+                          py: 1.5,
+                          px: 2.5,
+                          "&:hover": {
+                            backgroundColor: "rgba(211, 47, 47, 0.04)",
+                          },
+                        }}
+                      >
+                        <LogoutIcon sx={{ mr: 1.5, color: "error.light" }} />
+                        <Typography variant="body1" component="span">
+                          登出
+                        </Typography>
+                      </MenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <Box
+                        sx={{
+                          px: 2.5,
+                          py: 2,
+                          background:
+                            "linear-gradient(to right, #f2f4f7, #e9f0f8)",
+                          borderTopLeftRadius: 8,
+                          borderTopRightRadius: 8,
+                        }}
+                      >
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          帳號選項
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 0.5 }}
                         >
-                          <AccountCircleIcon
-                            sx={{ mr: 1.5, color: "primary.main" }}
-                          />
-                          <Typography variant="body1" component="span">
-                            個人資料
-                          </Typography>
-                        </MenuItem>,
-                        <MenuItem
-                          key="logout-menu-item"
-                          onClick={handleLogoutClick}
-                          sx={{
-                            py: 1.5,
-                            px: 2.5,
-                            "&:hover": {
-                              backgroundColor: "rgba(211, 47, 47, 0.04)",
-                            },
-                          }}
-                        >
-                          <LogoutIcon sx={{ mr: 1.5, color: "error.light" }} />
-                          <Typography variant="body1" component="span">
-                            登出
-                          </Typography>
-                        </MenuItem>,
-                      ]
-                    : [
-                        <Box
-                          key="login-header"
-                          sx={{
-                            px: 2.5,
-                            py: 2,
-                            background:
-                              "linear-gradient(to right, #f2f4f7, #e9f0f8)",
-                            borderTopLeftRadius: 8,
-                            borderTopRightRadius: 8,
-                          }}
-                        >
-                          <Typography variant="subtitle1" fontWeight="medium">
-                            帳號選項
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mt: 0.5 }}
-                          >
-                            請登入或註冊以繼續
-                          </Typography>
-                        </Box>,
-                        <Divider key="login-divider" sx={{ my: 0.5 }} />,
-                        userOptions.map((option) => {
-                          // 如果滿足條件則不顯示選項
-                          if (
-                            (userRole === "club" &&
-                              option.name === "社團註冊") ||
-                            (userRole === "company" &&
-                              option.name === "企業註冊")
-                          ) {
-                            return null;
-                          }
+                          請登入或註冊以繼續
+                        </Typography>
+                      </Box>
+                      <Divider sx={{ my: 0.5 }} />
+                      {userOptions.map((option) => {
+                        // 如果滿足條件則不顯示選項
+                        if (
+                          (userRole === "club" && option.name === "社團註冊") ||
+                          (userRole === "company" && option.name === "企業註冊")
+                        ) {
+                          return null;
+                        }
 
-                          return (
-                            <MenuItem
-                              key={option.name}
-                              onClick={handleCloseUserMenu}
-                              component={Link}
-                              href={option.path}
-                              sx={{
-                                py: 1.5,
-                                px: 2.5,
-                                "&:hover": {
-                                  backgroundColor:
-                                    option.name === "登入"
-                                      ? "rgba(25, 118, 210, 0.04)"
-                                      : "rgba(46, 125, 50, 0.04)",
-                                },
-                              }}
-                            >
-                              {option.name === "登入" ? (
-                                <LoginIcon
-                                  sx={{ mr: 1.5, color: "primary.main" }}
-                                />
-                              ) : option.name === "企業註冊" ? (
-                                <BusinessIcon
-                                  sx={{ mr: 1.5, color: "success.main" }}
-                                />
-                              ) : (
-                                <GroupsIcon
-                                  sx={{ mr: 1.5, color: "success.main" }}
-                                />
-                              )}
-                              <Typography variant="body1" component="span">
-                                {option.name}
-                              </Typography>
-                            </MenuItem>
-                          );
-                        }),
-                      ]}
-                </Menu>
-              </ClientOnly>
-            </Box>
-          </Toolbar>
-        </Container>
-        {/* Logout Confirmation */}
-        <Dialog
-          open={openLogoutDialog}
-          onClose={() => setOpenLogoutDialog(false)}
-        >
-          <DialogTitle>確認登出</DialogTitle>
-          <DialogContent>
-            <DialogContentText>您確定要登出嗎？</DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenLogoutDialog(false)}>取消</Button>
-            <Button onClick={handleLogout} color="primary" autoFocus>
-              確認登出
-            </Button>
-          </DialogActions>
-        </Dialog>{" "}
-      </AppBar>
-    </ClientOnly>
-  );
-}
+                        return (
+                          <MenuItem
+                            key={option.name}
+                            onClick={handleCloseUserMenu}
+                            component={Link}
+                            href={option.path}
+                            sx={{
+                              py: 1.5,
+                              px: 2.5,
+                              "&:hover": {
+                                backgroundColor:
+                                  option.name === "登入"
+                                    ? "rgba(25, 118, 210, 0.04)"
+                                    : "rgba(46, 125, 50, 0.04)",
+                              },
+                           

@@ -10,7 +10,7 @@ import {
   CircularProgress,
   Container,
   Divider,
-  Link,
+  Link as MuiLink,
   Paper,
   Snackbar,
   Typography,
@@ -24,10 +24,12 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { companyServices } from "../../../firebase/services/company-service";
 import enterpriseService from "../../../firebase/services/enterprise-service";
 import useHydration from "../../../hooks/useHydration";
 
@@ -109,6 +111,27 @@ export default function EnterpriseDetailPage() {
       document.title = "企業牆 - 社團企業媒合平台";
     }
   }, [post]);
+
+  // 維持企業用戶的身份狀態，確保從詳情頁返回列表頁時不會丟失狀態
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const companies = await companyServices.getCompaniesByUserId(
+            user.uid
+          );
+          if (companies.length > 0 && typeof window !== "undefined") {
+            sessionStorage.setItem("isCompanyUser", "true");
+          }
+        } catch (error) {
+          console.error("檢查企業用戶時出錯:", error);
+        }
+      }
+    };
+
+    checkUserRole();
+  }, []);
 
   // 檢查用戶是否已收藏該文章
   useEffect(() => {
@@ -303,11 +326,11 @@ export default function EnterpriseDetailPage() {
           <Box sx={{ pt: "84px", textAlign: "center", py: 8 }}>
             <Typography variant="h5" color="text.secondary" gutterBottom>
               找不到文章
-            </Typography>
+            </Typography>{" "}
             <Button
               variant="contained"
               color="primary"
-              component={Link}
+              component={MuiLink}
               href="/Enterprise/EnterpriseList"
               sx={{ mt: 2 }}
             >
@@ -349,8 +372,7 @@ export default function EnterpriseDetailPage() {
                 color="primary"
               >
                 {post.title}
-              </Typography>
-
+              </Typography>{" "}
               <Box
                 sx={{
                   display: "flex",
@@ -360,11 +382,29 @@ export default function EnterpriseDetailPage() {
                 }}
               >
                 <BusinessIcon sx={{ mr: 1, color: "text.secondary" }} />
-                <Typography variant="h6" color="text.secondary">
-                  {post.companyName}
-                </Typography>
+                {post.authorId ? (
+                  <Link
+                    href={`/public-profile/${post.authorId}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <Typography
+                      variant="h6"
+                      color="primary"
+                      sx={{
+                        cursor: "pointer",
+                        fontWeight: "medium",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
+                      {post.companyName}
+                    </Typography>
+                  </Link>
+                ) : (
+                  <Typography variant="h6" color="text.secondary">
+                    {post.companyName}
+                  </Typography>
+                )}
               </Box>
-
               <Typography variant="body2" color="text.secondary">
                 發布時間：{hydrated ? formatDate(post.createdAt) : "載入中..."}
               </Typography>
@@ -562,14 +602,14 @@ export default function EnterpriseDetailPage() {
                             color="text.secondary"
                           >
                             相關文件
-                          </Typography>
-                          <Link
+                          </Typography>{" "}
+                          <MuiLink
                             href={post.documentURL}
                             target="_blank"
                             rel="noopener"
                           >
                             查看文件
-                          </Link>
+                          </MuiLink>
                         </Box>
                       )}
                     </Box>
@@ -747,14 +787,14 @@ export default function EnterpriseDetailPage() {
                       <Box>
                         <Typography variant="subtitle2" color="text.secondary">
                           附加說明文件
-                        </Typography>
-                        <Link
+                        </Typography>{" "}
+                        <MuiLink
                           href={post.additionalDocumentURL}
                           target="_blank"
                           rel="noopener"
                         >
                           查看文件
-                        </Link>
+                        </MuiLink>
                       </Box>
                     )}
                   </Box>
@@ -804,10 +844,13 @@ export default function EnterpriseDetailPage() {
 
                     {post.email && (
                       <Box>
+                        {" "}
                         <Typography variant="subtitle2" color="text.secondary">
                           電子郵件
                         </Typography>
-                        <Link href={`mailto:${post.email}`}>{post.email}</Link>
+                        <MuiLink href={`mailto:${post.email}`}>
+                          {post.email}
+                        </MuiLink>
                       </Box>
                     )}
                   </Box>

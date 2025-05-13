@@ -100,6 +100,11 @@ export const authServices = {
   logout: async (): Promise<AuthResponse> => {
     try {
       await signOut(auth);
+      // 清除保存在 sessionStorage 中的用戶身份狀態
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("isClubUser");
+        sessionStorage.removeItem("isCompanyUser");
+      }
       return {
         success: true,
       };
