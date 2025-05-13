@@ -1,10 +1,10 @@
 "use client";
 
 import ArticleIcon from "@mui/icons-material/Article";
-import BookmarkIcon from "@mui/icons-material/Bookmark";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import EventIcon from "@mui/icons-material/Event";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
 import {
@@ -657,6 +657,7 @@ export default function Profile() {
                 }}
               >
                 <Box ref={contentRef}>
+                  {" "}
                   <Typography
                     variant="h4"
                     component="h1"
@@ -667,7 +668,7 @@ export default function Profile() {
                       color: (theme) => theme.palette.primary.main,
                     }}
                   >
-                    個人中心
+                    您的個人檔案
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                 </Box>
@@ -859,9 +860,10 @@ export default function Profile() {
                   <SubscribedOrganizations />
                 </TabPanel>
                 <TabPanel value={value} index={3}>
+                  {" "}
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
-                      <BookmarkIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                      <FavoriteIcon sx={{ mr: 1, verticalAlign: "middle" }} />
                       收藏的文章
                     </Typography>
                   </Box>

@@ -1,7 +1,7 @@
 "use client";
 
-import BookmarkIcon from "@mui/icons-material/Bookmark";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
@@ -220,7 +220,6 @@ export default function FavoriteArticlesManager() {
           我的收藏
         </Typography>
         <Divider sx={{ mb: 2 }} />
-
         {/* Add tag filter buttons */}
         <Box sx={{ display: "flex", gap: 1, my: 2, flexWrap: "wrap" }}>
           <Chip
@@ -243,11 +242,10 @@ export default function FavoriteArticlesManager() {
               fontWeight: selectedTag === "enterprise" ? "bold" : "normal",
             }}
           />
-        </Box>
-
+        </Box>{" "}
         {articles.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 4 }}>
-            <BookmarkBorderIcon
+            <FavoriteBorderIcon
               sx={{ fontSize: 60, color: "text.disabled", mb: 2 }}
             />
             <Typography color="text.secondary" variant="h6">
@@ -378,14 +376,14 @@ export default function FavoriteArticlesManager() {
                         startIcon={<VisibilityIcon />}
                       >
                         查看
-                      </Button>
+                      </Button>{" "}
                       <IconButton
                         size="small"
                         color="primary"
                         onClick={() => handleRemoveFavorite(article)}
                         title="移除收藏"
                       >
-                        <BookmarkIcon fontSize="small" />
+                        <FavoriteIcon fontSize="small" />
                       </IconButton>
                     </CardActions>
                   </Card>

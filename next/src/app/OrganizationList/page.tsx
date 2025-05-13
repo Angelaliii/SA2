@@ -19,6 +19,7 @@ import {
   Divider,
   Grid,
   IconButton,
+  Pagination,
   Paper,
   Snackbar,
   Stack,
@@ -53,10 +54,15 @@ interface Organization {
 }
 
 export default function OrganizationListPage() {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  // 組織類型選項卡
+  const [tabValue, setTabValue] = useState(0);
+  // 組織資料
+  const [clubs, setClubs] = useState<Organization[]>([]);
+  const [companies, setCompanies] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [tabValue, setTabValue] = useState(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 9; // 每頁顯示9個項目，形成3x3網格
   const [firebaseStatus, setFirebaseStatus] = useState<{ status: string }>({
     status: "連線中...",
   });
@@ -77,12 +83,23 @@ export default function OrganizationListPage() {
       return "日期格式錯誤";
     }
   };
-
   // 處理標籤切換
   const handleTabChange = (_event: SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+    setCurrentPage(1); // 切換標籤時重置到第一頁
   };
-  // 處理訂閱/取消訂閱
+  // 處理分頁變更
+  const handlePageChange = (
+    _event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
+    setCurrentPage(value);
+    // 滾動到頂部以便用戶查看新頁內容
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
   const handleSubscription = async (
     orgId: string,
     orgType: "club" | "company"
@@ -233,7 +250,8 @@ export default function OrganizationListPage() {
             );
           });
 
-          setOrganizations(allOrganizations);
+          setClubs(clubOrganizations);
+          setCompanies(companyOrganizations);
           setFirebaseStatus({
             status: "連線正常",
           });
@@ -279,8 +297,12 @@ export default function OrganizationListPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // 設置頁面標題
+  useEffect(() => {
+    document.title = "組織列表 - 社團企業媒合平台";
+  }, []);
   // 根據當前標籤和搜尋詞過濾組織
-  const filteredOrganizations = organizations.filter((org) => {
+  const filteredOrganizations = [...clubs, ...companies].filter((org) => {
     // 過濾標籤
     if (tabValue === 1 && org.type !== "club") return false;
     if (tabValue === 2 && org.type !== "company") return false;
@@ -301,6 +323,16 @@ export default function OrganizationListPage() {
 
     return true;
   });
+  // 計算總頁數
+  const pageCount = Math.ceil(filteredOrganizations.length / itemsPerPage);
+
+  // 獲取當前頁的項目
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredOrganizations.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
   return (
     <>
@@ -373,7 +405,7 @@ export default function OrganizationListPage() {
                     }}
                   >
                     <Typography variant="h5" color="primary" fontWeight="bold">
-                      {organizations.length}
+                      {filteredOrganizations.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       總組織數
@@ -388,8 +420,9 @@ export default function OrganizationListPage() {
                   >
                     <Typography variant="h5" color="primary" fontWeight="bold">
                       {
-                        organizations.filter((org) => org.type === "club")
-                          .length
+                        filteredOrganizations.filter(
+                          (org) => org.type === "club"
+                        ).length
                       }
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -409,8 +442,9 @@ export default function OrganizationListPage() {
                       fontWeight="bold"
                     >
                       {
-                        organizations.filter((org) => org.type === "company")
-                          .length
+                        filteredOrganizations.filter(
+                          (org) => org.type === "company"
+                        ).length
                       }
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -419,7 +453,6 @@ export default function OrganizationListPage() {
                   </Box>
                 </Box>
               </Box>
-
               {/* 搜尋和過濾區域 */}
               <Box sx={{ mb: 4 }}>
                 <Grid container spacing={2} alignItems="center">
@@ -470,7 +503,6 @@ export default function OrganizationListPage() {
                   </Grid>
                 </Grid>
               </Box>
-
               {/* 組織顯示區域 */}
               <ClientOnly>
                 {loading ? (
@@ -487,7 +519,7 @@ export default function OrganizationListPage() {
                   </Box>
                 ) : (
                   <Grid container spacing={3}>
-                    {filteredOrganizations.map((org) => (
+                    {currentItems.map((org) => (
                       <Grid item xs={12} sm={6} md={4} key={org.id}>
                         <Card
                           sx={{
@@ -724,7 +756,22 @@ export default function OrganizationListPage() {
                     ))}
                   </Grid>
                 )}
-              </ClientOnly>
+              </ClientOnly>{" "}
+              {/* 分頁器 */}
+              <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+                <Pagination
+                  count={pageCount}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="large"
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      borderRadius: 2,
+                    },
+                  }}
+                />
+              </Box>
             </Paper>
           </Container>
         </Box>

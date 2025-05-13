@@ -50,12 +50,13 @@ interface Post {
 
 interface Activity {
   id: string;
+  title?: string;
   name?: string;
-  content?: string;
   date?: any;
+  location?: string;
   type?: string;
-  participants?: number;
-  createdAt?: any;
+  participants?: string;
+  description?: string;
 }
 
 interface EnterprisePost {
@@ -70,6 +71,11 @@ interface EnterprisePost {
 }
 
 export default function HomePage() {
+  // 設置頁面標題
+  useEffect(() => {
+    document.title = "首頁 - 社團企業媒合平台";
+  }, []);
+
   const [recentDemands, setRecentDemands] = useState<Post[]>([]);
   const [upcomingActivities, setUpcomingActivities] = useState<Activity[]>([]);
   const [recentEnterprises, setRecentEnterprises] = useState<EnterprisePost[]>(

@@ -151,16 +151,13 @@ export default function EnterpriseEditDialog({
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
-
   const handleSubmit = async () => {
     try {
       setLoading(true);
       if (!formData.title || !formData.content) {
         alert("標題和內容不能為空");
         return;
-      }
-
-      // Create a clean data object that matches EnterprisePost type
+      } // Create a clean data object that matches EnterprisePost type
       const cleanData: Partial<EnterprisePost> = {
         ...Object.fromEntries(
           Object.entries(formData).filter(
@@ -169,24 +166,24 @@ export default function EnterpriseEditDialog({
         ),
       };
 
-      // Convert weeklyHours string to number or undefined
-      if (formData.weeklyHours === "" || formData.weeklyHours === undefined) {
-        cleanData.weeklyHours = undefined;
-      } else {
+      // Convert weeklyHours string to number if it exists, otherwise exclude it
+      if (formData.weeklyHours && formData.weeklyHours !== "") {
         cleanData.weeklyHours = Number(formData.weeklyHours);
       }
+      // Do not include weeklyHours if it's empty or undefined
 
-      // Convert internshipPositions string to number or undefined
-      if (
-        formData.internshipPositions === "" ||
-        formData.internshipPositions === undefined
-      ) {
-        cleanData.internshipPositions = undefined;
-      } else {
+      // Convert internshipPositions string to number if it exists, otherwise exclude it
+      if (formData.internshipPositions && formData.internshipPositions !== "") {
         cleanData.internshipPositions = Number(formData.internshipPositions);
       }
+      // Do not include internshipPositions if it's empty or undefined
 
-      await enterpriseService.updatePost(announcement.id!, cleanData);
+      // 最終清理：移除所有 undefined 值
+      const finalData = Object.fromEntries(
+        Object.entries(cleanData).filter(([_, value]) => value !== undefined)
+      );
+
+      await enterpriseService.updatePost(announcement.id!, finalData);
       onSuccess();
     } catch (error) {
       console.error("更新公告失敗", error);

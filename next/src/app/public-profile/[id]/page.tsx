@@ -657,11 +657,12 @@ export default function PublicProfilePage() {
                     mb: 2,
                   }}
                 >
+                  {" "}
                   <Typography
                     variant="h4"
                     sx={{ fontWeight: 700, color: "primary.main" }}
                   >
-                    {isCurrentUser ? "您的" : `${getDisplayName()}的`}個人檔案
+                    {isCurrentUser ? "您的個人檔案" : `${getDisplayName()}`}
                   </Typography>
                 </Box>{" "}
                 {/* 訂閱按鈕只在查看其他組織時顯示 */}

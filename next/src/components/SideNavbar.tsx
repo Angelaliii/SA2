@@ -1,8 +1,8 @@
 "use client";
 
 import ArticleIcon from "@mui/icons-material/Article";
-import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import EventIcon from "@mui/icons-material/Event";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import FolderIcon from "@mui/icons-material/Folder";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import PersonIcon from "@mui/icons-material/Person";
@@ -111,7 +111,7 @@ export default function SideNavbar({
               icon = <EventIcon fontSize="small" />;
               break;
             case "我的收藏":
-              icon = <BookmarksIcon fontSize="small" />;
+              icon = <FavoriteIcon fontSize="small" />;
               break;
             case "合作記錄":
               icon = <HandshakeIcon fontSize="small" />;

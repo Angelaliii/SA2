@@ -26,6 +26,13 @@ import { auth } from "../../firebase/config";
 import * as postService from "../../firebase/services/post-service";
 import { ClientOnly } from "../../hooks/useHydration";
 
+// 設置頁面標題
+const usePageTitle = (title: string) => {
+  useEffect(() => {
+    document.title = `${title} - 社團企業媒合平台`;
+  }, [title]);
+};
+
 type FormErrorState = {
   title: boolean;
   selectedDemands: boolean;
@@ -78,6 +85,9 @@ interface DemandPostData {
 }
 
 export default function DemandPostPage() {
+  // 設置頁面標題
+  usePageTitle("需求牆");
+
   // 基本表單狀態
   const [title, setTitle] = useState("");
   const [organizationName, setOrganizationName] = useState("");
@@ -1176,7 +1186,13 @@ export default function DemandPostPage() {
 
                   {/* 合作方式（下拉） */}
                   <Autocomplete
-                    options={participationOptions2}
+                    options={[
+                      "教材贊助（書籍、講義、教具...）",
+                      "講師資源（派遣或補助講師...）",
+                      "場地提供",
+                      "物資捐贈（文具、學習用品...）",
+                      "金錢贊助",
+                    ]}
                     value={participationType}
                     onChange={(_, newValue) =>
                       setParticipationType(newValue ?? "")

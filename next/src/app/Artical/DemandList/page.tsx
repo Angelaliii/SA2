@@ -50,29 +50,34 @@ interface Post {
   author?: string;
   authorId?: string;
   organizationName?: string;
-  eventDate?: string;
-  estimatedParticipants?: string;
+  organizationIcon?: string;
   tags?: string[];
+  createdAt?: any;
   selectedDemands?: string[];
+  eventName?: string;
+  eventDate?: string;
+  eventType?: string;
   location?: string;
   isDraft?: boolean;
-  cooperationReturn?: string;
-  createdAt: string;
-  eventType?: string;
-  deleted?: boolean;
-  demandDescription?: string;
-  eventName?: string;
-  eventDescription?: string;
   email?: string;
-  customItems?: string[];
+  // 添加缺少的屬性
   purposeType?: string;
+  estimatedParticipants?: string;
+  customItems?: string[];
   participationType?: string;
+  eventEndDate?: string;
+  eventDescription?: string;
 }
 
 const demandItems = ["零食", "飲料", "生活用品", "戶外用品", "其他"];
 const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
 
 export default function DemandListPage() {
+  // 設置頁面標題
+  useEffect(() => {
+    document.title = "需求牆 - 社團企業媒合平台";
+  }, []);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -767,7 +772,7 @@ export default function DemandListPage() {
                             {(post.customItems && post.customItems.length > 0
                               ? post.customItems
                               : ["未提供"]
-                            ).map((item) => (
+                            ).map((item: string) => (
                               <Chip
                                 key={`${post.id}-${item}`}
                                 label={item}

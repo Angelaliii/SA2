@@ -25,20 +25,23 @@ export interface EnterprisePost {
   status: "active" | "closed";
   postType: "enterprise";
   isDraft?: boolean;
-  
+
   // 公告類型欄位
-  announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation"; 
-  
+  announcementType?:
+    | "specialOfferPartnership"
+    | "activityCooperation"
+    | "internshipCooperation";
+
   // 特約商店特有欄位
   partnershipName?: string; // 特約商店名稱
   contractPeriodDuration?: string; // 合約期限
   contractDetails?: string; // 合約內容
-  
+
   // 聯繫窗口（共用）
   contactName?: string; // 聯繫窗口姓名
   contactPhone?: string; // 聯繫窗口電話
   contactEmail?: string; // 聯繫窗口Email
-  
+
   // 活動合作特有欄位
   activityName?: string; // 活動名稱
   activityType?: string; // 活動類型（演講/工作坊/展覽/比賽等）
@@ -196,12 +199,17 @@ export const enterpriseService = {
       return null;
     }
   },
-
   updatePost: async (id: string, updateData: Partial<EnterprisePost>) => {
     try {
       const postRef = doc(db, ENTERPRISE_COLLECTION, id);
+
+      // 清理數據，移除所有 undefined 值
+      const cleanedData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+
       await updateDoc(postRef, {
-        ...updateData,
+        ...cleanedData,
         updatedAt: Timestamp.now(),
       });
       return { success: true };

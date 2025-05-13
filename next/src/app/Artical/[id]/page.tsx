@@ -1,8 +1,6 @@
 "use client";
 
 import EventIcon from "@mui/icons-material/Event";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import InfoIcon from "@mui/icons-material/Info";
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -11,9 +9,7 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Container,
-  IconButton,
   Link as MuiLink,
   Paper,
   Snackbar,
@@ -56,6 +52,14 @@ export default function DemandPostDetailPage() {
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success"
   );
+  // 更新頁面標題
+  useEffect(() => {
+    if (post && post.title && post.title !== "載入中...") {
+      document.title = `${post.title} - 需求牆`;
+    } else {
+      document.title = "需求牆 - 社團企業媒合平台";
+    }
+  }, [post]);
 
   // 收藏相關狀態
   const [isFavorite, setIsFavorite] = useState(false);
@@ -258,30 +262,10 @@ export default function DemandPostDetailPage() {
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, minHeight: "80vh" }}>
           {/* 標題 + 社團資訊 */}
           <Box sx={{ textAlign: "center", mb: 4, position: "relative" }}>
+            {" "}
             <Typography variant="h4" fontWeight="bold" gutterBottom>
               {post.title}
             </Typography>
-
-            {/* 收藏按鈕 */}
-            <IconButton
-              onClick={handleToggleFavorite}
-              disabled={favoriteLoading}
-              sx={{
-                position: "absolute",
-                right: 0,
-                top: 0,
-                fontSize: "1.8rem",
-              }}
-            >
-              {favoriteLoading ? (
-                <CircularProgress size={20} />
-              ) : isFavorite ? (
-                "❤️"
-              ) : (
-                "🤍"
-              )}
-            </IconButton>
-
             {/* 社團名稱 */}
             <Typography
               variant="subtitle1"
@@ -308,24 +292,21 @@ export default function DemandPostDetailPage() {
                 post.organizationName ?? "未知社團"
               )}
             </Typography>
-
             {/* 發文時間 */}
             <Typography variant="body2" color="text.secondary">
               發文時間：{formattedDate}
             </Typography>
-
             {/* 聯絡信箱 */}
             <Typography variant="body2" color="text.secondary">
               聯絡信箱：
               {post.email ?? "未提供"}
-            </Typography>
+            </Typography>{" "}
           </Box>
           {/* 收藏按鈕區塊 */}{" "}
           <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
             <Button
-              variant={isFavorite ? "contained" : "outlined"}
-              color={isFavorite ? "error" : "primary"}
-              startIcon={isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              variant="contained"
+              color="primary"
               onClick={handleToggleFavorite}
               disabled={favoriteLoading}
               size="small"
@@ -416,7 +397,6 @@ export default function DemandPostDetailPage() {
               >
                 {messageSent ? "已發送訊息" : "發送合作訊息"}
               </Button>
-
               {messageSent && (
                 <Button
                   variant="outlined"
@@ -426,7 +406,7 @@ export default function DemandPostDetailPage() {
                 >
                   前往我的合作記錄確認
                 </Button>
-              )}
+              )}{" "}
             </Box>
           )}
           {!isLoggedIn && (
@@ -436,22 +416,6 @@ export default function DemandPostDetailPage() {
               </Typography>
             </Box>
           )}
-          {/* 收藏按鈕 */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-            <IconButton
-              onClick={handleToggleFavorite}
-              disabled={favoriteLoading}
-              color="primary"
-            >
-              {favoriteLoading ? (
-                <CircularProgress size={24} />
-              ) : isFavorite ? (
-                <FavoriteIcon />
-              ) : (
-                <FavoriteBorderIcon />
-              )}
-            </IconButton>
-          </Box>
         </Paper>
       </Container>
 

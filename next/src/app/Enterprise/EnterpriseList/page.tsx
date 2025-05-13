@@ -32,7 +32,7 @@ import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
 import { companyServices } from "../../../firebase/services/company-service";
 import { enterpriseService } from "../../../firebase/services/enterprise-service";
-import useHydration from "../../../hooks/useHydration";
+import useHydration, { ClientOnly } from "../../../hooks/useHydration";
 
 interface EnterprisePost {
   id: string;
@@ -50,8 +50,7 @@ interface EnterprisePost {
     | "internshipCooperation";
 }
 
-// 只在客戶端環境中使用 sessionStorage
-const isBrowser = typeof window !== "undefined";
+// 只在客戶端環境中使用 sessionStorage，改用 useHydration
 
 export default function EnterpriseListPage() {
   const [posts, setPosts] = useState<EnterprisePost[]>([]);
@@ -134,7 +133,7 @@ export default function EnterpriseListPage() {
         setIsCompany(companies.length > 0);
 
         // 將企業用戶狀態保存到 sessionStorage，防止頁面刷新後丟失狀態
-        if (isBrowser) {
+        if (typeof window !== "undefined") {
           if (companies.length > 0) {
             sessionStorage.setItem("isCompanyUser", "true");
           } else {
@@ -147,12 +146,7 @@ export default function EnterpriseListPage() {
       }
     };
 
-    // 先檢查 sessionStorage
-    const savedIsCompany =
-      isBrowser && sessionStorage.getItem("isCompanyUser") === "true";
-    setIsCompany(savedIsCompany);
-
-    // 再從伺服器獲取最新狀態
+    // 從伺服器獲取最新狀態
     checkUserRole();
   }, []);
 
@@ -252,7 +246,13 @@ export default function EnterpriseListPage() {
     }
   };
 
+  // 使用 useHydration 來確保客戶端hydration完成
   const hydrated = useHydration();
+
+  // 設置頁面標題
+  useEffect(() => {
+    document.title = "企業牆 - 社團企業媒合平台";
+  }, []);
 
   return (
     <>
@@ -529,7 +529,9 @@ export default function EnterpriseListPage() {
                           color="text.secondary"
                           sx={{ display: "block", mt: 1 }}
                         >
-                          發布時間：{formatDate(post.createdAt?.toString())}
+                          <ClientOnly>
+                            發布時間：{formatDate(post.createdAt?.toString())}
+                          </ClientOnly>
                         </Typography>
                       </Box>
 
@@ -588,8 +590,7 @@ export default function EnterpriseListPage() {
       </Box>
 
       {/* 浮動發布企業公告按鈕 - 只有企業用戶能看到 */}
-      {(isCompany ||
-        (isBrowser && sessionStorage.getItem("isCompanyUser") === "true")) && (
+      {isCompany && (
         <Box
           sx={{
             position: "fixed",

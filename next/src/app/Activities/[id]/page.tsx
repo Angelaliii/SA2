@@ -21,6 +21,14 @@ export default function ActivityDetailPage() {
   const { id } = useParams(); // 使用 useParams 獲取活動的 id 參數
   const [activity, setActivity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // 更新頁面標題
+  useEffect(() => {
+    if (activity?.title) {
+      document.title = `${activity.title} - 活動資訊`;
+    } else {
+      document.title = "活動資訊 - 社團企業媒合平台";
+    }
+  }, [activity]);
 
   useEffect(() => {
     if (id) {
