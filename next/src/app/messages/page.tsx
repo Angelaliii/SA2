@@ -24,12 +24,10 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import { auth, db } from "../../firebase/config";
-import HandshakeIcon from '@mui/icons-material/Handshake';
 
 type NotificationItem = {
   id: string;
@@ -43,11 +41,48 @@ type NotificationItem = {
 };
 
 export default function NotificationsPage() {
-  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [hasCollaborationMessages, setHasCollaborationMessages] = useState(false);
+
+  // 訊息格式轉換函數
+  const transformMessageContent = (content: string): string => {
+    // 🔵 一般合作意願訊息
+    if (content.includes('有意願和你合作') && !content.includes('請求') && !content.includes('接受') && !content.includes('婉拒')) {
+      return '有意願和你合作，請前往個人資料審核合作邀約~';
+    }
+    
+    // 🟢 合作請求相關
+    if (content.includes('合作請求') || (content.includes('有意願和你合作') && content.includes('請求'))) {
+      return '有意願和你合作。請前往個人資料審核合作邀約~';
+    }
+    
+    // 🟡 合作回應相關
+    if (content.includes('接受您的合作請求')) {
+      return '接受您的合作請求！';
+    }
+    
+    // 婉拒合作
+    if (content.includes('婉拒合作')) {
+      const reasonMatch = content.match(/原因：(.*?)($|\n)/);
+      const reason = reasonMatch ? reasonMatch[1] : '';
+      return `婉拒您的合作請求。\n原因：${reason}`;
+    }
+    
+    // 合作已完成
+    if (content.includes('合作已完成')) {
+      const messageMatch = content.match(/評價：(.*?)($|\n)/);
+      const message = messageMatch ? messageMatch[1] : '';
+      return `已經填寫完評價。您有合作完成囉~\n對方評價:${message}`;
+    }
+    
+    // 填寫評價
+    if (content.includes('填寫評價')) {
+      return '已經填寫完評價，請至個人資料頁面完成評價~';
+    }
+    
+    return content;
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -111,10 +146,13 @@ export default function NotificationsPage() {
               }
             } catch {}
 
+            // 套用訊息格式轉換
+            const transformedMessage = transformMessageContent(data.messageContent);
+
             return {
               id,
               senderId: data.senderId,
-              messageContent: data.messageContent,
+              messageContent: transformedMessage,
               timestamp: data.timestamp,
               postId: data.postId,
               isRead: data.isRead ?? false,
@@ -125,18 +163,8 @@ export default function NotificationsPage() {
         );
 
         setNotifications(enriched);
-
-        // 檢查是否有合作相關的訊息
-        const hasCollaboration = enriched.some(msg => 
-          msg.messageContent.includes('合作') || 
-          msg.messageContent.includes('申請') || 
-          msg.messageContent.includes('婉拒') ||
-          msg.messageContent.includes('邀請') ||
-          msg.messageContent.includes('意願')
-        );
-        setHasCollaborationMessages(hasCollaboration);
+        setNotifications(enriched);
       } catch (error) {
-        console.error("Error fetching notifications:", error);
       } finally {
         setLoading(false);
       }
@@ -196,10 +224,6 @@ export default function NotificationsPage() {
       console.error("Date formatting error:", err);
       return "日期格式錯誤";
     }
-  };
-
-  const navigateToCollaborations = () => {
-    router.push("/Profile?searchTerm=4");
   };
 
   const renderMessageWithClickableTitle = (messageContent: string, postId?: string, postTitle?: string) => {
@@ -314,16 +338,6 @@ export default function NotificationsPage() {
                     通知中心
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {hasCollaborationMessages && (
-                      <Button 
-                        variant="outlined" 
-                        color="primary"
-                        startIcon={<HandshakeIcon />}
-                        onClick={navigateToCollaborations}
-                      >
-                        查看合作請求
-                      </Button>
-                    )}
                     <Button
                       variant="outlined"
                       onClick={markAllAsRead}
@@ -376,6 +390,7 @@ export default function NotificationsPage() {
                                 : "rgba(25, 118, 210, 0.08)",
                               boxShadow: "0 3px 10px rgba(0,0,0,0.08)",
                             },
+                            position: 'relative',
                           }}
                         >
                           <Box
@@ -421,23 +436,6 @@ export default function NotificationsPage() {
                                   {msg.postTitle}
                                 </Link>
                               </Typography>
-                            </Box>
-                          )}
-                          
-                          {msg.messageContent.includes('合作') && (
-                            <Box sx={{ mt: 2, alignSelf: 'flex-end' }}>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="primary"
-                                startIcon={<HandshakeIcon />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigateToCollaborations();
-                                }}
-                              >
-                                前往審核合作請求
-                              </Button>
                             </Box>
                           )}
                         </ListItem>

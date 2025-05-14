@@ -389,10 +389,7 @@ export default function Profile() {
     await refreshAllPublishedContent();
   };
 
-  // 重新獲取需求文章列表 - 使用綜合刷新函數
-  const refreshArticles = async () => {
-    await refreshAllPublishedContent();
-  }; // 綜合刷新所有文章(同時刷新普通文章和企業公告)
+  // 綜合刷新所有文章(同時刷新普通文章和企業公告)
   const refreshAllPublishedContent = async () => {
     const currentUser = authServices.getCurrentUser();
     if (!currentUser) return;

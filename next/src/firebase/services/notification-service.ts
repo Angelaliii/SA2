@@ -4,6 +4,8 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -155,7 +157,7 @@ export const notifySubscribers = async (
         const messageData = {
           senderId: authorId,
           receiverId: subscriberData.subscriberId,
-          messageContent: `您訂閱的${authorName}剛剛發布了新文章「${postTitle}」`,
+          messageContent: `您訂閱的${authorName}剛剛發布了新文章`,
           timestamp: serverTimestamp(),
           type: "subscription_notification",
           isRead: false,
@@ -213,7 +215,7 @@ export const notifySubscribers = async (
 /**
  * 獲取使用者通知
  */
-export const getUserNotifications = async (userId: string, limit = 50) => {
+export const getUserNotifications = async (userId: string, maxLimit = 50) => {
   try {
     // 如果不在客戶端環境中，返回空數組以防止水合錯誤
     if (!isClient) {
@@ -222,7 +224,9 @@ export const getUserNotifications = async (userId: string, limit = 50) => {
 
     const q = query(
       collection(db, "notifications"),
-      where("userId", "==", userId)
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc"),
+      limit(maxLimit)
     );
 
     const snapshot = await getDocs(q);
@@ -293,7 +297,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `您收到了一個關於「${postTitle}」的合作請求`,
+        messageContent: `您收到了一則的合作請求`,
         timestamp: serverTimestamp(),
         type: "collaboration_request",
         collaborationId,
@@ -323,7 +327,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `您關於「${postTitle}」的合作請求已被接受！`,
+        messageContent: `您的合作請求已被接受！`,
         timestamp: serverTimestamp(),
         type: "collaboration_accepted",
         collaborationId,
@@ -355,7 +359,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `您關於「${postTitle}」的合作請求已被婉拒。原因：${reason}`,
+        messageContent: `您的合作請求已被婉拒。\n原因：${reason}`,
         timestamp: serverTimestamp(),
         type: "collaboration_rejected",
         collaborationId,
@@ -387,7 +391,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `關於「${postTitle}」的合作已完成！${comment}`,
+        messageContent: `對方已經填寫完評價。您有合作完成囉~\n對方評價:${comment}`,
         timestamp: serverTimestamp(),
         type: "collaboration_completed",
         collaborationId,
@@ -419,7 +423,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `關於「${postTitle}」的合作：${message}`,
+        messageContent: `關於您的合作：${message}`,
         timestamp: serverTimestamp(),
         type: "collaboration_needs_review",
         collaborationId,
@@ -457,7 +461,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `關於「${postTitle}」的合作已被取消。原因：${reason}`,
+        messageContent: `您的合作已被取消。\n原因：${reason}`,
         timestamp: serverTimestamp(),
         type: "collaboration_cancelled",
         collaborationId,
@@ -472,4 +476,40 @@ export const notificationService = {
       );
     }
   },
+};
+
+/**
+ * 發送合作請求通知給接收者
+ * 修改：移除寫入 messages 集合的部分，因為在 DemandPostDetailPage 中已經寫入過一次
+ */
+export const sendCollaborationRequest = async (
+  senderId: string, 
+  receiverId: string, 
+  postId: string, 
+  postTitle: string
+) => {
+  try {
+    // 移除原來建立訊息的部分，避免重複發送
+    // 原本的程式碼：
+    /*
+    await addDoc(collection(db, "messages"), {
+      senderId,
+      receiverId,
+      messageContent: `有意願和你關於「${postTitle}」的文章合作。請前往個人資料審核合作邀約~`,
+      timestamp: serverTimestamp(),
+      postId,
+      isRead: false,
+    });
+    */
+    
+    // 保留記錄或通知功能，但不寫入 messages 集合
+    console.log('Collaboration request registered without duplicate message', {
+      senderId, receiverId, postId, postTitle
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending collaboration request notification:", error);
+    return { success: false, error: error };
+  }
 };
