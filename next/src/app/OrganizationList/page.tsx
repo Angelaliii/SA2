@@ -1,6 +1,7 @@
 "use client";
 
 import BusinessIcon from "@mui/icons-material/Business";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import GroupsIcon from "@mui/icons-material/Groups";
 import InfoIcon from "@mui/icons-material/Info";
 import LanguageIcon from "@mui/icons-material/Language";
@@ -746,7 +747,14 @@ export default function OrganizationListPage() {
                                   }}
                                   disabled={!isAuthenticated}
                                 >
-                                  <SubscriptionsIcon fontSize="small" />
+                                  {subscribedOrganizations.includes(org.id) ? (
+                                    <FavoriteIcon
+                                      fontSize="small"
+                                      color="error"
+                                    />
+                                  ) : (
+                                    <SubscriptionsIcon fontSize="small" />
+                                  )}
                                 </IconButton>
                               </Tooltip>
                             )}

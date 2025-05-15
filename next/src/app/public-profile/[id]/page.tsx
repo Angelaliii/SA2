@@ -403,13 +403,13 @@ export default function PublicProfilePage() {
               }
               passHref
             >
+              {" "}
               <Typography
                 variant="h6"
                 component="span" // Changed from "a" to "span" to avoid nesting <a> tags
                 sx={{
-                  textDecoration: "none",
                   color: "primary.main",
-                  "&:hover": { textDecoration: "underline" },
+                  "&:hover": { color: "primary.dark" },
                 }}
               >
                 {article.title ?? "(未命名文章)"}
@@ -467,13 +467,13 @@ export default function PublicProfilePage() {
             }}
           >
             <Link href={`/Activities/${activity.id}`} passHref>
+              {" "}
               <Typography
                 variant="h6"
                 component="span" // Changed from "a" to "span" to avoid nesting <a> tags
                 sx={{
-                  textDecoration: "none",
                   color: "primary.main",
-                  "&:hover": { textDecoration: "underline" },
+                  "&:hover": { color: "primary.dark" },
                 }}
               >
                 {activity.title ?? activity.name}

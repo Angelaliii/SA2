@@ -232,7 +232,7 @@ export default function DemandPostDetailPage() {
           postType: "demand",
           title: post.title,
           content: post.content,
-          organizationName: post.organizationName || clubInfo?.clubName,
+          organizationName: post.organizationName ?? clubInfo?.clubName,
         });
       }
 
@@ -414,7 +414,7 @@ export default function DemandPostDetailPage() {
               >
                 <Typography variant="body2">
                   <strong>活動標題：</strong>
-                  {post.eventName || "未提供"}
+                  {post.eventName ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動期間：</strong>
@@ -566,7 +566,8 @@ export default function DemandPostDetailPage() {
             )}
           </Paper>
         </Container>
-        {/* Snackbar */}{" "}
+
+        {/* Snackbar */}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}

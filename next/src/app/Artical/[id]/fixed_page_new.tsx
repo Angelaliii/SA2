@@ -363,7 +363,7 @@ export default function DemandPostDetailPage() {
                     聯繫人
                   </Typography>
                   <Typography variant="body1">
-                    {post.contactName ?? "未提供"}
+                    {post.contactName || "未提供"}
                   </Typography>
                 </Box>
 
@@ -372,7 +372,7 @@ export default function DemandPostDetailPage() {
                     聯絡電話
                   </Typography>
                   <Typography variant="body1">
-                    {post.contactPhone ?? "未提供"}
+                    {post.contactPhone || "未提供"}
                   </Typography>
                 </Box>
 
@@ -414,7 +414,7 @@ export default function DemandPostDetailPage() {
               >
                 <Typography variant="body2">
                   <strong>活動標題：</strong>
-                  {post.eventName || "未提供"}
+                  {post.eventName ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動期間：</strong>
@@ -425,15 +425,15 @@ export default function DemandPostDetailPage() {
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動地點：</strong>
-                  {post.location || "未提供"}
+                  {post.location ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動類型：</strong>
-                  {post.eventNature || "未提供"}
+                  {post.eventNature ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>預估人數：</strong>
-                  {post.estimatedParticipants || "未提供"}
+                  {post.estimatedParticipants ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>贊助截止時間：</strong>
@@ -456,18 +456,18 @@ export default function DemandPostDetailPage() {
 
               <Typography variant="body2" sx={{ mb: 1.5 }}>
                 <strong>需求類型：</strong>
-                {post.demandType || "未提供"}
+                {post.demandType ?? "未提供"}
               </Typography>
 
               {post.demandType === "物資" && (
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2">
                     <strong>物資類型：</strong>
-                    {post.materialCategory?.join("、") || "未提供"}
+                    {post.materialCategory?.join("、") ?? "未提供"}
                   </Typography>
                   <Typography variant="body2">
                     <strong>物資明細：</strong>
-                    {post.materialDetails || "未提供"}
+                    {post.materialDetails ?? "未提供"}
                   </Typography>
                 </Box>
               )}
@@ -566,7 +566,8 @@ export default function DemandPostDetailPage() {
             )}
           </Paper>
         </Container>
-        {/* Snackbar */}{" "}
+
+        {/* Snackbar */}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}

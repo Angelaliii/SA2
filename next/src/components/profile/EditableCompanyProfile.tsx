@@ -1,3 +1,5 @@
+"use client";
+
 import SaveIcon from "@mui/icons-material/Save";
 import {
   Box,
@@ -11,10 +13,9 @@ import {
 import React, { useState } from "react";
 import { Company } from "../../firebase/services/company-service";
 
-interface CompanyProfileFormProps {
+interface EditableCompanyProfileProps {
   companyData: Company;
   onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
-  readonly?: boolean;
 }
 
 // Industry types options
@@ -31,77 +32,10 @@ const industryTypes = [
   "其他",
 ];
 
-const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
+const EditableCompanyProfile: React.FC<EditableCompanyProfileProps> = ({
   companyData,
   onSubmit,
-  readonly = false,
 }) => {
-  if (readonly) {
-    return (
-      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          企業資料
-        </Typography>
-
-        <Grid container spacing={2}>
-          {companyData.logoURL && (
-            <Grid item xs={12} display="flex" justifyContent="center" mb={2}>
-              <Box
-                component="img"
-                src={companyData.logoURL}
-                alt={`${companyData.companyName}的標誌`}
-                sx={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "contain",
-                  borderRadius: "50%",
-                }}
-              />
-            </Grid>
-          )}
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>企業名稱：</strong> {companyData.companyName}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>統一編號：</strong> {companyData.businessId}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>產業類型：</strong> {companyData.industryType}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>聯絡人姓名：</strong> {companyData.contactName}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>聯絡電話：</strong> {companyData.contactPhone}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>電子郵件：</strong> {companyData.email}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography sx={{ mt: 2 }}>
-              <strong>企業簡介：</strong>
-            </Typography>
-            <Typography sx={{ whiteSpace: "pre-line" }}>
-              {companyData.companyDescription}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-    );
-  }
   const [formData, setFormData] = useState<Partial<Company>>({
     companyName: companyData.companyName ?? "",
     businessId: companyData.businessId ?? "",
@@ -158,7 +92,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
     if (!formData.contactPhone?.trim()) {
       newErrors.contactPhone = "請輸入聯絡電話";
-    } else if (!/^[0-9]{8,10}$/.test(formData.contactPhone.trim())) {
+    } else if (!/^\d{8,10}$/.test(formData.contactPhone.trim())) {
       newErrors.contactPhone = "請輸入有效的電話號碼";
     }
 
@@ -174,7 +108,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
     if (!formData.businessId?.trim()) {
       newErrors.businessId = "請輸入統一編號";
-    } else if (!/^[0-9]{8}$/.test(formData.businessId.trim())) {
+    } else if (!/^\d{8}$/.test(formData.businessId.trim())) {
       newErrors.businessId = "統一編號必須為8位數字";
     }
 
@@ -191,7 +125,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile || undefined);
+      await onSubmit(formData, logoFile ?? undefined);
       if (logoFile) {
         setLogoFile(null);
       }
@@ -204,7 +138,8 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
     <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
       <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
         企業資料
-      </Typography>{" "}
+      </Typography>
+
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Logo Upload Section */}
@@ -391,4 +326,4 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
   );
 };
 
-export default CompanyProfileForm;
+export default EditableCompanyProfile;

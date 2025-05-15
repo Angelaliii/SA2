@@ -770,7 +770,7 @@ export default function DemandListPage() {
                           {option}
                         </option>
                       ))}
-                    </TextField>
+                    </TextField>{" "}
                     <TextField
                       fullWidth
                       type="date"
@@ -778,13 +778,31 @@ export default function DemandListPage() {
                       value={eventStartDate}
                       onChange={(e) => {
                         setEventStartDate(e.target.value);
+                        // 如果結束日期已經設定，且新的開始日期晚於結束日期，則自動更新結束日期
+                        if (eventEndDate && e.target.value > eventEndDate) {
+                          setEventEndDate(e.target.value);
+                        }
                         setCurrentPage(1); // 重置到第一頁
                       }}
                       InputLabelProps={{ shrink: true }}
+                      inputProps={{
+                        max: eventEndDate || undefined,
+                      }}
+                      helperText={
+                        eventEndDate && eventStartDate > eventEndDate
+                          ? "開始日期不能晚於結束日期"
+                          : ""
+                      }
+                      error={
+                        eventEndDate && eventStartDate > eventEndDate
+                          ? true
+                          : undefined
+                      }
                     />
                   </Box>
 
                   <Box sx={{ display: "flex", gap: 2 }}>
+                    {" "}
                     <TextField
                       fullWidth
                       type="date"
@@ -792,9 +810,24 @@ export default function DemandListPage() {
                       value={eventEndDate}
                       onChange={(e) => {
                         setEventEndDate(e.target.value);
+                        // 如果開始日期已經設定，但晚於新的結束日期，則自動更新開始日期
+                        if (eventStartDate && eventStartDate > e.target.value) {
+                          setEventStartDate(e.target.value);
+                        }
                         setCurrentPage(1); // 重置到第一頁
                       }}
                       InputLabelProps={{ shrink: true }}
+                      inputProps={{
+                        min: eventStartDate || undefined,
+                      }}
+                      helperText={
+                        eventStartDate && eventStartDate > eventEndDate
+                          ? "結束日期不能早於開始日期"
+                          : ""
+                      }
+                      error={
+                        !!(eventStartDate && eventStartDate > eventEndDate)
+                      }
                     />
                     <TextField
                       fullWidth
@@ -1055,7 +1088,7 @@ export default function DemandListPage() {
                             <Typography variant="body2" color="text.secondary">
                               講師類型：{post.speakerType || "未指定"}
                             </Typography>
-                          )}
+                          )}{" "}
                           {/* 活動時間 */}{" "}
                           <Box
                             sx={{
@@ -1067,10 +1100,17 @@ export default function DemandListPage() {
                             <EventIcon fontSize="small" sx={{ mr: 1 }} />
                             <Typography variant="body2" color="text.secondary">
                               活動日期：
-                              {post.eventDate
-                                ? new Date(post.eventDate)
-                                    .toISOString()
-                                    .split("T")[0]
+                              {post.eventDate &&
+                              post.eventDate !== "undefined" &&
+                              post.eventDate !== "null"
+                                ? new Date(post.eventDate).toLocaleDateString(
+                                    "zh-TW",
+                                    {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                    }
+                                  )
                                 : "未設定"}
                             </Typography>
                           </Box>

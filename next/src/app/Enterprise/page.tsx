@@ -95,13 +95,7 @@ export default function EnterprisePostPage() {
     useState<string>("");
 
   // 活動類型選項
-  const activityTypeOptions = [
-    "演講",
-    "工作坊",
-    "展覽",
-    "比賽",
-    "其他",
-  ];
+  const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "其他"];
   // 合作方式選項
   // const cooperationTypeOptions = [
   //   "贊助",
@@ -111,11 +105,7 @@ export default function EnterprisePostPage() {
   //   "其他",
   // ];
   // 面試方式選項
-  const interviewMethodOptions = [
-    "線上面試",
-    "實體面試",
-    "其他",
-  ];
+  const interviewMethodOptions = ["線上面試", "實體面試", "其他"];
   // 合約期限選項
   const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
   useEffect(() => {
@@ -169,6 +159,39 @@ export default function EnterprisePostPage() {
       loadUserDrafts();
     }
   }, [openDraftsDialog]);
+
+  // 添加日期實時校驗
+  const [formErrors, setFormErrors] = useState({
+    activityStartDate: false,
+    activityEndDate: false,
+    applicationDeadline: false,
+  });
+
+  useEffect(() => {
+    // 防止初始化時出錯或當沒有值時
+    if (!activityStartDate || !activityEndDate) return;
+
+    const start = new Date(activityStartDate);
+    const end = new Date(activityEndDate);
+
+    setFormErrors((prev) => ({
+      ...prev,
+      activityEndDate: start > end,
+    }));
+  }, [activityStartDate, activityEndDate]);
+
+  useEffect(() => {
+    // 防止初始化時出錯或當沒有值時
+    if (!applicationDeadline || !activityStartDate) return;
+
+    const deadline = new Date(applicationDeadline);
+    const start = new Date(activityStartDate);
+
+    setFormErrors((prev) => ({
+      ...prev,
+      applicationDeadline: deadline >= start,
+    }));
+  }, [applicationDeadline, activityStartDate]);
 
   // 載入選擇的草稿
   const handleLoadDraft = async (draftId: string) => {
@@ -296,9 +319,13 @@ export default function EnterprisePostPage() {
         setOpenSnackbar(true);
         return;
       }
-      
+
       // 檢查申請截止日期必須早於活動開始日期
-      if (applicationDeadline && activityStartDate && applicationDeadline >= activityStartDate) {
+      if (
+        applicationDeadline &&
+        activityStartDate &&
+        applicationDeadline >= activityStartDate
+      ) {
         setSnackbarMessage("申請截止日期必須早於活動開始日期");
         setSnackbarSeverity("error");
         setOpenSnackbar(true);

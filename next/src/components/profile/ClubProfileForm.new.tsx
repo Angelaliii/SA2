@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Club } from "../../firebase/services/club-service";
 import EditableClubProfile from "./EditableClubProfile";

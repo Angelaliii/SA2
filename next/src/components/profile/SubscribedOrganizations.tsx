@@ -22,6 +22,7 @@ import { subscriptionServices } from "../../firebase/services/subscription-servi
 // 訂閱的組織數據結構
 interface SubscribedOrganization {
   id: string; // 組織 ID
+  userId?: string; // 用戶 ID
   subscriptionId: string; // 訂閱記錄 ID
   name: string;
   description?: string;
@@ -76,22 +77,38 @@ const SubscribedOrganizations = () => {
         );
         const companySubscriptions = subscriptions.filter(
           (sub) => sub.organizationType === "company"
-        );
-
-        // 獲取所有社團和企業數據
+        ); // 獲取所有社團和企業數據
         const allClubs = await clubServices.getAllClubs();
         const allCompanies = await companyServices.getAllCompanies();
+
+        console.log("所有社團:", allClubs.length);
+        console.log("所有企業:", allCompanies.length);
+        console.log("訂閱的社團:", clubSubscriptions.length);
+        console.log("訂閱的企業:", companySubscriptions.length);
 
         // 合併訂閱的社團資料
         const subscribedClubs = clubSubscriptions
           .map((subscription) => {
-            const club = allClubs.find(
+            // 先嘗試根據 id 查找
+            let club = allClubs.find(
               (club) => club.id === subscription.organizationId
             );
-            if (!club) return null;
+
+            // 如果找不到，再根據 userId 查找
+            if (!club) {
+              club = allClubs.find(
+                (club) => club.userId === subscription.organizationId
+              );
+            }
+
+            if (!club) {
+              console.log("找不到對應的社團:", subscription.organizationId);
+              return null;
+            }
 
             return {
               id: club.id,
+              userId: club.userId,
               subscriptionId: subscription.id,
               name: club.clubName,
               description: club.clubDescription,
@@ -99,18 +116,29 @@ const SubscribedOrganizations = () => {
               type: "club" as const,
             };
           })
-          .filter(Boolean) as SubscribedOrganization[];
-
-        // 合併訂閱的企業資料
+          .filter(Boolean) as SubscribedOrganization[]; // 合併訂閱的企業資料
         const subscribedCompanies = companySubscriptions
           .map((subscription) => {
-            const company = allCompanies.find(
+            // 先嘗試根據 id 查找
+            let company = allCompanies.find(
               (company) => company.id === subscription.organizationId
             );
-            if (!company) return null;
+
+            // 如果找不到，再根據 userId 查找
+            if (!company) {
+              company = allCompanies.find(
+                (company) => company.userId === subscription.organizationId
+              );
+            }
+
+            if (!company) {
+              console.log("找不到對應的企業:", subscription.organizationId);
+              return null;
+            }
 
             return {
               id: company.id,
+              userId: company.userId,
               subscriptionId: subscription.id,
               name: company.companyName,
               description: company.companyDescription,
@@ -204,9 +232,10 @@ const SubscribedOrganizations = () => {
               },
             }}
           >
+            {" "}
             <CardActionArea
               component={Link}
-              href={`/public-profile/${org.id}`}
+              href={`/public-profile/${org.userId || org.id}`}
               sx={{ flexGrow: 1 }}
             >
               <Box sx={{ p: 2, position: "relative" }}>

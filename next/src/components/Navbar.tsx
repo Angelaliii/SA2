@@ -448,14 +448,9 @@ export default function Navbar({
                   anchorOrigin={{ vertical: "top", horizontal: "right" }}
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
+                  {" "}
                   {isLoggedIn
                     ? [
-                        <Box key="user-greeting" sx={{ px: 2, py: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {greeting}
-                            {userName || "使用者"}
-                          </Typography>
-                        </Box>,
                         <MenuItem
                           key="profile"
                           onClick={handleCloseUserMenu}
@@ -480,24 +475,25 @@ export default function Navbar({
                           onClick={handleCloseUserMenu}
                           component={Link}
                           href={option.path}
+                          sx={{
+                            minWidth: 120,
+                            display: "flex",
+                            justifyContent: "center",
+                            py: 1.2,
+                          }}
                         >
-                          <Typography textAlign="center" component="span">
-                            {(() => {
-                              // 使用立即執行函數來處理邏輯判斷
-                              if (
-                                userRole === "club" &&
-                                option.name === "社團註冊"
-                              ) {
-                                return null;
-                              }
-                              if (
-                                userRole === "company" &&
-                                option.name === "企業註冊"
-                              ) {
-                                return null;
-                              }
-                              return option.name;
-                            })()}
+                          <Typography
+                            textAlign="center"
+                            component="span"
+                            sx={{
+                              fontWeight: option.name === "登入" ? 500 : 400,
+                              color:
+                                option.name === "登入"
+                                  ? "primary.main"
+                                  : "text.primary",
+                            }}
+                          >
+                            {option.name}
                           </Typography>
                         </MenuItem>
                       ))}

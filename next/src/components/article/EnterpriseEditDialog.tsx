@@ -47,6 +47,12 @@ export default function EnterpriseEditDialog({
   const [loading, setLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
 
+  // 添加日期錯誤狀態
+  const [dateErrors, setDateErrors] = useState({
+    activityStartEnd: false,
+    applicationDeadline: false,
+  });
+
   // 定義選項
   const activityTypeOptions = [
     "演講",
@@ -127,6 +133,31 @@ export default function EnterpriseEditDialog({
       });
     }
   }, [open, announcement]);
+
+  // 動態監測活動開始和結束日期
+  useEffect(() => {
+    // 只有當兩個日期都存在時才進行檢查
+    if (formData.activityStartDate && formData.activityEndDate) {
+      const startDate = new Date(formData.activityStartDate);
+      const endDate = new Date(formData.activityEndDate);
+      setDateErrors((prev) => ({
+        ...prev,
+        activityStartEnd: startDate > endDate,
+      }));
+    }
+  }, [formData.activityStartDate, formData.activityEndDate]);
+
+  // 動態監測申請截止日期與活動開始日期
+  useEffect(() => {
+    if (formData.applicationDeadline && formData.activityStartDate) {
+      const deadlineDate = new Date(formData.applicationDeadline);
+      const startDate = new Date(formData.activityStartDate);
+      setDateErrors((prev) => ({
+        ...prev,
+        applicationDeadline: deadlineDate >= startDate,
+      }));
+    }
+  }, [formData.applicationDeadline, formData.activityStartDate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -391,8 +422,7 @@ export default function EnterpriseEditDialog({
                         </MenuItem>
                       ))}
                     </Select>
-                  </FormControl>
-
+                  </FormControl>{" "}
                   <TextField
                     name="activityStartDate"
                     label="活動開始日期"
@@ -402,8 +432,13 @@ export default function EnterpriseEditDialog({
                     onChange={handleInputChange}
                     fullWidth
                     InputLabelProps={{ shrink: true }}
-                  />
-
+                    error={dateErrors.activityStartEnd}
+                    helperText={
+                      dateErrors.activityStartEnd
+                        ? "活動開始日期不能晚於結束日期"
+                        : ""
+                    }
+                  />{" "}
                   <TextField
                     name="activityEndDate"
                     label="活動結束日期"
@@ -413,6 +448,12 @@ export default function EnterpriseEditDialog({
                     onChange={handleInputChange}
                     fullWidth
                     InputLabelProps={{ shrink: true }}
+                    error={dateErrors.activityStartEnd}
+                    helperText={
+                      dateErrors.activityStartEnd
+                        ? "活動結束日期必須晚於或等於開始日期"
+                        : ""
+                    }
                   />
                 </Box>
 

@@ -1,3 +1,5 @@
+"use client";
+
 import SaveIcon from "@mui/icons-material/Save";
 import {
   Box,
@@ -9,117 +11,46 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
-import { Company } from "../../firebase/services/company-service";
+import { Club } from "../../firebase/services/club-service";
 
-interface CompanyProfileFormProps {
-  companyData: Company;
-  onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
-  readonly?: boolean;
+interface EditableClubProfileProps {
+  clubData: Club;
+  onSubmit: (updatedData: Partial<Club>, logoFile?: File) => Promise<void>;
 }
 
-// Industry types options
-const industryTypes = [
-  "科技/IT",
-  "金融/保險",
-  "零售/電商",
-  "製造/工業",
-  "教育/培訓",
-  "醫療/健康",
-  "餐飲/娛樂",
-  "媒體/廣告",
-  "非營利組織",
+// 社團類型選項
+const clubTypes = [
+  "學術研究",
+  "體育競技",
+  "音樂表演",
+  "藝術文化",
+  "社會服務",
+  "職涯發展",
+  "科技創新",
+  "國際交流",
   "其他",
 ];
 
-const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
-  companyData,
+const EditableClubProfile: React.FC<EditableClubProfileProps> = ({
+  clubData,
   onSubmit,
-  readonly = false,
 }) => {
-  if (readonly) {
-    return (
-      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          企業資料
-        </Typography>
-
-        <Grid container spacing={2}>
-          {companyData.logoURL && (
-            <Grid item xs={12} display="flex" justifyContent="center" mb={2}>
-              <Box
-                component="img"
-                src={companyData.logoURL}
-                alt={`${companyData.companyName}的標誌`}
-                sx={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "contain",
-                  borderRadius: "50%",
-                }}
-              />
-            </Grid>
-          )}
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>企業名稱：</strong> {companyData.companyName}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>統一編號：</strong> {companyData.businessId}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>產業類型：</strong> {companyData.industryType}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>聯絡人姓名：</strong> {companyData.contactName}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>聯絡電話：</strong> {companyData.contactPhone}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>電子郵件：</strong> {companyData.email}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography sx={{ mt: 2 }}>
-              <strong>企業簡介：</strong>
-            </Typography>
-            <Typography sx={{ whiteSpace: "pre-line" }}>
-              {companyData.companyDescription}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-    );
-  }
-  const [formData, setFormData] = useState<Partial<Company>>({
-    companyName: companyData.companyName ?? "",
-    businessId: companyData.businessId ?? "",
-    industryType: companyData.industryType ?? "",
-    contactName: companyData.contactName ?? "",
-    contactPhone: companyData.contactPhone ?? "",
-    email: companyData.email ?? "",
-    companyDescription: companyData.companyDescription ?? "",
+  const [formData, setFormData] = useState<Partial<Club>>({
+    clubName: clubData.clubName ?? "",
+    schoolName: clubData.schoolName ?? "",
+    clubType: clubData.clubType ?? "",
+    contactName: clubData.contactName ?? "",
+    contactPhone: clubData.contactPhone ?? "",
+    email: clubData.email ?? "",
+    clubDescription: clubData.clubDescription ?? "",
   });
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(
-    companyData.logoURL ?? null
+    clubData.logoURL ?? null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof Company, string>>>(
-    {}
-  );
+  const [errors, setErrors] = useState<Partial<Record<keyof Club, string>>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -129,7 +60,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
     }));
 
     // Clear error when user types
-    if (errors[name as keyof Company]) {
+    if (errors[name as keyof Club]) {
       setErrors((prev) => ({
         ...prev,
         [name]: "",
@@ -146,36 +77,34 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof Company, string>> = {};
+    const newErrors: Partial<Record<keyof Club, string>> = {};
 
-    if (!formData.companyName?.trim()) {
-      newErrors.companyName = "請輸入企業名稱";
+    if (!formData.clubName?.trim()) {
+      newErrors.clubName = "此欄位為必填";
+    }
+
+    if (!formData.schoolName?.trim()) {
+      newErrors.schoolName = "此欄位為必填";
+    }
+
+    if (!formData.clubType) {
+      newErrors.clubType = "此欄位為必填";
     }
 
     if (!formData.contactName?.trim()) {
-      newErrors.contactName = "請輸入聯絡人姓名";
+      newErrors.contactName = "此欄位為必填";
     }
 
     if (!formData.contactPhone?.trim()) {
-      newErrors.contactPhone = "請輸入聯絡電話";
+      newErrors.contactPhone = "此欄位為必填";
     } else if (!/^[0-9]{8,10}$/.test(formData.contactPhone.trim())) {
       newErrors.contactPhone = "請輸入有效的電話號碼";
     }
 
     if (!formData.email?.trim()) {
-      newErrors.email = "請輸入電子郵件";
+      newErrors.email = "此欄位為必填";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = "請輸入有效的電子郵件地址";
-    }
-
-    if (!formData.industryType) {
-      newErrors.industryType = "請選擇產業類型";
-    }
-
-    if (!formData.businessId?.trim()) {
-      newErrors.businessId = "請輸入統一編號";
-    } else if (!/^[0-9]{8}$/.test(formData.businessId.trim())) {
-      newErrors.businessId = "統一編號必須為8位數字";
     }
 
     setErrors(newErrors);
@@ -191,7 +120,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile || undefined);
+      await onSubmit(formData, logoFile ?? undefined);
       if (logoFile) {
         setLogoFile(null);
       }
@@ -203,8 +132,9 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
   return (
     <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
       <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
-        企業資料
-      </Typography>{" "}
+        社團資料
+      </Typography>
+
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Logo Upload Section */}
@@ -220,7 +150,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               <Box
                 component="img"
                 src={logoPreview}
-                alt="企業標誌預覽"
+                alt="社團標誌預覽"
                 sx={{
                   width: 120,
                   height: 120,
@@ -236,7 +166,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               variant="outlined"
               sx={{ mt: logoPreview ? 1 : 0 }}
             >
-              {logoPreview ? "更換標誌" : "上傳企業標誌"}
+              {logoPreview ? "更換標誌" : "上傳社團標誌"}
               <input
                 type="file"
                 accept="image/*"
@@ -255,33 +185,32 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
             )}
           </Grid>
 
-          {/* Company Information Fields */}
+          {/* Club Information Fields */}
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="企業名稱"
-              name="companyName"
-              value={formData.companyName}
+              label="社團名稱"
+              name="clubName"
+              value={formData.clubName}
               onChange={handleChange}
               margin="normal"
               required
-              error={!!errors.companyName}
-              helperText={errors.companyName}
+              error={!!errors.clubName}
+              helperText={errors.clubName}
             />
           </Grid>
 
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="統一編號"
-              name="businessId"
-              value={formData.businessId}
+              label="學校名稱"
+              name="schoolName"
+              value={formData.schoolName}
               onChange={handleChange}
               margin="normal"
               required
-              error={!!errors.businessId}
-              helperText={errors.businessId}
-              disabled={!!companyData.businessId} // 已註冊的企業不可更改統一編號
+              error={!!errors.schoolName}
+              helperText={errors.schoolName}
             />
           </Grid>
 
@@ -289,16 +218,16 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
             <TextField
               select
               fullWidth
-              label="產業類型"
-              name="industryType"
-              value={formData.industryType}
+              label="社團類型"
+              name="clubType"
+              value={formData.clubType}
               onChange={handleChange}
               margin="normal"
               required
-              error={!!errors.industryType}
-              helperText={errors.industryType ?? "請選擇最接近貴公司的產業類型"}
+              error={!!errors.clubType}
+              helperText={errors.clubType ?? "請選擇最接近貴社團的類型"}
             >
-              {industryTypes.map((option) => (
+              {clubTypes.map((option) => (
                 <MenuItem key={option} value={option}>
                   {option}
                 </MenuItem>
@@ -334,7 +263,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="電子郵件"
@@ -346,21 +275,20 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               required
               error={!!errors.email}
               helperText={errors.email}
-              disabled={!!companyData.email} // 已註冊的企業不可更改郵件
             />
           </Grid>
 
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="企業簡介"
-              name="companyDescription"
-              value={formData.companyDescription}
+              label="社團簡介"
+              name="clubDescription"
+              value={formData.clubDescription}
               onChange={handleChange}
               margin="normal"
               multiline
               rows={4}
-              placeholder="請輸入企業簡介，描述企業文化、產品服務等"
+              placeholder="請輸入社團簡介，描述社團的宗旨、活動內容等"
               helperText="建議字數：100-300字"
             />
           </Grid>
@@ -391,4 +319,4 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
   );
 };
 
-export default CompanyProfileForm;
+export default EditableClubProfile;

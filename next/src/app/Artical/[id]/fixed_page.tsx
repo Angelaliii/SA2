@@ -232,7 +232,7 @@ export default function DemandPostDetailPage() {
           postType: "demand",
           title: post.title,
           content: post.content,
-          organizationName: post.organizationName || clubInfo?.clubName,
+          organizationName: post.organizationName ?? clubInfo?.clubName,
         });
       }
 
@@ -246,7 +246,7 @@ export default function DemandPostDetailPage() {
   };
 
   return (
-    <div>
+    <>
       <Navbar />
       <Box
         sx={{
@@ -414,7 +414,7 @@ export default function DemandPostDetailPage() {
               >
                 <Typography variant="body2">
                   <strong>活動標題：</strong>
-                  {post.eventName || "未提供"}
+                  {post.eventName ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動期間：</strong>
@@ -425,15 +425,15 @@ export default function DemandPostDetailPage() {
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動地點：</strong>
-                  {post.location || "未提供"}
+                  {post.location ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>活動類型：</strong>
-                  {post.eventNature || "未提供"}
+                  {post.eventNature ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>預估人數：</strong>
-                  {post.estimatedParticipants || "未提供"}
+                  {post.estimatedParticipants ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>贊助截止時間：</strong>
@@ -456,7 +456,7 @@ export default function DemandPostDetailPage() {
 
               <Typography variant="body2" sx={{ mb: 1.5 }}>
                 <strong>需求類型：</strong>
-                {post.demandType || "未提供"}
+                {post.demandType ?? "未提供"}
               </Typography>
 
               {post.demandType === "物資" && (
@@ -566,7 +566,8 @@ export default function DemandPostDetailPage() {
             )}
           </Paper>
         </Container>
-        {/* Snackbar */}{" "}
+
+        {/* Snackbar */}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}
@@ -581,6 +582,6 @@ export default function DemandPostDetailPage() {
           </Alert>
         </Snackbar>
       </Box>
-    </div>
+    </>
   );
 }

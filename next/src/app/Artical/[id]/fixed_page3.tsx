@@ -24,7 +24,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
 import { clubServices } from "../../../firebase/services/club-service";
@@ -246,7 +246,7 @@ export default function DemandPostDetailPage() {
   };
 
   return (
-    <div>
+    <React.Fragment>
       <Navbar />
       <Box
         sx={{
@@ -363,7 +363,7 @@ export default function DemandPostDetailPage() {
                     聯繫人
                   </Typography>
                   <Typography variant="body1">
-                    {post.contactName ?? "未提供"}
+                    {post.contactName || "未提供"}
                   </Typography>
                 </Box>
 
@@ -372,7 +372,7 @@ export default function DemandPostDetailPage() {
                     聯絡電話
                   </Typography>
                   <Typography variant="body1">
-                    {post.contactPhone ?? "未提供"}
+                    {post.contactPhone || "未提供"}
                   </Typography>
                 </Box>
 
@@ -566,7 +566,8 @@ export default function DemandPostDetailPage() {
             )}
           </Paper>
         </Container>
-        {/* Snackbar */}{" "}
+
+        {/* Snackbar */}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}
@@ -581,6 +582,6 @@ export default function DemandPostDetailPage() {
           </Alert>
         </Snackbar>
       </Box>
-    </div>
+    </React.Fragment>
   );
 }
