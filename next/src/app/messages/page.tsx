@@ -48,7 +48,7 @@ export default function NotificationsPage() {
   const transformMessageContent = (content: string): string => {
     // 🟡 合作回應相關 - 先檢查更特定的情況
     if (content.includes('接受您的合作請求') || content.includes('合作請求已被接受')) {
-      return '接受您的合作請求！';
+      return '接受您的合作請求！請前往[個人資料頁面](/Profile)審核合作邀約~';
     }
       
     // 婉拒合作 - 先檢查更特定的情況
@@ -61,7 +61,7 @@ export default function NotificationsPage() {
       
     // 🔵 一般合作意願訊息
     if (content.includes('有意願和你合作') && !content.includes('請求') && !content.includes('接受') && !content.includes('婉拒')) {
-      return '有意願和你合作，請前往[個人資料](/Profile)審核合作邀約~';
+      return '有意願和你合作，請前往[個人資料頁面](/Profile)審核合作邀約~';
     }
       
     // 🟢 合作請求相關 - 最後檢查最一般的情況

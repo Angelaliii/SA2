@@ -385,7 +385,6 @@ export default function CollaborationList({
       setSnackbar({ open: true, message: "發送提醒失敗", severity: "error" });
     }
   };
-
   const renderPendingReviewItem = (collaboration: any) => {
     const currentUserId = auth.currentUser?.uid;
     const isActionInitiator = currentUserId === collaboration.actionInitiator;
@@ -422,14 +421,15 @@ export default function CollaborationList({
         </Typography>
 
         {hasReviewed ? (
-          // 已評價用戶看到的內容
-          <Box
-            sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, mt: 1 }}
-          >
-            <Typography variant="body2" color="text.secondary" align="center">
-              您已完成評價，等待 {getPartnerName(collaboration)}{" "}
-              完成評價後，此合作將移至已完成區域
-            </Typography>
+          // 已評價用戶看到的內容，顯示提醒對方評價按鈕
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => handleRemindToReview(collaboration.id)}
+            >
+              提醒對方評價
+            </Button>
           </Box>
         ) : (
           // 未評價用戶看到的內容及按鈕
