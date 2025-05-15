@@ -114,25 +114,10 @@ export default function DemandPostDetailPage() {
     if (!currentUser) return;
 
     try {
-      // 1. 發送訊息
-      const messageContent = `有意願和您合作，請前往個人資料頁面審查合作邀請。`;
-      await addDoc(collection(db, "messages"), {
-        senderId: currentUser.uid,
-        receiverId: post.authorId,
-        messageContent: messageContent,
-        postId: id,
-        timestamp: new Date(),
-        postTitle: post.title,
-      });
+      // ✅ 不再手動寫入 messages
+      const messageContent = `有意願和你合作。`;
 
-      // 2. 創建合作請求
-      console.log("Creating collaboration request with:", {
-        postId: id,
-        postTitle: post.title,
-        requesterId: currentUser.uid,
-        receiverId: post.authorId,
-      });
-
+      // ✅ 僅執行 createCollaborationRequest（內部會發送訊息）
       const collaborationResult =
         await collaborationService.createCollaborationRequest({
           postId: id as string,
