@@ -259,6 +259,7 @@ export default function DemandPostDetailPage() {
               mb: 2,
             }}
           >
+            {" "}
             <Box>
               <Typography variant="h5" fontWeight="bold">
                 {post.title}

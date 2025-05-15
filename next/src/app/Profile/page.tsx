@@ -7,6 +7,8 @@ import EventIcon from "@mui/icons-material/Event";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
+import { Chip } from "@mui/material";
+
 import {
   Alert,
   Box,
@@ -237,14 +239,15 @@ export default function Profile() {
         // 處理普通文章結果
         const articles = postsSnapshot.docs.map((doc) => ({
           id: doc.id,
-          source: "posts", // 標記來源以便區分
+          source: "posts",
+          demandDescription: doc.data().demandDescription || doc.data().description, // 確保字段正確
           ...doc.data(),
         }));
 
-        // 處理企業公告結果
         const announcements = announcementsSnapshot.docs.map((doc) => ({
           id: doc.id,
-          source: "enterprisePosts", // 標記來源以便區分
+          source: "enterprisePosts",
+          content: doc.data().content || doc.data().description, // 確保字段正確
           ...doc.data(),
         }));
 
@@ -685,7 +688,7 @@ export default function Profile() {
                     </>
                   )}
                 </TabPanel>
-                <TabPanel value={value} index={1}>
+           <TabPanel value={value} index={1}>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       <ArticleIcon sx={{ mr: 1, verticalAlign: "middle" }} />
@@ -699,33 +702,20 @@ export default function Profile() {
                     </Box>
                   ) : (
                     <Box>
-                      {publishedArticles.length === 0 &&
-                      publishedEnterpriseAnnouncements.length === 0 ? (
-                        <Typography>
-                          目前尚無已發布的文章或企業公告。
-                        </Typography>
+                      {publishedArticles.length === 0 && publishedEnterpriseAnnouncements.length === 0 ? (
+                        <Typography>目前尚無已發布的文章或企業公告。</Typography>
                       ) : (
                         <>
                           {publishedArticles.map((article) => (
                             <Paper
                               key={article.id}
-                              sx={{
-                                p: 3,
-                                mb: 2,
-                                borderRadius: 2,
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                              }}
+                              sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
                             >
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "flex-start",
-                                }}
-                              >
+                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                                 <Typography variant="h6">
                                   {article.title ?? "(未命名文章)"}
                                 </Typography>
+                                
                                 <Box>
                                   <IconButton
                                     size="small"
@@ -745,100 +735,116 @@ export default function Profile() {
                                   </IconButton>
                                 </Box>
                               </Box>
+{/* 新增：需求類型標籤 */}
+    {article.demandType && (
+      <Chip
+        label={article.demandType}
+        color={
+          article.demandType === "物資"
+            ? "primary"
+            : article.demandType === "金錢"
+            ? "error"
+            : "success"
+        }
+        size="small"
+        sx={{ mt: 1 }}
+      />
+    )}
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
-                                sx={{
-                                  mt: 1,
-                                  whiteSpace: "pre-line",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  display: "-webkit-box",
-                                  WebkitLineClamp: 3,
-                                  WebkitBoxOrient: "vertical",
-                                }}
+                                sx={{ mt: 1, whiteSpace: "pre-line", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}
                               >
-                                {article.demandDescription ?? "(無內容)"}
+                                {article.demandDescription || article.content || ""}
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                display="block"
-                                sx={{ mt: 2 }}
-                              >
+
+                              {/* 根據 demandType 顯示不同資訊 */}
+                              {article.demandType === "物資" && (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    物資類型：{article.itemType || (article.customItems?.length > 0 ? article.customItems.join(', ') : "未指定")}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    回饋方式：{article.feedbackDetails || "未提供"}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    贊助截止時間：{article.sponsorDeadline ? new Date(article.sponsorDeadline).toLocaleDateString("zh-TW") : "未設定日期"}　人數：{article.estimatedParticipants || "0"}人
+                                  </Typography>
+                                </>
+                              )}
+                              {article.demandType === "金錢" && (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    金額區間：{article.moneyLowerLimit || "未指定"} - {article.moneyUpperLimit || "未指定"} 元
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    回饋方式：{article.feedbackDetails || "未提供"}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    贊助截止時間：{article.sponsorDeadline ? new Date(article.sponsorDeadline).toLocaleDateString("zh-TW") : "未設定日期"}　人數：{article.estimatedParticipants || "0"}人
+                                  </Typography>
+                                </>
+                              )}
+                              {article.demandType === "講師" && (
+                                <>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    講師類型：{article.speakerType || "未指定"}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    回饋方式：{article.feedbackDetails || "未提供"}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    贊助截止時間：{article.sponsorDeadline ? new Date(article.sponsorDeadline).toLocaleDateString("zh-TW") : "未設定日期"}　人數：{article.estimatedParticipants || "0"}人
+                                  </Typography>
+                                </>
+                              )}
+
+                              <Typography variant="caption" display="block" sx={{ mt: 2 }}>
                                 發布日期：{formatDate(article.createdAt)}
                               </Typography>
                             </Paper>
                           ))}
 
-                          {publishedEnterpriseAnnouncements.map(
-                            (announcement) => (
-                              <Paper
-                                key={announcement.id}
-                                sx={{
-                                  p: 3,
-                                  mb: 2,
-                                  borderRadius: 2,
-                                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                  }}
-                                >
-                                  <Typography variant="h6">
-                                    {announcement.title ?? "(未命名公告)"}
-                                  </Typography>
-                                  <Box>
-                                    <IconButton
-                                      size="small"
-                                      color="primary"
-                                      onClick={() =>
-                                        handleEditAnnouncement(announcement)
-                                      }
-                                      title="編輯公告"
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      size="small"
-                                      color="error"
-                                      onClick={() =>
-                                        handleDeleteAnnouncement(announcement)
-                                      }
-                                      title="刪除公告"
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Box>
+                          {publishedEnterpriseAnnouncements.map((announcement) => (
+                            <Paper
+                              key={announcement.id}
+                              sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                            >
+                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                <Typography variant="h6">
+                                  {announcement.title ?? "(未命名公告)"}
+                                </Typography>
+                                <Box>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleEditAnnouncement(announcement)}
+                                    title="編輯公告"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleDeleteAnnouncement(announcement)}
+                                    title="刪除公告"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
                                 </Box>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                  sx={{
-                                    mt: 1,
-                                    whiteSpace: "pre-line",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 3,
-                                    WebkitBoxOrient: "vertical",
-                                  }}
-                                >
-                                  {announcement.content || "(無內容)"}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  display="block"
-                                  sx={{ mt: 2 }}
-                                >
-                                  發布日期：{formatDate(announcement.createdAt)}
-                                </Typography>
-                              </Paper>
-                            )
-                          )}
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 1, whiteSpace: "pre-line", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}
+                              >
+                                {announcement.content || ""}
+                              </Typography>
+                              <Typography variant="caption" display="block" sx={{ mt: 2 }}>
+                                發布日期：{formatDate(announcement.createdAt)}
+                              </Typography>
+                            </Paper>
+                          ))}
                         </>
                       )}
                     </Box>

@@ -85,7 +85,7 @@ export default function FavoriteArticlesManager() {
         ...doc.data(),
       })) as Favorite[];
 
-      const articleIds = favoritesData.map((fav) => fav.articleId);
+      const articleIds = favoritesData.map((fav) => fav.postId);
 
       if (articleIds.length === 0) {
         setArticles([]);
@@ -147,7 +147,7 @@ export default function FavoriteArticlesManager() {
 
       const articlesWithFavoriteInfo = allArticles.map((article) => {
         const favorite = favoritesData.find(
-          (fav) => fav.articleId === article.id
+          (fav) => fav.postId === article.id
         );
         return {
           ...article,

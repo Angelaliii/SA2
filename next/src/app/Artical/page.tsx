@@ -493,15 +493,12 @@ export default function DemandPostPage() {
                   發布需求文章
                 </Typography>
               </Box>
-
               <Divider sx={{ mb: 3 }} />
-
               <Box sx={{ mb: 3, px: 1 }}>
                 <Typography variant="body2" color="text.secondary">
                   * 表示必填欄位
                 </Typography>
               </Box>
-
               {/* 基本資訊區塊 */}
               <Box
                 ref={titleRef}
@@ -534,7 +531,6 @@ export default function DemandPostPage() {
                   sx={{ mb: 3 }}
                 />
               </Box>
-
               {/* 聯繫窗口資訊區塊 */}
               <Box
                 sx={{
@@ -598,8 +594,7 @@ export default function DemandPostPage() {
                   />
                 </Box>
               </Box>
-
-              {/* 贊助依序區塊 */}
+              {/* 贊助依序區塊 */}{" "}
               <Box
                 sx={{
                   backgroundColor: "#f9f9f9",
@@ -728,8 +723,7 @@ export default function DemandPostPage() {
                   />
                 </Box>
               </Box>
-
-              {/* 公告內容區塊 */}
+              {/* 公告內容區塊 */}{" "}
               <Box
                 sx={{
                   backgroundColor: "#f9f9f9",
@@ -771,21 +765,20 @@ export default function DemandPostPage() {
                     <Button
                       variant={demandType === "物資" ? "contained" : "outlined"}
                       onClick={() => setDemandType("物資")}
-                      sx={{ flex: 1 }}
                     >
                       物資
                     </Button>
+
                     <Button
                       variant={demandType === "金錢" ? "contained" : "outlined"}
                       onClick={() => setDemandType("金錢")}
-                      sx={{ flex: 1 }}
                     >
                       金錢
                     </Button>
+
                     <Button
                       variant={demandType === "講師" ? "contained" : "outlined"}
                       onClick={() => setDemandType("講師")}
-                      sx={{ flex: 1 }}
                     >
                       講師
                     </Button>
@@ -979,7 +972,6 @@ export default function DemandPostPage() {
                   sx={{ mb: 1 }}
                 />
               </Box>
-
               {/* 按鈕區塊 */}
               <Box
                 sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
