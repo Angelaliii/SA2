@@ -19,7 +19,7 @@ import {
   Alert,
   Rating,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { auth, db } from "../../firebase/config";
 import { collaborationService } from "../../firebase/services/collaboration-service";
 import { notificationService } from "../../firebase/services/notification-service";
@@ -74,8 +74,7 @@ export default function CollaborationList({
     message: "",
     severity: "info",
   });
-
-  const loadCollaborations = async () => {
+  const loadCollaborations = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -119,16 +118,14 @@ export default function CollaborationList({
     } finally {
       setLoading(false);
     }
-  };
-  // useEffect 確保僅在客戶端運行時才載入資料
+  }, [userId]);  // useEffect 確保僅在客戶端運行時才載入資料
   useEffect(() => {
     // 防止在服務器端運行
     if (typeof window === "undefined") return;
 
     loadCollaborations();
-  }, [userId, loadCollaborations]);
-
-  const loadOrganizationName = async (userId: string) => {
+  }, [loadCollaborations]);
+  const loadOrganizationName = useCallback(async (userId: string) => {
     if (organizationNames[userId]) return organizationNames[userId];
 
     try {
@@ -145,54 +142,7 @@ export default function CollaborationList({
       console.error("Error loading organization name:", err);
       return "未知組織";
     }
-  };
-
-  useEffect(() => {
-    const loadCollaborationPartners = async () => {
-      const allCollaborations = [
-        ...receivedRequests,
-        ...sentRequests,
-        ...acceptedCollaborations,
-        ...completedCollaborations,
-        ...cancelledCollaborations,
-      ];
-
-      for (const collab of allCollaborations) {
-        const currentUserId = auth.currentUser?.uid;
-        if (!currentUserId) continue;
-
-        // 確定合作對象的 ID
-        const partnerId =
-          currentUserId === collab.requesterId
-            ? collab.receiverId
-            : collab.requesterId;
-        await loadOrganizationName(partnerId);
-      }
-    };
-
-    loadCollaborationPartners();
-  }, [receivedRequests, sentRequests, acceptedCollaborations, completedCollaborations, cancelledCollaborations, loadOrganizationName]);
-
-  useEffect(() => {
-    const loadOrganizationName = async (userId: string) => {
-      if (organizationNames[userId]) return organizationNames[userId];
-
-      try {
-        const name = await getOrganizationName(userId);
-        if (name) {
-          setOrganizationNames((prev) => ({
-            ...prev,
-            [userId]: name,
-          }));
-          return name;
-        }
-        return "未知組織";
-      } catch (err) {
-        console.error("Error loading organization name:", err);
-        return "未知組織";
-      }
-    };
-
+  }, [organizationNames]);  useEffect(() => {
     const loadCollaborationPartners = async () => {
       const allCollaborations = [
         ...receivedRequests,
@@ -222,7 +172,7 @@ export default function CollaborationList({
     acceptedCollaborations,
     completedCollaborations,
     cancelledCollaborations,
-    organizationNames
+    loadOrganizationName
   ]);
 
   const getStatusDisplay = (status: string) => {
@@ -303,39 +253,23 @@ export default function CollaborationList({
   ) => {
     setSelectedCollaboration(collaborationId);
     setEndReviewType(type);
-  };
-  const handleCloseEndReview = async () => {
+  };  const handleCloseEndReview = async () => {
     // 清空所有對話框相關的狀態
-    setSelectedCollaboration(null);
-    setEndReviewType(null);
     setSelectedCollaboration(null);
     setEndReviewType(null);
     
     // 重新加載合作列表
     await loadCollaborations();
-  };  const handleOpenReview = (
+  };  
+  
+  const handleOpenReview = (
     collaborationId: string,
     type: "complete" | "cancel"
   ) => {
-    // 改為使用第一個對話框的狀態
+    // 設置狀態以打開評價對話框
     setSelectedCollaboration(collaborationId);
     setEndReviewType(type);
-    
-    // 確保另一個對話框的狀態被清空，防止兩個對話框同時打開
-    setSelectedCollaboration(null);
-    setEndReviewType(null);
-
-    // 移除對外部 onOpenReview 的調用，避免開啟另一個對話框
-    // 如果提供了外部處理函數，也調用它
-    // if (onOpenReview) {
-    //   onOpenReview(collaborationId);
-    // }
-  };
-  // 這個函數現在已經不需要了，因為我們只使用 handleCloseEndReview
-  // 但為了防止其他地方引用，我們保留它，但內部轉發到 handleCloseEndReview
-  const handleCloseReview = () => {
-    handleCloseEndReview();
-  };
+  };  // handleCloseEndReview 函數現在處理所有關閉評價對話框的邏輯
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -409,14 +343,13 @@ export default function CollaborationList({
   const visibleTabConfig = tabConfig.filter((tab) =>
     visibleTabs.includes(tab.value as any)
   );
-
   // 確保在顯示的 tab 切換時，tabValue 的對應
   useEffect(() => {
     // 如果當前選擇的標籤不在可見標籤中，則自動選擇第一個可見標籤
     if (visibleTabConfig.length > 0 && !visibleTabConfig[tabValue]) {
       setTabValue(0);
     }
-  }, [visibleTabs]);
+  }, [visibleTabs, visibleTabConfig, tabValue]);
 
   // 獲取真正的 tab 值（而不僅僅是索引）
   const currentTabValue = visibleTabConfig[tabValue]?.value || visibleTabs[0];
