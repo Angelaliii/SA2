@@ -35,6 +35,7 @@ import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../components/profile/CompanyProfileForm";
+import LogoutButton from "../../components/profile/LogoutButton";
 import SubscribedOrganizations from "../../components/profile/SubscribedOrganizations";
 import SideNavbar from "../../components/SideNavbar";
 import { db } from "../../firebase/config";
@@ -671,22 +672,33 @@ export default function Profile() {
                     您的個人檔案
                   </Typography>
                   <Divider sx={{ my: 2 }} />
-                </Box>
+                </Box>{" "}
                 <TabPanel value={value} index={0}>
                   {userType === "club" && clubData && (
-                    <ClubProfileForm
-                      clubData={clubData}
-                      onSubmit={handleClubProfileUpdate}
-                    />
+                    <>
+                      <ClubProfileForm
+                        clubData={clubData}
+                        onSubmit={handleClubProfileUpdate}
+                      />
+                      <LogoutButton />
+                    </>
                   )}
                   {userType === "company" && companyData && (
-                    <CompanyProfileForm
-                      companyData={companyData}
-                      onSubmit={handleCompanyProfileUpdate}
-                    />
+                    <>
+                      <CompanyProfileForm
+                        companyData={companyData}
+                        onSubmit={handleCompanyProfileUpdate}
+                      />
+                      <LogoutButton />
+                    </>
                   )}
                   {userType === "unknown" && (
-                    <Typography>請先完成註冊流程以管理您的個人資料</Typography>
+                    <>
+                      <Typography>
+                        請先完成註冊流程以管理您的個人資料
+                      </Typography>
+                      <LogoutButton />
+                    </>
                   )}
                 </TabPanel>
                 <TabPanel value={value} index={1}>
