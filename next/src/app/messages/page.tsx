@@ -44,26 +44,30 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-
   // 訊息格式轉換函數
-  const transformMessageContent = (content: string): string => {    // 🔵 一般合作意願訊息
-    if (content.includes('有意願和你合作') && !content.includes('請求') && !content.includes('接受') && !content.includes('婉拒')) {
-      return '有意願和你合作，請前往[個人資料](/Profile)審核合作邀約~';
-    }// 🟢 合作請求相關
-    if (content.includes('合作請求') || (content.includes('有意願和你合作') && content.includes('請求'))) {
-      return '有意願和你合作。請前往 [個人資料頁面](/Profile) 審核合作邀約~';
-    }
-    
-    // 🟡 合作回應相關
-    if (content.includes('接受您的合作請求')) {
+  const transformMessageContent = (content: string): string => {
+    // 🟡 合作回應相關 - 先檢查更特定的情況
+    if (content.includes('接受您的合作請求') || content.includes('合作請求已被接受')) {
       return '接受您的合作請求！';
     }
-    
-    // 婉拒合作
-    if (content.includes('婉拒合作')) {
+      
+    // 婉拒合作 - 先檢查更特定的情況
+    if (content.includes('婉拒合作') || content.includes('已被婉拒') || content.includes('合作請求已被婉拒')) {
       const reasonMatch = content.match(/原因：(.*?)($|\n)/);
       const reason = reasonMatch ? reasonMatch[1] : '';
+      console.log('找到婉拒消息，原因:', reason); // 添加日誌以便調試
       return `婉拒您的合作請求。\n原因：${reason}`;
+    }
+      
+    // 🔵 一般合作意願訊息
+    if (content.includes('有意願和你合作') && !content.includes('請求') && !content.includes('接受') && !content.includes('婉拒')) {
+      return '有意願和你合作，請前往[個人資料](/Profile)審核合作邀約~';
+    }
+      
+    // 🟢 合作請求相關 - 最後檢查最一般的情況
+    if ((content.includes('合作請求') && !content.includes('已被婉拒')) || 
+        (content.includes('有意願和你合作') && content.includes('請求'))) {
+      return '有意願和你合作。請前往 [個人資料頁面](/Profile) 審核合作邀約~';
     }
     
     // 合作已完成

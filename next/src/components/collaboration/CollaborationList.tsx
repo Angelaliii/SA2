@@ -548,15 +548,7 @@ export default function CollaborationList({
                     sx={{ mb: 2 }}
                   >
                     申請時間：{formatDate(request.createdAt)}
-                  </Typography>
-
-                  <Box
-                    sx={{ my: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}
-                  >
-                    <Typography variant="body2">
-                      <strong>{getPartnerName(request)}</strong> 邀請您合作
-                    </Typography>
-                  </Box>
+                  </Typography>                  {/* 移除 "誰誰誰邀請您合作" 的顯示區塊 */}
 
                   <Box
                     sx={{

@@ -366,7 +366,7 @@ export const collaborationService = {
       await notificationService.sendCollaborationCompleted(
         data.actionInitiator,
         collaborationId,
-        `對方評價：${review.comment}`
+        `${review.comment}`
       );
 
       return { success: true };
