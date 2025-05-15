@@ -39,6 +39,7 @@ export default function CollaborationList({
   userId,
   visibleTabs = ["pending", "active", "review", "complete", "cancel"],
 }: Readonly<CollaborationListProps>): JSX.Element {
+  const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [acceptedCollaborations, setAcceptedCollaborations] = useState<any[]>(
     []
@@ -125,7 +126,7 @@ export default function CollaborationList({
     if (typeof window === "undefined") return;
 
     loadCollaborations();
-  }, [userId]);
+  }, [userId, loadCollaborations]);
 
   const loadOrganizationName = async (userId: string) => {
     if (organizationNames[userId]) return organizationNames[userId];
@@ -170,7 +171,7 @@ export default function CollaborationList({
     };
 
     loadCollaborationPartners();
-  }, []);
+  }, [receivedRequests, sentRequests, acceptedCollaborations, completedCollaborations, cancelledCollaborations, loadOrganizationName]);
 
   useEffect(() => {
     const loadOrganizationName = async (userId: string) => {
@@ -307,8 +308,8 @@ export default function CollaborationList({
     // 清空所有對話框相關的狀態
     setSelectedCollaboration(null);
     setEndReviewType(null);
-    setSelectedCollaborationForReview(null);
-    setReviewType(null);
+    setSelectedCollaboration(null);
+    setEndReviewType(null);
     
     // 重新加載合作列表
     await loadCollaborations();
@@ -321,8 +322,8 @@ export default function CollaborationList({
     setEndReviewType(type);
     
     // 確保另一個對話框的狀態被清空，防止兩個對話框同時打開
-    setSelectedCollaborationForReview(null);
-    setReviewType(null);
+    setSelectedCollaboration(null);
+    setEndReviewType(null);
 
     // 移除對外部 onOpenReview 的調用，避免開啟另一個對話框
     // 如果提供了外部處理函數，也調用它
@@ -559,7 +560,7 @@ export default function CollaborationList({
           },
         }}
       >
-        {visibleTabConfig.map((tab, index) => (
+        {visibleTabConfig.map((tab) => (
           <Tab
             key={tab.value}
             label={tab.label}
