@@ -216,6 +216,69 @@ export const collaborationService = {
     }
   },
 
+  // 接受一個合作請求
+  acceptCollaboration: async (collaborationId: string) => {
+    try {
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        return { success: false, error: '找不到合作請求資料' };
+      }
+
+      await updateDoc(docRef, {
+        status: 'accepted',
+        updatedAt: serverTimestamp(),
+        acceptedAt: serverTimestamp()
+      });
+
+      const data = docSnap.data();
+      
+      // 通知請求發起方合作已被接受
+      await notificationService.sendCollaborationAccepted(
+        data.requesterId,
+        collaborationId
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error accepting collaboration:", error);
+      return { success: false, error: '接受合作請求失敗' };
+    }
+  },
+
+  // 拒絕一個合作請求
+  rejectCollaboration: async (collaborationId: string, rejectReason: string) => {
+    try {
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        return { success: false, error: '找不到合作請求資料' };
+      }
+
+      await updateDoc(docRef, {
+        status: 'rejected',
+        rejectReason: rejectReason,
+        updatedAt: serverTimestamp()
+      });
+
+      const data = docSnap.data();
+      
+      // 通知請求發起方合作已被拒絕
+      await notificationService.sendCollaborationRejected(
+        data.requesterId,
+        collaborationId,
+        rejectReason || '未提供拒絕原因'
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error rejecting collaboration:", error);
+      return { success: false, error: '拒絕合作請求失敗' };
+    }
+  },
+  
   // Update a collaboration's completion status
   updateCollaborationStatus: async (
     collaborationId: string,
@@ -253,7 +316,7 @@ export const collaborationService = {
       await notificationService.sendCollaborationNeedsReview(
         otherUserId, 
         collaborationId,
-        status === 'complete' ? '對方已完成合作，請給予評價' : '對方要求取消合作，請給予評價'
+        status === 'complete' ? '已完成合作，請給予評價' : '要求取消合作，請給予評價'
       );
 
       return { success: true };
@@ -303,7 +366,7 @@ export const collaborationService = {
       await notificationService.sendCollaborationCompleted(
         data.actionInitiator,
         collaborationId,
-        `對方已完成評價：${review.comment}`
+        `對方評價：${review.comment}`
       );
 
       return { success: true };

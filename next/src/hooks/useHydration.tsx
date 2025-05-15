@@ -9,11 +9,11 @@ export default function useHydration() {
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // Using requestAnimationFrame ensures we're fully in the client rendering phase
-    // after the initial DOM has been painted
-    requestAnimationFrame(() => {
+    // Using setTimeout instead of requestAnimationFrame for more reliable behavior
+    // This ensures we're fully in the client rendering phase after hydration
+    setTimeout(() => {
       setHasMounted(true);
-    });
+    }, 0);
   }, []);
 
   return hasMounted;
@@ -33,11 +33,11 @@ export function ClientOnly({
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // Use requestAnimationFrame to ensure we're in the client painting phase
-    // This helps avoid hydration issues with Material UI components
-    requestAnimationFrame(() => {
+    // Use setTimeout instead of requestAnimationFrame for better reliability with MUI
+    // This ensures we're past the initial hydration phase before rendering MUI components
+    setTimeout(() => {
       setHasMounted(true);
-    });
+    }, 0);
   }, []);
 
   // If we haven't mounted yet (server-side or first render), show the fallback

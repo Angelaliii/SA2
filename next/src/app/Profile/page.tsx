@@ -30,7 +30,6 @@ import EnterpriseDeleteDialog from "../../components/article/EnterpriseDeleteDia
 import EnterpriseEditDialog from "../../components/article/EnterpriseEditDialog";
 import FavoriteArticlesManager from "../../components/article/FavoriteArticlesManager";
 import CollaborationList from "../../components/collaboration/CollaborationList";
-import CollaborationReviewDialog from "../../components/collaboration/CollaborationReviewDialog";
 import LoginPrompt from "../../components/LoginPromp";
 import Navbar from "../../components/Navbar";
 import ClubProfileForm from "../../components/profile/ClubProfileForm";
@@ -110,20 +109,8 @@ export default function Profile() {
   const [articleEditDialogOpen, setArticleEditDialogOpen] = useState(false);
   const [articleDeleteDialogOpen, setArticleDeleteDialogOpen] = useState(false);
   // 合作請求相關狀態
-  const [selectedCollaborationId, setSelectedCollaborationId] = useState<
-    string | null
-  >(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
-  const handleOpenReview = (id: string) => {
-    setSelectedCollaborationId(id);
-    setReviewDialogOpen(true);
-  };
-
-  const handleCloseReview = () => {
-    setReviewDialogOpen(false);
-    setSelectedCollaborationId(null);
-  };
   // Combine all useEffect hooks into a single one to ensure consistent order
   useEffect(() => {
     // Auth state listener
@@ -462,10 +449,7 @@ export default function Profile() {
     await refreshAllPublishedContent();
   };
 
-  // 重新獲取需求文章列表 - 使用綜合刷新函數
-  const refreshArticles = async () => {
-    await refreshAllPublishedContent();
-  }; // 綜合刷新所有文章(同時刷新普通文章和企業公告)
+  // 綜合刷新所有文章(同時刷新普通文章和企業公告)
   const refreshAllPublishedContent = async () => {
     const currentUser = authServices.getCurrentUser();
     if (!currentUser) return;
@@ -992,7 +976,6 @@ export default function Profile() {
                   {/* 合作記錄列表 - 使用ClientOnly確保避免水合錯誤 */}
                   <ClientOnly>
                     <CollaborationList
-                      onOpenReview={handleOpenReview}
                       visibleTabs={[
                         "pending",
                         "active",
@@ -1000,16 +983,8 @@ export default function Profile() {
                         "complete",
                         "cancel",
                       ]}
-                    />
+                    />{" "}
                   </ClientOnly>
-                  {/* 顯示合作請求評價對話框 */}
-                  {selectedCollaborationId && (
-                    <CollaborationReviewDialog
-                      open={reviewDialogOpen}
-                      onClose={handleCloseReview}
-                      collaborationId={selectedCollaborationId}
-                    />
-                  )}
                 </TabPanel>
               </Paper>
             </Container>

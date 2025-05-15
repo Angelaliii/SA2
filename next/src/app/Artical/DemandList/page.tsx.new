@@ -1,22 +1,22 @@
 "use client";
 
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添加 Icon
-import EventIcon from "@mui/icons-material/Event";
-import GroupIcon from "@mui/icons-material/Group";
-import SearchIcon from "@mui/icons-material/Search";
-import {
-  Box,
-  Button,
-  Card,
-  Chip,
-  CircularProgress,
-  Container,
-  InputAdornment,
-  Pagination,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
+import EventIcon from '@mui/icons-material/Event';
+import GroupIcon from '@mui/icons-material/Group';
+import SearchIcon from '@mui/icons-material/Search';
+import { 
+  Box, 
+  Button, 
+  Card, 
+  Chip, 
+  CircularProgress, 
+  Container, 
+  InputAdornment, 
+  Pagination, 
+  Paper, 
+  Stack, 
+  TextField, 
+  Typography 
 } from "@mui/material";
 import {
   collection,
@@ -58,7 +58,7 @@ interface Post {
   // 添加缺少的屬性
   purposeType?: string;
   estimatedParticipants?: string;
-  customItems?: string[];
+  customItems?: string[];  
   participationType?: string;
   eventEndDate?: string;
   eventDescription?: string;
@@ -520,13 +520,7 @@ export default function DemandListPage() {
                 <Button
                   key={type}
                   variant={demandType === type ? "contained" : "outlined"}
-                  color={
-                    type === "金錢"
-                      ? "error"
-                      : type === "講師"
-                      ? "success"
-                      : "primary"
-                  }
+                  color={type === "金錢" ? "error" : type === "講師" ? "success" : "primary"}
                   onClick={() => setDemandType(type)}
                 >
                   {type}
@@ -569,13 +563,11 @@ export default function DemandListPage() {
                   }}
                 >
                   <option value=""></option>
-                  {["飲料", "食物", "生活用品", "戶外用品", "其他"].map(
-                    (option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    )
-                  )}
+                  {["飲料", "食物", "生活用品", "戶外用品", "其他"].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </TextField>
               </Box>
             )}
@@ -614,13 +606,11 @@ export default function DemandListPage() {
                   }}
                 >
                   <option value=""></option>
-                  {["專業技能", "職涯分享", "產業趨勢", "其他"].map(
-                    (option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    )
-                  )}
+                  {["專業技能", "職涯分享", "產業趨勢", "其他"].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </TextField>
               </Box>
             )}
@@ -650,25 +640,20 @@ export default function DemandListPage() {
                 value={eventNature}
                 onChange={(e) => {
                   setEventNature(e.target.value);
-                  setFilters({
-                    ...filters,
-                    selectedEventNature: e.target.value,
-                  });
+                  setFilters({...filters, selectedEventNature: e.target.value});
                 }}
                 SelectProps={{
                   native: true,
                 }}
               >
                 <option value=""></option>
-                {["迎新", "講座", "比賽", "展覽", "工作坊", "營隊", "其他"].map(
-                  (option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  )
-                )}
+                {["迎新", "講座", "比賽", "展覽", "工作坊", "營隊", "其他"].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </TextField>
-
+              
               <TextField
                 fullWidth
                 type="date"
@@ -819,62 +804,59 @@ export default function DemandListPage() {
                         >
                           {post.title ?? "(無標題)"}
                         </Typography>
-
-                        <Box
-                          sx={{
-                            mb: 2,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                          }}
-                        >
-                          <Chip
-                            label={post.eventNature || "未指定"}
-                            size="small"
-                            sx={{
-                              backgroundColor: "#E3F2FD",
-                              color: "#1565C0",
-                            }}
+                        
+                        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip 
+                            label={post.eventNature || "未指定"} 
+                            size="small" 
+                            sx={{ backgroundColor: '#E3F2FD', color: '#1565C0' }}
                           />
-                          <Typography variant="body2" sx={{ color: "#757575" }}>
-                            •
-                          </Typography>
-
+                          <Typography variant="body2" sx={{ color: '#757575' }}>•</Typography>
+                          
                           {/* 不同贊助類型有不同顏色 */}
                           {post.demandType === "物資" && (
-                            <Chip label="物資" size="small" color="primary" />
+                            <Chip 
+                              label="物資" 
+                              size="small" 
+                              color="primary"
+                            />
                           )}
                           {post.demandType === "金錢" && (
-                            <Chip label="金錢" size="small" color="error" />
+                            <Chip 
+                              label="金錢" 
+                              size="small" 
+                              color="error"
+                            />
                           )}
                           {post.demandType === "講師" && (
-                            <Chip label="講師" size="small" color="success" />
+                            <Chip 
+                              label="講師" 
+                              size="small" 
+                              color="success"
+                            />
                           )}
                         </Box>
-
+                        
                         {/* 根據需求類型顯示不同內容 */}
                         {post.demandType === "物資" && (
                           <Box sx={{ mb: 2 }}>
                             <Typography variant="body2" color="text.secondary">
-                              {post.itemType
-                                ? `物資類型：${post.itemType}`
-                                : post.customItems &&
-                                  post.customItems.length > 0
-                                ? `物資類型：${post.customItems.join(", ")}`
-                                : "物資類型：未指定"}
+                              {post.itemType ? `物資類型：${post.itemType}` : 
+                                post.customItems && post.customItems.length > 0 ? 
+                                `物資類型：${post.customItems.join(', ')}` : 
+                                "物資類型：未指定"}
                             </Typography>
                           </Box>
                         )}
-
+                        
                         {post.demandType === "金錢" && (
                           <Box sx={{ mb: 2 }}>
                             <Typography variant="body2" color="text.secondary">
-                              金額區間：{post.moneyLowerLimit || "未指定"} -{" "}
-                              {post.moneyUpperLimit || "未指定"} 元
+                              金額區間：{post.moneyLowerLimit || "未指定"} - {post.moneyUpperLimit || "未指定"} 元
                             </Typography>
                           </Box>
                         )}
-
+                        
                         {post.demandType === "講師" && (
                           <Box sx={{ mb: 2 }}>
                             <Typography variant="body2" color="text.secondary">
@@ -882,7 +864,7 @@ export default function DemandListPage() {
                             </Typography>
                           </Box>
                         )}
-
+                        
                         <Box sx={{ mb: 2 }}>
                           <Box
                             sx={{
@@ -940,35 +922,29 @@ export default function DemandListPage() {
                             </Link>
                           </Box>
                         </Box>
-
+                        
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="body2" color="text.secondary">
                             回饋方式：{post.feedbackDetails || "未指定"}
                           </Typography>
                         </Box>
-
+                        
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="body2" color="text.secondary">
-                            贊助截止時間：
-                            {post.sponsorDeadline
-                              ? new Date(post.sponsorDeadline)
-                                  .toISOString()
-                                  .split("T")[0]
-                              : "未設定"}
+                            贊助截止時間：{post.sponsorDeadline ? 
+                              new Date(post.sponsorDeadline).toISOString().split("T")[0] : 
+                              "未設定"
+                            }
                           </Typography>
                         </Box>
-
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Box></Box>
+                        
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <Box>
+                            
+                          </Box>
                         </Box>
                       </Box>
-
+                      
                       {/* 右側动作區 - 匹配企業牆樣式 */}
                       <Box
                         sx={{
@@ -978,7 +954,9 @@ export default function DemandListPage() {
                           alignItems: "flex-end",
                           ml: 2,
                         }}
-                      ></Box>
+                      >
+                        
+                      </Box>
                     </Box>
                   </Card>
                 </motion.div>
