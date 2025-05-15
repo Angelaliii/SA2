@@ -391,7 +391,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `對方已經填寫完評價。您有合作完成囉~\n對方評價:${comment}`,
+        messageContent: `已經填寫完評價。您有合作完成囉~\n對方評價:${comment}`,
         timestamp: serverTimestamp(),
         type: "collaboration_completed",
         collaborationId,
@@ -423,7 +423,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `關於您的合作：${message}`,
+        messageContent: `${message}`,
         timestamp: serverTimestamp(),
         type: "collaboration_needs_review",
         collaborationId,

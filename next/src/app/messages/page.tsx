@@ -46,15 +46,12 @@ export default function NotificationsPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   // 訊息格式轉換函數
-  const transformMessageContent = (content: string): string => {
-    // 🔵 一般合作意願訊息
+  const transformMessageContent = (content: string): string => {    // 🔵 一般合作意願訊息
     if (content.includes('有意願和你合作') && !content.includes('請求') && !content.includes('接受') && !content.includes('婉拒')) {
-      return '有意願和你合作，請前往個人資料審核合作邀約~';
-    }
-    
-    // 🟢 合作請求相關
+      return '有意願和你合作，請前往[個人資料](/Profile)審核合作邀約~';
+    }// 🟢 合作請求相關
     if (content.includes('合作請求') || (content.includes('有意願和你合作') && content.includes('請求'))) {
-      return '有意願和你合作。請前往個人資料審核合作邀約~';
+      return '有意願和你合作。請前往 [個人資料頁面](/Profile) 審核合作邀約~';
     }
     
     // 🟡 合作回應相關
@@ -73,12 +70,11 @@ export default function NotificationsPage() {
     if (content.includes('合作已完成')) {
       const messageMatch = content.match(/評價：(.*?)($|\n)/);
       const message = messageMatch ? messageMatch[1] : '';
-      return `已經填寫完評價。您有合作完成囉~\n對方評價:${message}`;
+      return `已經填寫完評價。您有合作完成囉~\n${message}`;
     }
-    
-    // 填寫評價
+      // 填寫評價
     if (content.includes('填寫評價')) {
-      return '已經填寫完評價，請至個人資料頁面完成評價~';
+      return '已經填寫完評價，請至[個人資料頁面](/Profile)完成評價~';
     }
     
     return content;
@@ -160,11 +156,9 @@ export default function NotificationsPage() {
               postTitle,
             };
           })
-        );
-
-        setNotifications(enriched);
-        setNotifications(enriched);
+        );        setNotifications(enriched);
       } catch (error) {
+        console.error("載入通知時發生錯誤:", error);
       } finally {
         setLoading(false);
       }
@@ -224,16 +218,58 @@ export default function NotificationsPage() {
       console.error("Date formatting error:", err);
       return "日期格式錯誤";
     }
-  };
-
-  const renderMessageWithClickableTitle = (messageContent: string, postId?: string, postTitle?: string) => {
+  };  const renderMessageWithClickableTitle = (messageContent: string, postId?: string, postTitle?: string) => {
+    // 新增：先處理方括號格式的連結 [文字](/連結)
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let linkMatches;
+    const links = [];
+    
+    while ((linkMatches = linkRegex.exec(messageContent)) !== null) {
+      const [fullMatch, text, url] = linkMatches;
+      links.push({ fullMatch, text, url, index: linkMatches.index });
+    }
+    
+    // 如果找到方括號格式的連結
+    if (links.length > 0) {
+      let linkLastIndex = 0;
+      const linkResult = [];
+      
+      links.forEach(link => {
+        // 添加連結前的文字
+        if (link.index > linkLastIndex) {
+          linkResult.push(messageContent.substring(linkLastIndex, link.index));
+        }
+        
+        // 添加帶有鏈接的文字
+        linkResult.push(
+          <Link key={link.index} href={link.url} style={{ 
+            color: "#1976d2", 
+            textDecoration: "none", 
+            fontWeight: "medium" 
+          }}>
+            {link.text}
+          </Link>
+        );
+        
+        // 更新 linkLastIndex
+        linkLastIndex = link.index + link.fullMatch.length;
+      });
+      
+      // 添加剩餘的文字
+      if (linkLastIndex < messageContent.length) {
+        linkResult.push(messageContent.substring(linkLastIndex));
+      }
+      
+      return <>{linkResult}</>;
+    }
+    
+    // 舊的處理邏輯：檢查訊息中是否包含文章標題，如「文章標題」這樣的格式
     if (!postTitle || !postId) return messageContent;
-
-    // 檢查訊息中是否包含文章標題，如「文章標題」這樣的格式
+    
     const regex = new RegExp(`「([^」]*)」`, 'g');
     let matches;
-    let lastIndex = 0;
-    const result = [];
+    let titleLastIndex = 0;
+    const titleResult = [];
     let foundMatch = false;
     
     while ((matches = regex.exec(messageContent)) !== null) {
@@ -243,12 +279,12 @@ export default function NotificationsPage() {
       if (matchText === postTitle) {
         foundMatch = true;
         // 添加匹配前的文字
-        if (matches.index > lastIndex) {
-          result.push(messageContent.substring(lastIndex, matches.index + 1)); // +1 to include the opening quote
+        if (matches.index > titleLastIndex) {
+          titleResult.push(messageContent.substring(titleLastIndex, matches.index + 1)); // +1 to include the opening quote
         }
         
         // 添加帶有鏈接的標題
-        result.push(
+        titleResult.push(
           <Link key={matches.index} href={`/Artical/${postId}`} style={{ 
             color: "#1976d2", 
             textDecoration: "none", 
@@ -258,14 +294,14 @@ export default function NotificationsPage() {
           </Link>
         );
         
-        // 更新 lastIndex 為匹配結束位置
-        lastIndex = matches.index + matches[0].length - 1; // -1 to exclude the closing quote
+        // 更新 titleLastIndex 為匹配結束位置
+        titleLastIndex = matches.index + matches[0].length - 1; // -1 to exclude the closing quote
       }
     }
     
     // 添加剩餘的文字
-    if (lastIndex < messageContent.length) {
-      result.push(messageContent.substring(lastIndex));
+    if (titleLastIndex < messageContent.length) {
+      titleResult.push(messageContent.substring(titleLastIndex));
     }
     
     // 如果沒有找到匹配，但有 postTitle 和 postId，強制添加一個隱藏的連結
@@ -280,7 +316,7 @@ export default function NotificationsPage() {
       );
     }
     
-    return result.length > 0 ? <>{result}</> : messageContent;
+    return titleResult.length > 0 ? <>{titleResult}</> : messageContent;
   };
 
   return (

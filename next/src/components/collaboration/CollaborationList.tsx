@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from 'react';
+import { JSX } from 'react';
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -13,30 +15,30 @@ import {
   Tab,
   Tabs,
   Typography,
+  Snackbar,
+  Alert,
+  Rating,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { auth } from "../../firebase/config";
+import { auth, db } from "../../firebase/config";
 import { collaborationService } from "../../firebase/services/collaboration-service";
+import { notificationService } from "../../firebase/services/notification-service";
 import { getOrganizationName } from "../../firebase/services/post-service";
+import { doc, getDoc } from "firebase/firestore";
+import AcceptCollaborationDialog from "./AcceptCollaborationDialog";
 import CancelCollaborationDialog from "./CancelCollaborationDialog";
 import CollaborationResponseDialog from "./CollaborationResponseDialog";
 import { CollaborationEndReviewDialog } from "./CollaborationReviewDialog";
 
 interface CollaborationListProps {
   userId?: string;
-  readonly?: boolean;
   visibleTabs?: Array<"pending" | "active" | "review" | "complete" | "cancel">;
-  onOpenReview?: (id: string) => void;
 }
 
 export default function CollaborationList({
   userId,
-  readonly,
   visibleTabs = ["pending", "active", "review", "complete", "cancel"],
-  onOpenReview,
-}: Readonly<CollaborationListProps>) {
-  // 初始化所有state為固定的預設值，確保伺服器和客戶端渲染一致
-  const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
+}: Readonly<CollaborationListProps>): JSX.Element {
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [acceptedCollaborations, setAcceptedCollaborations] = useState<any[]>(
     []
@@ -54,39 +56,23 @@ export default function CollaborationList({
   >(null);
   const [endReviewType, setEndReviewType] = useState<
     "complete" | "cancel" | null
-  >(null);
-  const [organizationNames, setOrganizationNames] = useState<{
+  >(null);  const [organizationNames, setOrganizationNames] = useState<{
     [key: string]: string;
   }>({});
-  const [selectedCollaborationForReview, setSelectedCollaborationForReview] =
-    useState<string | null>(null);
-  const [reviewType, setReviewType] = useState<"complete" | "cancel" | null>(
-    null
-  );
   const [tabValue, setTabValue] = useState(0);
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(
     null
-  );
-  const [selectedCancelId, setSelectedCancelId] = useState<string | null>(null);
-
-  const loadOrganizationName = async (userId: string) => {
-    if (organizationNames[userId]) return organizationNames[userId];
-
-    try {
-      const name = await getOrganizationName(userId);
-      if (name) {
-        setOrganizationNames((prev) => ({
-          ...prev,
-          [userId]: name,
-        }));
-        return name;
-      }
-      return "未知組織";
-    } catch (err) {
-      console.error("Error loading organization name:", err);
-      return "未知組織";
-    }
-  };
+  );  const [selectedCancelId, setSelectedCancelId] = useState<string | null>(null);
+  const [selectedAcceptId, setSelectedAcceptId] = useState<string | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info" | "warning";
+  }>({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   const loadCollaborations = async () => {
     setLoading(true);
@@ -141,7 +127,71 @@ export default function CollaborationList({
     loadCollaborations();
   }, [userId]);
 
+  const loadOrganizationName = async (userId: string) => {
+    if (organizationNames[userId]) return organizationNames[userId];
+
+    try {
+      const name = await getOrganizationName(userId);
+      if (name) {
+        setOrganizationNames((prev) => ({
+          ...prev,
+          [userId]: name,
+        }));
+        return name;
+      }
+      return "未知組織";
+    } catch (err) {
+      console.error("Error loading organization name:", err);
+      return "未知組織";
+    }
+  };
+
   useEffect(() => {
+    const loadCollaborationPartners = async () => {
+      const allCollaborations = [
+        ...receivedRequests,
+        ...sentRequests,
+        ...acceptedCollaborations,
+        ...completedCollaborations,
+        ...cancelledCollaborations,
+      ];
+
+      for (const collab of allCollaborations) {
+        const currentUserId = auth.currentUser?.uid;
+        if (!currentUserId) continue;
+
+        // 確定合作對象的 ID
+        const partnerId =
+          currentUserId === collab.requesterId
+            ? collab.receiverId
+            : collab.requesterId;
+        await loadOrganizationName(partnerId);
+      }
+    };
+
+    loadCollaborationPartners();
+  }, []);
+
+  useEffect(() => {
+    const loadOrganizationName = async (userId: string) => {
+      if (organizationNames[userId]) return organizationNames[userId];
+
+      try {
+        const name = await getOrganizationName(userId);
+        if (name) {
+          setOrganizationNames((prev) => ({
+            ...prev,
+            [userId]: name,
+          }));
+          return name;
+        }
+        return "未知組織";
+      } catch (err) {
+        console.error("Error loading organization name:", err);
+        return "未知組織";
+      }
+    };
+
     const loadCollaborationPartners = async () => {
       const allCollaborations = [
         ...receivedRequests,
@@ -171,25 +221,14 @@ export default function CollaborationList({
     acceptedCollaborations,
     completedCollaborations,
     cancelledCollaborations,
+    organizationNames
   ]);
 
-  const getPartnerName = (collaboration: any) => {
-    const currentUserId = auth.currentUser?.uid;
-    if (!currentUserId) return "未知組織";
-
-    const partnerId =
-      currentUserId === collaboration.requesterId
-        ? collaboration.receiverId
-        : collaboration.requesterId;
-    return organizationNames[partnerId] || "載入中...";
-  };
-
-  // 獲取請求狀態的顯示值和顏色
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case "pending":
         return {
-          label: "待審核",
+          label: "等待審核",
           color: "warning" as const,
           icon: <AccessTimeIcon fontSize="small" sx={{ mr: 0.5 }} />,
         };
@@ -201,7 +240,7 @@ export default function CollaborationList({
         };
       case "pending_review":
         return {
-          label: "等待評價",
+          label: "待評價",
           color: "warning" as const,
           icon: <AccessTimeIcon fontSize="small" sx={{ mr: 0.5 }} />,
         };
@@ -249,6 +288,14 @@ export default function CollaborationList({
     }
   };
 
+  const getPartnerName = (collaboration: any) => {
+    const currentUserId = auth.currentUser?.uid;
+    const partnerId = currentUserId === collaboration.requesterId
+      ? collaboration.receiverId
+      : collaboration.requesterId;
+    return organizationNames[partnerId] || "未知組織";
+  };
+
   const handleOpenEndReview = (
     collaborationId: string,
     type: "complete" | "cancel"
@@ -256,38 +303,54 @@ export default function CollaborationList({
     setSelectedCollaboration(collaborationId);
     setEndReviewType(type);
   };
-
   const handleCloseEndReview = async () => {
+    // 清空所有對話框相關的狀態
     setSelectedCollaboration(null);
     setEndReviewType(null);
+    setSelectedCollaborationForReview(null);
+    setReviewType(null);
+    
     // 重新加載合作列表
     await loadCollaborations();
-  };
-
-  const handleOpenReview = (
+  };  const handleOpenReview = (
     collaborationId: string,
     type: "complete" | "cancel"
   ) => {
-    setSelectedCollaborationForReview(collaborationId);
-    setReviewType(type);
-
-    // 如果提供了外部處理函數，也調用它
-    if (onOpenReview) {
-      onOpenReview(collaborationId);
-    }
-  };
-
-  const handleCloseReview = () => {
+    // 改為使用第一個對話框的狀態
+    setSelectedCollaboration(collaborationId);
+    setEndReviewType(type);
+    
+    // 確保另一個對話框的狀態被清空，防止兩個對話框同時打開
     setSelectedCollaborationForReview(null);
     setReviewType(null);
-    loadCollaborations(); // 重新加載列表
+
+    // 移除對外部 onOpenReview 的調用，避免開啟另一個對話框
+    // 如果提供了外部處理函數，也調用它
+    // if (onOpenReview) {
+    //   onOpenReview(collaborationId);
+    // }
+  };
+  // 這個函數現在已經不需要了，因為我們只使用 handleCloseEndReview
+  // 但為了防止其他地方引用，我們保留它，但內部轉發到 handleCloseEndReview
+  const handleCloseReview = () => {
+    handleCloseEndReview();
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
+    const handleAcceptCollaboration = (collaborationId: string) => {
+    // 開啟確認對話框
+    setSelectedAcceptId(collaborationId);
+  };
+  
+  const handleCloseAccept = () => {
+    setSelectedAcceptId(null);
+    loadCollaborations(); // 重新加載列表
+  };
 
-  const handleOpenResponse = (collaborationId: string) => {
+  const handleOpenReject = (collaborationId: string) => {
+    // 直接開啟拒絕原因對話框
     setSelectedResponseId(collaborationId);
   };
 
@@ -323,7 +386,7 @@ export default function CollaborationList({
     },
     {
       value: "review",
-      label: `等待評價 (${
+      label: `待評價 (${
         acceptedCollaborations.filter((c) => c.status === "pending_review")
           .length
       })`,
@@ -356,12 +419,46 @@ export default function CollaborationList({
 
   // 獲取真正的 tab 值（而不僅僅是索引）
   const currentTabValue = visibleTabConfig[tabValue]?.value || visibleTabs[0];
+  // 處理提醒對方評價的函數
+  const handleRemindToReview = async (collaborationId: string) => {
+    try {
+      // 獲取合作資訊
+      const docRef = doc(db, "collaborations", collaborationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        console.error("找不到該合作記錄");
+        return;
+      }
+
+      const data = docSnap.data();
+      const remindUserId = data.pendingReviewFor; // 需要被提醒評價的用戶ID
+      
+      // 如果找不到需要提醒的用戶ID，直接返回
+      if (!remindUserId) return;
+      
+      // 發送提醒通知訊息
+      await notificationService.sendCollaborationNeedsReview(
+        remindUserId,
+        collaborationId,
+        "提醒您儘快完成合作評價。"
+      );
+      
+      // 顯示提醒成功訊息
+      setSnackbar({ open: true, message: "提醒已發送", severity: "success" });
+    } catch (error) {
+      console.error("發送提醒失敗:", error);
+      setSnackbar({ open: true, message: "發送提醒失敗", severity: "error" });
+    }
+  };
 
   const renderPendingReviewItem = (collaboration: any) => {
     const currentUserId = auth.currentUser?.uid;
     const isActionInitiator = currentUserId === collaboration.actionInitiator;
     // 確認當前用戶是否已經評價
     const hasReviewed = isActionInitiator;
+    // 確認當前用戶是否是文章作者（receiverId）
+    const isArticleAuthor = currentUserId === collaboration.receiverId;
 
     return (
       <Paper
@@ -403,13 +500,25 @@ export default function CollaborationList({
         ) : (
           // 未評價用戶看到的內容及按鈕
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => handleOpenReview(collaboration.id, "complete")}
-            >
-              完成並評價
-            </Button>
+            {isArticleAuthor ? (
+              // 文章作者看到「提醒對方評價」按鈕
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => handleRemindToReview(collaboration.id)}
+              >
+                提醒對方評價
+              </Button>
+            ) : (
+              // 合作請求發起者看到「完成並評價」按鈕
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleOpenReview(collaboration.id, "complete")}
+              >
+                完成並評價
+              </Button>
+            )}
           </Box>
         )}
       </Paper>
@@ -522,18 +631,17 @@ export default function CollaborationList({
                       gap: 1,
                       mt: 1,
                     }}
-                  >
-                    <Button
+                  >                    <Button
                       variant="outlined"
                       color="error"
-                      onClick={() => handleOpenResponse(request.id)}
+                      onClick={() => handleOpenReject(request.id)}
                     >
                       拒絕
                     </Button>
                     <Button
                       variant="contained"
                       color="primary"
-                      onClick={() => handleOpenResponse(request.id)}
+                      onClick={() => handleAcceptCollaboration(request.id)}
                     >
                       接受
                     </Button>
@@ -624,9 +732,8 @@ export default function CollaborationList({
                           已提出評價，請前往「等待評價」區域完成評價
                         </Typography>
                       )}
-                    </Box>
-                  ) : (
-                    /* 如果是一般進行中狀態，顯示操作按鈕 */
+                    </Box>                  ) : (
+                    /* 如果是一般進行中狀態，檢查是否為文章發布者 */
                     <Box
                       sx={{
                         display: "flex",
@@ -634,22 +741,28 @@ export default function CollaborationList({
                         gap: 1,
                       }}
                     >
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => handleOpenCancel(collaboration.id)}
-                      >
-                        取消合作
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() =>
-                          handleOpenEndReview(collaboration.id, "complete")
-                        }
-                      >
-                        完成合作
-                      </Button>
+                      {/* 在合作關係中，receiverId是文章發布者(authorId)，requesterId是合作請求發起者 */}
+                      {/* 僅當當前用戶是文章發布者時才顯示按鈕 */}
+                      {auth.currentUser?.uid === collaboration.receiverId && (
+                        <>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => handleOpenCancel(collaboration.id)}
+                          >
+                            取消合作
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() =>
+                              handleOpenEndReview(collaboration.id, "complete")
+                            }
+                          >
+                            完成合作
+                          </Button>
+                        </>
+                      )}
                     </Box>
                   )}
                 </Paper>
@@ -670,7 +783,7 @@ export default function CollaborationList({
               .map(renderPendingReviewItem)
           ) : (
             <Typography color="text.secondary">
-              目前沒有等待評價的合作
+              目前沒有待評價的合作
             </Typography>
           )}
         </Paper>
@@ -721,17 +834,16 @@ export default function CollaborationList({
                       p: 2,
                       bgcolor: "background.paper",
                       borderRadius: 1,
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      評價：{collaboration.completeReview.rating} / 5
-                    </Typography>
+                    }}                  >                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Rating
+                        value={collaboration.completeReview.rating}
+                        readOnly
+                        size="small"
+                        precision={0.5}
+                      />
+                    </Box>
                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                      {collaboration.completeReview.comment}
+                      <strong>評價: </strong>{collaboration.completeReview.comment}
                     </Typography>
                   </Box>
                 )}
@@ -817,24 +929,17 @@ export default function CollaborationList({
         </Paper>
       </Box>
 
-      {/* Existing dialogs */}
+      {/* Existing dialogs */}      {/* 只保留一個 CollaborationEndReviewDialog，現在在 handleOpenReview 中我們使用 selectedCollaboration 和 endReviewType 狀態 */}
       <CollaborationEndReviewDialog
         open={!!selectedCollaboration && !!endReviewType}
         onClose={handleCloseEndReview}
         collaborationId={selectedCollaboration}
         endType={endReviewType || "complete"}
-      />
-
-      <CollaborationEndReviewDialog
-        open={!!selectedCollaborationForReview && !!reviewType}
-        onClose={handleCloseReview}
-        collaborationId={selectedCollaborationForReview}
-        endType={reviewType || "complete"}
         partnerName={
-          selectedCollaborationForReview
+          selectedCollaboration
             ? getPartnerName(
                 acceptedCollaborations.find(
-                  (c) => c.id === selectedCollaborationForReview
+                  (c) => c.id === selectedCollaboration
                 )
               )
             : undefined
@@ -872,6 +977,40 @@ export default function CollaborationList({
             : undefined
         }
       />
+      
+      <AcceptCollaborationDialog
+        open={!!selectedAcceptId}
+        onClose={handleCloseAccept}
+        collaborationId={selectedAcceptId}
+        partnerName={
+          selectedAcceptId
+            ? getPartnerName(
+                receivedRequests.find((req) => req.id === selectedAcceptId)
+              )
+            : undefined
+        }
+        postTitle={
+          selectedAcceptId
+            ? receivedRequests.find((req) => req.id === selectedAcceptId)
+                ?.postTitle
+            : undefined
+        }      />
+
+      {/* 提醒訊息顯示 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar({...snackbar, open: false})}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({...snackbar, open: false})} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
