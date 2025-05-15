@@ -5,7 +5,7 @@ import ReadOnlyClubProfile from "./ReadOnlyClubProfile";
 
 interface ClubProfileFormProps {
   clubData: Club;
-  onSubmit: (updatedData: Partial<Club>, logoFile?: File) => Promise<void>;
+  onSubmit: (updatedData: Partial<Club>) => Promise<void>;
   readonly?: boolean;
 }
 

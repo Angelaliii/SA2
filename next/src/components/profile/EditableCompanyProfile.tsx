@@ -2,7 +2,6 @@
 
 import SaveIcon from "@mui/icons-material/Save";
 import {
-  Box,
   Button,
   Grid,
   MenuItem,
@@ -15,7 +14,7 @@ import { Company } from "../../firebase/services/company-service";
 
 interface EditableCompanyProfileProps {
   companyData: Company;
-  onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
+  onSubmit: (updatedData: Partial<Company>) => Promise<void>;
 }
 
 // Industry types options
@@ -46,10 +45,6 @@ const EditableCompanyProfile: React.FC<EditableCompanyProfileProps> = ({
     companyDescription: companyData.companyDescription ?? "",
   });
 
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(
-    companyData.logoURL ?? null
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof Company, string>>>(
     {}
@@ -68,14 +63,6 @@ const EditableCompanyProfile: React.FC<EditableCompanyProfileProps> = ({
         ...prev,
         [name]: "",
       }));
-    }
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
     }
   };
 
@@ -125,10 +112,7 @@ const EditableCompanyProfile: React.FC<EditableCompanyProfileProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile ?? undefined);
-      if (logoFile) {
-        setLogoFile(null);
-      }
+      await onSubmit(formData);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,54 +126,6 @@ const EditableCompanyProfile: React.FC<EditableCompanyProfileProps> = ({
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Logo Upload Section */}
-          <Grid
-            item
-            xs={12}
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            mb={2}
-          >
-            {logoPreview && (
-              <Box
-                component="img"
-                src={logoPreview}
-                alt="企業標誌預覽"
-                sx={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "contain",
-                  borderRadius: "50%",
-                  mb: 2,
-                  border: "1px solid #e0e0e0",
-                }}
-              />
-            )}
-            <Button
-              component="label"
-              variant="outlined"
-              sx={{ mt: logoPreview ? 1 : 0 }}
-            >
-              {logoPreview ? "更換標誌" : "上傳企業標誌"}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                hidden
-              />
-            </Button>
-            {logoPreview && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 1 }}
-              >
-                建議使用正方形圖片，檔案大小不超過2MB
-              </Typography>
-            )}
-          </Grid>
-
           {/* Company Information Fields */}
           <Grid item xs={12} md={6}>
             <TextField

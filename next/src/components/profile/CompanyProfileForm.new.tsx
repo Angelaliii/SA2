@@ -7,7 +7,7 @@ import ReadOnlyCompanyProfile from "./ReadOnlyCompanyProfile";
 
 interface CompanyProfileFormProps {
   companyData: Company;
-  onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
+  onSubmit: (updatedData: Partial<Company>) => Promise<void>;
   readonly?: boolean;
 }
 
