@@ -5,15 +5,17 @@ import EventIcon from "@mui/icons-material/Event";
 import GroupIcon from "@mui/icons-material/Group";
 import SearchIcon from "@mui/icons-material/Search";
 import {
+  Alert,
   Box,
   Button,
   Card,
-  Chip,
   CircularProgress,
   Container,
+  IconButton,
   InputAdornment,
   Pagination,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -31,9 +33,10 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import Navbar from "../../../components/Navbar";
+import NavbarClientOnly from "../../../components/NavbarClientOnly";
 import { auth, db } from "../../../firebase/config";
 import { clubServices } from "../../../firebase/services/club-service"; // 添加 clubServices
+import { ClientOnly } from "../../../hooks/useHydration";
 import { scrollToTop } from "../../../utils/clientUtils";
 
 // Add interfaces for proper typing
@@ -73,8 +76,12 @@ interface Post {
 }
 
 export default function DemandListPage() {
-  // 設置頁面標題
+  // 首先分離 Material-UI 樣式創建
+  const [isMounted, setIsMounted] = useState(false);
+
+  // 在客戶端掛載完成後設置標誌
   useEffect(() => {
+    setIsMounted(true);
     document.title = "需求牆 - 社團企業媒合平台";
   }, []);
 
@@ -89,7 +96,7 @@ export default function DemandListPage() {
     minParticipants: "",
   });
   // 新增篩選條件的狀態
-  const [demandType, setDemandType] = useState<string>("物資");
+  const [demandType, setDemandType] = useState<string>("");
   const [location, setLocation] = useState<string>("");
   const [materialCategory, setMaterialCategory] = useState<string>("");
   const [minAmount, setMinAmount] = useState<string>("");
@@ -111,9 +118,17 @@ export default function DemandListPage() {
   // 分別篩選收起
   const [selectedFilterType, setSelectedFilterType] = useState<string>("");
 
+  // Snackbar 通知狀態
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info" | "warning",
+  });
+
   const handleDemandTypeClick = (type: string) => {
     setDemandType(type === "全部" ? "" : type);
     setSelectedFilterType(type === "全部" ? "" : type);
+    setCurrentPage(1); // 重置到第一頁
   };
 
   // 獲取收藏狀態
@@ -254,7 +269,13 @@ export default function DemandListPage() {
       ...filters,
       [e.target.name]: e.target.value,
     });
+    setCurrentPage(1); // 重置到第一頁
   };
+
+  // 當搜尋詞變化時也重置頁碼
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, demandType]);
 
   // Filter posts (this is actually already done in the useEffect above, but kept for consistency)
   const filteredPosts = posts.filter((post) => {
@@ -324,6 +345,12 @@ export default function DemandListPage() {
 
         await setDoc(doc(collection(db, "favorites")), favoriteData);
         setFavorites((prev) => ({ ...prev, [postId]: true }));
+        // 顯示已加入收藏的通知
+        setSnackbar({
+          open: true,
+          message: "已加入收藏",
+          severity: "success",
+        });
       } else {
         // Already favorited -> Remove from favorites
         const favoriteDoc = snapshot.docs[0];
@@ -333,6 +360,12 @@ export default function DemandListPage() {
           delete newFavorites[postId];
           return newFavorites;
         });
+        // 顯示已移除收藏的通知
+        setSnackbar({
+          open: true,
+          message: "已移除收藏",
+          severity: "info",
+        });
       }
     } catch (err) {
       console.error("操作收藏失敗", err);
@@ -340,18 +373,28 @@ export default function DemandListPage() {
     }
   };
 
-  // Helper function to format createdAt date
+  // 在组件顶部添加一个更可靠的格式化函數
   const formatCreatedAt = (data: any): string => {
-    if (data.createdAt) {
-      if (data.createdAt.toDate) {
-        return data.createdAt.toDate().toISOString();
-      } else if (typeof data.createdAt === "string") {
-        return data.createdAt;
-      } else {
-        return new Date(data.createdAt).toISOString();
+    try {
+      if (data.createdAt) {
+        if (data.createdAt.toDate) {
+          // Firestore Timestamp
+          return data.createdAt.toDate().toISOString();
+        } else if (typeof data.createdAt === "string") {
+          // 已經是字符串格式
+          return data.createdAt;
+        } else {
+          // 其他日期對象
+          return new Date(data.createdAt).toISOString();
+        }
       }
+
+      // 默認日期 - 使用固定日期而不是當前時間避免hydration不匹配
+      return "2023-01-01T00:00:00.000Z";
+    } catch (error) {
+      console.error("日期格式化錯誤:", error);
+      return "2023-01-01T00:00:00.000Z"; // 錯誤時使用固定日期
     }
-    return new Date().toISOString();
   };
 
   // Helper function to apply filters to posts
@@ -448,13 +491,16 @@ export default function DemandListPage() {
     return filteredResults;
   };
 
-  // 檢查當前用戶是否為社團用戶
+  {
+    /* 檢查用戶角色 */
+  }
   useEffect(() => {
     // 首先檢查 sessionStorage 中是否有保存的狀態
     if (typeof window !== "undefined") {
       const savedIsClub = sessionStorage.getItem("isClubUser");
       if (savedIsClub === "true") {
         setIsClub(true);
+        return; // 如果已經從sessionStorage確認是社團用戶，就不需要再進行API檢查
       }
     }
 
@@ -473,6 +519,7 @@ export default function DemandListPage() {
         // 檢查用戶是否是社團用戶
         const clubData = await clubServices.getClubByUserId(user.uid);
         const isUserClub = !!clubData;
+        console.log("確認用戶是否為社團:", isUserClub ? "是" : "否");
         setIsClub(isUserClub);
 
         // 將社團用戶狀態保存到 sessionStorage，防止頁面刷新後丟失狀態
@@ -493,412 +540,466 @@ export default function DemandListPage() {
       }
     };
 
-    checkUserRole();
+    // 延遲執行檢查，確保auth已經初始化
+    const timer = setTimeout(() => {
+      checkUserRole();
+    }, 1000); // 增加延遲時間確保auth已初始化
+
+    return () => clearTimeout(timer); // 清理定時器
   }, []);
 
+  // ✅ 更改 return 部分，通過新的方式處理 Material UI 組件
   return (
-    <>
-      <Navbar />
-      <Box
-        sx={{
-          backgroundColor: "#f5f7fa",
-          width: "100%",
-          pt: "84px",
-          pb: "40px",
-          minHeight: "100vh",
-        }}
-      >
-        <Container maxWidth="md">
-          {/* 頁首區塊 */}
-          <Box sx={{ textAlign: "center", mb: 3 }}>
-            <Typography variant="h4" fontWeight="bold" color="primary.main">
-              需求列表
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              瀏覽所有合作需求，找到適合您的合作機會
-            </Typography>
-          </Box>
+    <ClientOnly>
+      <NavbarClientOnly />
+      {!isMounted ? (
+        // 靜態加載骨架，避免 Material UI 組件在掛載前渲染
+        <Box
+          sx={{
+            backgroundColor: "#f5f7fa",
+            width: "100%",
+            pt: "84px",
+            pb: "40px",
+            minHeight: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            backgroundColor: "#f5f7fa",
+            width: "100%",
+            pt: "84px",
+            pb: "40px",
+            minHeight: "100vh",
+          }}
+        >
+          <Container maxWidth="lg">
+            {/* 頁首區塊 */}
+            <Box sx={{ textAlign: "center", mb: 3 }}>
+              <Typography variant="h4" fontWeight="bold" color="primary.main">
+                需求列表
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                瀏覽所有合作需求，找到適合您的合作機會
+              </Typography>
+            </Box>
 
-          {/* 篩選條件區塊 */}
-          <Paper
-            elevation={1}
-            sx={{
-              p: 3,
-              mb: 4,
-              borderRadius: "12px",
-            }}
-          >
-            {/* 🔍 搜尋需求欄位在最上方 */}
-            <TextField
-              fullWidth
-              placeholder="搜尋文章…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ mb: 3 }}
-              slotProps={{
-                input: {
+            {/* 篩選條件區塊 */}
+            <Paper
+              elevation={1}
+              sx={{
+                p: 3,
+                mb: 4,
+                borderRadius: "12px",
+              }}
+            >
+              {/* 🔍 搜尋需求欄位在最上方 */}
+              <TextField
+                fullWidth
+                placeholder="搜尋文章…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ mb: 3 }}
+                InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
                     </InputAdornment>
                   ),
-                },
-              }}
-            />
+                }}
+              />
 
-            {/* 🔘 類型篩選按鈕 */}
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              {["全部", "物資", "金錢", "講師"].map((type) => (
-                <Button
-                  key={type}
-                  variant={
-                    demandType === type ||
-                    (type === "全部" && demandType === "")
-                      ? "contained"
-                      : "outlined"
-                  }
-                  color={
-                    type === "金錢"
-                      ? "error"
-                      : type === "講師"
-                      ? "success"
-                      : "primary"
-                  }
-                  onClick={() => handleDemandTypeClick(type)}
-                >
-                  {type}
-                </Button>
-              ))}
-            </Box>
+              {/* 🔘 類型篩選按鈕 */}
+              <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                {["全部", "物資", "金錢", "講師"].map((type) => (
+                  <Button
+                    key={type}
+                    variant={
+                      demandType === type ||
+                      (type === "全部" && demandType === "")
+                        ? "contained"
+                        : "outlined"
+                    }
+                    color={
+                      type === "金錢"
+                        ? "error"
+                        : type === "講師"
+                        ? "success"
+                        : "primary"
+                    }
+                    onClick={() => handleDemandTypeClick(type)}
+                  >
+                    {type}
+                  </Button>
+                ))}
+              </Box>
 
-            {/* ⛔ 尚未選擇任何類型時不顯示表單 */}
-            {selectedFilterType && (
-              <>
-                {/* ✅ 以下根據 selectedFilterType 顯示對應篩選表單 */}
-                {selectedFilterType === "物資" && (
-                  <Box sx={{ mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      select
-                      label="物資類別"
-                      value={materialCategory}
-                      onChange={(e) => setMaterialCategory(e.target.value)}
-                      SelectProps={{ native: true }}
-                    >
-                      <option value=""></option>
-                      {["飲料", "食物", "生活用品", "戶外用品", "其他"].map(
-                        (option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        )
-                      )}
-                    </TextField>
-                  </Box>
-                )}
+              {/* ⛔ 尚未選擇任何類型時不顯示表單 */}
+              {selectedFilterType && (
+                <>
+                  {/* ✅ 以下根據 selectedFilterType 顯示對應篩選表單 */}
+                  {selectedFilterType === "物資" && (
+                    <Box sx={{ mb: 2 }}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="物資類別"
+                        value={materialCategory}
+                        onChange={(e) => {
+                          setMaterialCategory(e.target.value);
+                          setCurrentPage(1); // 重置到第一頁
+                        }}
+                        SelectProps={{ native: true }}
+                      >
+                        <option value=""></option>
+                        {["飲料", "食物", "生活用品", "戶外用品", "其他"].map(
+                          (option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          )
+                        )}
+                      </TextField>
+                    </Box>
+                  )}
 
-                {selectedFilterType === "金錢" && (
+                  {selectedFilterType === "金錢" && (
+                    <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+                      <TextField
+                        label="金額下限（元）"
+                        type="number"
+                        fullWidth
+                        value={minAmount}
+                        onChange={(e) => {
+                          setMinAmount(e.target.value);
+                          setCurrentPage(1); // 重置到第一頁
+                        }}
+                      />
+                      <TextField
+                        label="金額上限（元）"
+                        type="number"
+                        fullWidth
+                        value={maxAmount}
+                        onChange={(e) => {
+                          setMaxAmount(e.target.value);
+                          setCurrentPage(1); // 重置到第一頁
+                        }}
+                      />
+                    </Box>
+                  )}
+
+                  {selectedFilterType === "講師" && (
+                    <Box sx={{ mb: 2 }}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="講師主題"
+                        value={speakerType}
+                        onChange={(e) => {
+                          setSpeakerType(e.target.value);
+                          setCurrentPage(1); // 重置到第一頁
+                        }}
+                        SelectProps={{ native: true }}
+                      >
+                        <option value=""></option>
+                        {["專業技能", "職涯分享", "產業趨勢", "其他"].map(
+                          (option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          )
+                        )}
+                      </TextField>
+                    </Box>
+                  )}
+
+                  {/* ✅ 共通條件：活動名稱、性質、時間、人數等 */}
                   <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
-                      label="金額下限（元）"
-                      type="number"
                       fullWidth
-                      value={minAmount}
-                      onChange={(e) => setMinAmount(e.target.value)}
+                      label="活動名稱關鍵字"
+                      value={keywordEvent}
+                      onChange={(e) => {
+                        setKeywordEvent(e.target.value);
+                        setCurrentPage(1); // 重置到第一頁
+                      }}
                     />
                     <TextField
-                      label="金額上限（元）"
-                      type="number"
                       fullWidth
-                      value={maxAmount}
-                      onChange={(e) => setMaxAmount(e.target.value)}
+                      label="組織名稱關鍵字"
+                      value={keywordOrg}
+                      onChange={(e) => {
+                        setKeywordOrg(e.target.value);
+                        setCurrentPage(1); // 重置到第一頁
+                      }}
                     />
                   </Box>
-                )}
 
-                {selectedFilterType === "講師" && (
-                  <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                     <TextField
                       select
                       fullWidth
-                      label="講師主題"
-                      value={speakerType}
-                      onChange={(e) => setSpeakerType(e.target.value)}
+                      label="活動性質"
+                      value={eventNature}
+                      onChange={(e) => {
+                        setEventNature(e.target.value);
+                        setFilters({
+                          ...filters,
+                          selectedEventNature: e.target.value,
+                        });
+                        setCurrentPage(1); // 重置到第一頁
+                      }}
                       SelectProps={{ native: true }}
                     >
                       <option value=""></option>
-                      {["專業技能", "職涯分享", "產業趨勢", "其他"].map(
-                        (option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        )
-                      )}
+                      {[
+                        "迎新",
+                        "講座",
+                        "比賽",
+                        "展覽",
+                        "工作坊",
+                        "營隊",
+                        "其他",
+                      ].map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
                     </TextField>
+                    <TextField
+                      fullWidth
+                      type="date"
+                      label="活動開始日期"
+                      value={eventStartDate}
+                      onChange={(e) => {
+                        setEventStartDate(e.target.value);
+                        setCurrentPage(1); // 重置到第一頁
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                    />
                   </Box>
-                )}
 
-                {/* ✅ 共通條件：活動名稱、性質、時間、人數等 */}
-                <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="活動名稱關鍵字"
-                    value={keywordEvent}
-                    onChange={(e) => setKeywordEvent(e.target.value)}
-                  />
-                  <TextField
-                    fullWidth
-                    label="組織名稱關鍵字"
-                    value={keywordOrg}
-                    onChange={(e) => setKeywordOrg(e.target.value)}
-                  />
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      type="date"
+                      label="活動結束日期"
+                      value={eventEndDate}
+                      onChange={(e) => {
+                        setEventEndDate(e.target.value);
+                        setCurrentPage(1); // 重置到第一頁
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="最少參與人數"
+                      value={filters.minParticipants}
+                      onChange={handleFilterChange}
+                      name="minParticipants"
+                    />
+                  </Box>
+                </>
+              )}
+            </Paper>
+
+            {/* Removing the category filter buttons */}
+            <Box sx={{ mt: 2, mb: 3 }}></Box>
+
+            <Stack spacing={3}>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+                  <CircularProgress />
                 </Box>
-
-                <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="活動性質"
-                    value={eventNature}
-                    onChange={(e) => {
-                      setEventNature(e.target.value);
-                      setFilters({
-                        ...filters,
-                        selectedEventNature: e.target.value,
-                      });
-                    }}
-                    SelectProps={{ native: true }}
-                  >
-                    <option value=""></option>
-                    {[
-                      "迎新",
-                      "講座",
-                      "比賽",
-                      "展覽",
-                      "工作坊",
-                      "營隊",
-                      "其他",
-                    ].map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </TextField>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    label="活動開始日期"
-                    value={eventStartDate}
-                    onChange={(e) => setEventStartDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    label="活動結束日期"
-                    value={eventEndDate}
-                    onChange={(e) => setEventEndDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="最少參與人數"
-                    value={filters.minParticipants}
-                    onChange={handleFilterChange}
-                    name="minParticipants"
-                  />
-                </Box>
-              </>
-            )}
-          </Paper>
-
-          {/* Removing the category filter buttons */}
-          <Box sx={{ mt: 2, mb: 3 }}></Box>
-
-          <Stack spacing={3}>
-            {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : currentPosts.length === 0 ? (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  borderRadius: 2,
-                  bgcolor: "background.paper",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  textAlign: "center",
-                }}
-              >
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  找不到符合的文章
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {searchTerm ||
-                  filters.selectedDemand ||
-                  filters.selectedEventType ||
-                  filters.startDate ||
-                  filters.endDate ||
-                  filters.minParticipants
-                    ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
-                    : "目前還沒有任何需求文章"}
-                </Typography>
-                {(searchTerm ||
-                  filters.selectedDemand ||
-                  filters.selectedEventType ||
-                  filters.startDate ||
-                  filters.endDate ||
-                  filters.minParticipants) && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setFilters({
-                        selectedDemand: "",
-                        selectedEventType: "",
-                        selectedEventNature: "", // Add new filter for 活動性質
-                        startDate: "",
-                        endDate: "",
-                        minParticipants: "",
-                      });
-                    }}
-                    sx={{ mt: 1 }}
-                  >
-                    清除所有篩選條件
-                  </Button>
-                )}
-              </Paper>
-            ) : (
-              currentPosts.map((post, index) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.08 }}
+              ) : currentPosts.length === 0 ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    borderRadius: 2,
+                    bgcolor: "background.paper",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    textAlign: "center",
+                  }}
                 >
-                  {" "}
-                  <Card
-                    sx={{
-                      borderRadius: "16px",
-                      p: 3,
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                      "&:hover": {
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                        transform: "translateY(-4px)",
-                        transition: "all 0.3s ease",
-                      },
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      window.location.href = `/Artical/${post.id}`;
-                    }}
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    找不到符合的需求
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {searchTerm ||
+                    filters.selectedDemand ||
+                    filters.selectedEventType ||
+                    filters.startDate ||
+                    filters.endDate ||
+                    filters.minParticipants ||
+                    demandType
+                      ? "沒有找到符合篩選條件的需求文章，請嘗試調整篩選條件"
+                      : "目前還沒有任何需求文章"}
+                  </Typography>
+                  {(searchTerm ||
+                    filters.selectedDemand ||
+                    filters.selectedEventType ||
+                    filters.startDate ||
+                    filters.endDate ||
+                    filters.minParticipants ||
+                    demandType) && (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setDemandType("");
+                        setSelectedFilterType("");
+                        setMaterialCategory("");
+                        setMinAmount("");
+                        setMaxAmount("");
+                        setSpeakerType("");
+                        setKeywordEvent("");
+                        setKeywordOrg("");
+                        setEventStartDate("");
+                        setEventEndDate("");
+                        setEventNature("");
+                        setFilters({
+                          selectedDemand: "",
+                          selectedEventType: "",
+                          selectedEventNature: "",
+                          startDate: "",
+                          endDate: "",
+                          minParticipants: "",
+                        });
+                      }}
+                      sx={{ mt: 2 }}
+                    >
+                      清除所有篩選條件
+                    </Button>
+                  )}
+                </Paper>
+              ) : (
+                currentPosts.map((post, index) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.08 }}
                   >
-                    <Box
+                    <Card
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
+                        borderRadius: "16px",
+                        p: 3,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                        "&:hover": {
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                          transform: "translateY(-4px)",
+                          transition: "all 0.3s ease",
+                        },
+                        cursor: "pointer",
+                      }}
+                      onClick={() => {
+                        window.location.href = `/Artical/${post.id}`;
                       }}
                     >
-                      {/* 主資訊區 */}
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            color: "primary.main",
-                            fontWeight: "bold",
-                            mb: 1.5,
-                          }}
-                        >
-                          {post.title ?? "(無標題)"}
-                        </Typography>
-
-                        <Box
-                          sx={{
-                            mb: 2,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                          }}
-                        >
-                          <Chip
-                            label={post.eventNature || "未指定"}
-                            size="small"
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        {/* 主資訊區 */}
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="h6"
                             sx={{
-                              backgroundColor: "#E3F2FD",
-                              color: "#1565C0",
-                            }}
-                          />
-                          <Typography variant="body2" sx={{ color: "#757575" }}>
-                            •
-                          </Typography>
-
-                          {/* 不同贊助類型有不同顏色 */}
-                          {post.demandType === "物資" && (
-                            <Chip label="物資" size="small" color="primary" />
-                          )}
-                          {post.demandType === "金錢" && (
-                            <Chip label="金錢" size="small" color="error" />
-                          )}
-                          {post.demandType === "講師" && (
-                            <Chip label="講師" size="small" color="success" />
-                          )}
-                        </Box>
-
-                        {/* 根據需求類型顯示不同內容 */}
-                        {post.demandType === "物資" && (
-                          <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              {post.itemType
-                                ? `物資類型：${post.itemType}`
-                                : post.customItems &&
-                                  post.customItems.length > 0
-                                ? `物資類型：${post.customItems.join(", ")}`
-                                : "物資類型：未指定"}
-                            </Typography>
-                          </Box>
-                        )}
-
-                        {post.demandType === "金錢" && (
-                          <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              金額區間：{post.moneyLowerLimit || "未指定"} -{" "}
-                              {post.moneyUpperLimit || "未指定"} 元
-                            </Typography>
-                          </Box>
-                        )}
-
-                        {post.demandType === "講師" && (
-                          <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              講師類型：{post.speakerType || "未指定"}
-                            </Typography>
-                          </Box>
-                        )}
-
-                        <Box sx={{ mb: 2 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mb: 1,
+                              color: "primary.main",
+                              fontWeight: "bold",
+                              mb: 1.5,
                             }}
                           >
-                            <EventIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">
-                              {post.eventDate
-                                ? new Date(post.eventDate)
-                                    .toISOString()
-                                    .split("T")[0]
-                                : "未設定日期"}
-                            </Typography>
+                            {post.title ?? "(無標題)"}
+                          </Typography>
+                          <Box
+                            sx={{
+                              mb: 1.5,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {/* 活動性質標籤 */}
+                            {post.eventNature && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="info"
+                                disableElevation
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                }}
+                              >
+                                {post.eventNature || "一般活動"}
+                              </Button>
+                            )}
+
+                            {/* 需求類型標籤 */}
+                            {post.demandType === "物資" && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                disableElevation
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                }}
+                              >
+                                物資需求
+                              </Button>
+                            )}
+                            {post.demandType === "金錢" && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="error"
+                                disableElevation
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                }}
+                              >
+                                資金需求
+                              </Button>
+                            )}
+                            {post.demandType === "講師" && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                disableElevation
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
+                                  textTransform: "none",
+                                  borderRadius: "12px",
+                                }}
+                              >
+                                講師需求
+                              </Button>
+                            )}
                           </Box>
+                          {/* 發布者資訊 */}
                           <Box
                             sx={{
                               display: "flex",
@@ -907,47 +1008,86 @@ export default function DemandListPage() {
                             }}
                           >
                             <GroupIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">
-                              {post.estimatedParticipants ?? "0"}人
-                            </Typography>
-                          </Box>
-                          <Box sx={{ mb: 0.5 }}>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              component="span"
-                            >
-                              來自：
-                            </Typography>
                             <Link
                               href={`/public-profile/${post.authorId}`}
                               style={{ textDecoration: "none" }}
                             >
                               <Typography
                                 variant="body2"
-                                component="span"
                                 sx={{
-                                  ml: 1,
                                   color: "primary.main",
                                   cursor: "pointer",
                                   fontWeight: "medium",
                                   "&:hover": { textDecoration: "underline" },
                                 }}
                               >
-                                {post.organizationName}
+                                {post.organizationName || "未知組織"}
                               </Typography>
                             </Link>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ ml: 2 }}
+                            >
+                              預估參與人數：{post.estimatedParticipants ?? "0"}
+                              人
+                            </Typography>
                           </Box>
-                        </Box>
-
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="body2" color="text.secondary">
+                          {/* 需求詳情 */}
+                          {post.demandType === "物資" && (
+                            <Typography variant="body2" color="text.secondary">
+                              物資類型：
+                              {post.itemType
+                                ? post.itemType
+                                : post.customItems &&
+                                  post.customItems.length > 0
+                                ? post.customItems.join(", ")
+                                : "未指定"}
+                            </Typography>
+                          )}
+                          {post.demandType === "金錢" && (
+                            <Typography variant="body2" color="text.secondary">
+                              金額區間：{post.moneyLowerLimit || "未指定"} -{" "}
+                              {post.moneyUpperLimit || "未指定"} 元
+                            </Typography>
+                          )}
+                          {post.demandType === "講師" && (
+                            <Typography variant="body2" color="text.secondary">
+                              講師類型：{post.speakerType || "未指定"}
+                            </Typography>
+                          )}
+                          {/* 活動時間 */}{" "}
+                          <Box
+                            sx={{
+                              mt: 1,
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            <EventIcon fontSize="small" sx={{ mr: 1 }} />
+                            <Typography variant="body2" color="text.secondary">
+                              活動日期：
+                              {post.eventDate
+                                ? new Date(post.eventDate)
+                                    .toISOString()
+                                    .split("T")[0]
+                                : "未設定"}
+                            </Typography>
+                          </Box>
+                          {/* 回饋方式 */}
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mt: 1 }}
+                          >
                             回饋方式：{post.feedbackDetails || "未指定"}
                           </Typography>
-                        </Box>
-
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="body2" color="text.secondary">
+                          {/* 截止時間 */}{" "}
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 1 }}
+                          >
                             贊助截止時間：
                             {post.sponsorDeadline
                               ? new Date(post.sponsorDeadline)
@@ -957,82 +1097,110 @@ export default function DemandListPage() {
                           </Typography>
                         </Box>
 
+                        {/* 右側操作區 */}
                         <Box
                           sx={{
                             display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            alignItems: "flex-end",
+                            ml: 2,
                           }}
                         >
-                          <Box></Box>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(post);
+                            }}
+                            sx={{ mb: 1 }}
+                          >
+                            {favorites[post.id] ? "❤️" : "🤍"}
+                          </IconButton>
+                          <Button
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/Artical/${post.id}`;
+                            }}
+                            size="small"
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            查看更多
+                          </Button>
                         </Box>
                       </Box>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
+            </Stack>
 
-                      {/* 右側动作區 - 匹配企業牆樣式 */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          alignItems: "flex-end",
-                          ml: 2,
-                        }}
-                      ></Box>
-                    </Box>
-                  </Card>
-                </motion.div>
-              ))
+            {/* 分頁控制 */}
+            {totalPages > 1 && (
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="large"
+                />
+              </Box>
             )}
-          </Stack>
+          </Container>
 
-          {/* 分頁控制 */}
-          {totalPages > 1 && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={currentPage}
-                onChange={handlePageChange}
+          {/* 浮動發布需求按鈕 - 只有社團用戶能看到 */}
+          {isClub && (
+            <Box
+              sx={{
+                position: "fixed",
+                bottom: 30,
+                right: 30,
+                zIndex: 999,
+                display: "block", // 確保按鈕一定顯示
+              }}
+            >
+              <Button
+                component={Link}
+                href="/Artical"
+                variant="contained"
                 color="primary"
                 size="large"
-              />
+                startIcon={<AddCircleOutlineIcon />}
+                sx={{
+                  borderRadius: 30,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                  "&:hover": {
+                    boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                    transform: "translateY(-2px)",
+                    transition: "all 0.3s ease",
+                  },
+                  px: 3,
+                  py: 1.5,
+                }}
+              >
+                發布需求
+              </Button>
             </Box>
           )}
-        </Container>
-      </Box>
 
-      {/* 浮動發布需求按鈕 - 只有社團用戶能看到 */}
-      {isClub && (
-        <Box
-          sx={{
-            position: "fixed",
-            bottom: 30,
-            right: 30,
-            zIndex: 999,
-          }}
-        >
-          <Button
-            component={Link}
-            href="/Artical"
-            variant="contained"
-            color="primary"
-            size="large"
-            startIcon={<AddCircleOutlineIcon />}
-            sx={{
-              borderRadius: 30,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-              "&:hover": {
-                boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
-                transform: "translateY(-2px)",
-                transition: "all 0.3s ease",
-              },
-              px: 3,
-              py: 1.5,
-            }}
+          {/* Snackbar for notifications */}
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={3000}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
           >
-            發布需求
-          </Button>
+            <Alert
+              severity={snackbar.severity}
+              onClose={() => setSnackbar({ ...snackbar, open: false })}
+            >
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
         </Box>
       )}
-    </>
+    </ClientOnly>
   );
 }

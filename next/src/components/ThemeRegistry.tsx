@@ -53,12 +53,12 @@ export default function ThemeRegistry({
   const [{ cache, flush }] = useState(() => {
     // Use the client-side cache if we're in the browser
     if (typeof window !== "undefined") {
-      return { 
-        cache: clientSideEmotionCache, 
-        flush: () => [] // No need to flush on client
+      return {
+        cache: clientSideEmotionCache,
+        flush: () => [], // No need to flush on client
       };
     }
-    
+
     // Server-side cache with tracking for style extraction
     const cache = createEmotionCache();
     cache.compat = true;
@@ -78,7 +78,7 @@ export default function ThemeRegistry({
     };
     return { cache, flush };
   });
-  
+
   useServerInsertedHTML(() => {
     const names = flush();
     if (names.length === 0) return null;
@@ -95,7 +95,7 @@ export default function ThemeRegistry({
       />
     );
   });
-  
+
   return (
     <CacheProvider value={cache}>
       <StyledEngineProvider injectFirst>

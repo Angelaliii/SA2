@@ -4,6 +4,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添�
 import BusinessIcon from "@mui/icons-material/Business";
 import SearchIcon from "@mui/icons-material/Search";
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -11,6 +12,7 @@ import {
   Container,
   IconButton,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -28,11 +30,11 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import Navbar from "../../../components/Navbar";
+import NavbarClientOnly from "../../../components/NavbarClientOnly";
 import { auth, db } from "../../../firebase/config";
 import { companyServices } from "../../../firebase/services/company-service";
 import { enterpriseService } from "../../../firebase/services/enterprise-service";
-import useHydration, { ClientOnly } from "../../../hooks/useHydration";
+import { ClientOnly } from "../../../hooks/useHydration";
 
 interface EnterprisePost {
   id: string;
@@ -71,6 +73,13 @@ export default function EnterpriseListPage() {
   const [contractPeriod, setContractPeriod] = useState<string>("");
   const [activityType, setActivityType] = useState<string>("");
   const [interviewMethod, setInterviewMethod] = useState<string>("");
+
+  // Snackbar 通知狀態
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info" | "warning",
+  });
 
   const itemsPerPage = 8;
 
@@ -210,12 +219,15 @@ export default function EnterpriseListPage() {
           content: post.content,
           companyName: post.companyName ?? "未知企業",
         };
-
         await setDoc(doc(collection(db, "favorites")), favoriteData);
         setFavorites((prev) => ({ ...prev, [postId]: true }));
 
-        // 顯示簡短提示而不跳轉頁面
-        alert("已成功加入收藏！");
+        // 顯示收藏成功的 Snackbar 通知
+        setSnackbar({
+          open: true,
+          message: "已加入收藏",
+          severity: "success",
+        });
       } else {
         // 取消收藏
         const favoriteDoc = snapshot.docs[0];
@@ -225,10 +237,21 @@ export default function EnterpriseListPage() {
           delete newFavorites[postId];
           return newFavorites;
         });
+
+        // 顯示已移除收藏的通知
+        setSnackbar({
+          open: true,
+          message: "已移除收藏",
+          severity: "info",
+        });
       }
     } catch (err) {
       console.error("收藏操作失敗", err);
-      alert("操作失敗，請稍後再試");
+      setSnackbar({
+        open: true,
+        message: "操作失敗，請稍後再試",
+        severity: "error",
+      });
     }
   };
 
@@ -273,13 +296,11 @@ export default function EnterpriseListPage() {
     }
 
     // 如果搜尋詞為空，顯示所有符合類型篩選的非草稿文章
-    if (!searchTerm.trim()) return true;
-
-    // 搜尋邏輯，確保即使屬性為空也能正確處理
+    if (!searchTerm.trim()) return true; // 搜尋邏輯，確保即使屬性為空也能正確處理
     return (
-      (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.companyName || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (post.title ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.content ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.companyName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -287,31 +308,26 @@ export default function EnterpriseListPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   // 格式化日期 - 修改為使用ISO字符串確保伺服器端與客戶端一致
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "未知日期";
     try {
-      // Use a consistent format that doesn't depend on locale settings
+      // 使用一致的格式以避免依賴本地設置
       const date = new Date(dateStr);
-      // During hydration, return a simple string to avoid mismatches
+      // 返回固定格式的日期字符串
       return date.toISOString().split("T")[0];
     } catch (e) {
-      return "日期格式錯誤";
+      console.error("日期格式化錯誤:", e);
+      return "2023-01-01"; // 錯誤時返回固定日期
     }
   };
-
-  // 使用 useHydration 來確保客戶端hydration完成
-  const hydrated = useHydration();
-
   // 設置頁面標題
   useEffect(() => {
     document.title = "企業牆 - 社團企業媒合平台";
   }, []);
-
   return (
     <>
-      <Navbar />
+      <NavbarClientOnly />
       <Box
         sx={{
           pt: "84px",
@@ -550,18 +566,64 @@ export default function EnterpriseListPage() {
                 )}
               </Box>
             )}
-          </Paper>{" "}
+          </Paper>
+
           {/* 貼文列表 */}
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                p: 8,
+              }}
+            >
               <CircularProgress />
             </Box>
           ) : filteredPosts.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography variant="h6" color="text.secondary">
-                目前沒有符合條件的企業公告
+            <Paper
+              sx={{
+                p: 5,
+                borderRadius: 2,
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                找不到符合的企業公告
               </Typography>
-            </Box>
+              <Typography variant="body2" color="text.secondary">
+                {searchTerm ||
+                selectedType ||
+                contractPeriod ||
+                activityType ||
+                interviewMethod
+                  ? "沒有找到符合篩選條件的企業公告，請嘗試調整篩選條件"
+                  : "目前還沒有任何企業公告"}
+              </Typography>
+              {(searchTerm ||
+                selectedType ||
+                contractPeriod ||
+                activityType ||
+                interviewMethod) && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedType(null);
+                    setContractPeriod("");
+                    setActivityType("");
+                    setInterviewMethod("");
+                  }}
+                  sx={{ mt: 2 }}
+                >
+                  清除所有篩選條件
+                </Button>
+              )}
+            </Paper>
           ) : (
             <Stack spacing={3}>
               {currentPosts.map((post, index) => (
@@ -571,7 +633,6 @@ export default function EnterpriseListPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.08 }}
                 >
-                  {" "}
                   <Card
                     sx={{
                       borderRadius: "16px",
@@ -606,7 +667,6 @@ export default function EnterpriseListPage() {
                         >
                           {post.title}
                         </Typography>
-
                         {/* 顯示公告類型標籤 */}
                         {post.announcementType && (
                           <Box sx={{ mb: 1.5 }}>
@@ -666,7 +726,6 @@ export default function EnterpriseListPage() {
                             )}
                           </Box>
                         )}
-
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 1 }}
                         >
@@ -689,7 +748,6 @@ export default function EnterpriseListPage() {
                             </Typography>
                           </Link>
                         </Box>
-
                         <Typography
                           variant="body2"
                           color="text.secondary"
@@ -703,8 +761,7 @@ export default function EnterpriseListPage() {
                           }}
                         >
                           {post.content}
-                        </Typography>
-
+                        </Typography>{" "}
                         <Typography
                           variant="caption"
                           color="text.secondary"
@@ -726,7 +783,6 @@ export default function EnterpriseListPage() {
                           ml: 2,
                         }}
                       >
-                        {" "}
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -736,7 +792,7 @@ export default function EnterpriseListPage() {
                           sx={{ mb: 1 }}
                         >
                           {favorites[post.id] ? "❤️" : "🤍"}
-                        </IconButton>{" "}
+                        </IconButton>
                         <Button
                           variant="outlined"
                           onClick={(e) => {
@@ -758,7 +814,6 @@ export default function EnterpriseListPage() {
           {/* 分頁 */}
           {!loading && filteredPosts.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              {" "}
               <Pagination
                 count={Math.ceil(filteredPosts.length / itemsPerPage)}
                 page={currentPage}
@@ -803,6 +858,21 @@ export default function EnterpriseListPage() {
           </Button>
         </Box>
       )}
+
+      {/* Snackbar 通知元件 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

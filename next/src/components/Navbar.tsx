@@ -250,6 +250,7 @@ export default function Navbar({
                 </IconButton>
               </ClientOnly>
               <ClientOnly>
+                {" "}
                 <Menu
                   id="menu-appbar"
                   anchorEl={anchorElNav}
@@ -269,7 +270,6 @@ export default function Navbar({
                     mt: 1,
                   }}
                 >
-                  {" "}
                   {pages.map((page) => (
                     <MenuItem
                       key={page.name}
@@ -278,14 +278,13 @@ export default function Navbar({
                       href={page.path}
                     >
                       <Typography textAlign="center" component="span">
-                        {" "}
                         {page.name === "通知中心" ? (
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Badge
                               color="error"
                               variant="dot"
                               overlap="circular"
-                              invisible={!hasUnread} // 使用 props 傳進來的 hasUnread
+                              invisible={!hasUnread}
                             >
                               <NotificationsIcon sx={{ mr: 1 }} />
                             </Badge>
@@ -296,8 +295,7 @@ export default function Navbar({
                         )}
                       </Typography>
                     </MenuItem>
-                  ))}{" "}
-                  {/* 移動按鈕到對應的頁面 */}
+                  ))}
                 </Menu>
               </ClientOnly>
             </Box>
@@ -343,6 +341,7 @@ export default function Navbar({
             {/* Desktop Menu */}
             <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
               <ClientOnly>
+                {" "}
                 {pages.map((page) => (
                   <Button
                     key={page.name}
@@ -353,8 +352,7 @@ export default function Navbar({
                   >
                     {page.name}
                   </Button>
-                ))}{" "}
-                {/* 移動按鈕到對應的頁面 */}
+                ))}
               </ClientOnly>
             </Box>
             {/* User Greeting */}
@@ -377,8 +375,8 @@ export default function Navbar({
                     }}
                   />
                 </Tooltip>
-              )}
-            </ClientOnly>{" "}
+              )}{" "}
+            </ClientOnly>
             {/* 通知鈴鐺 */}
             <ClientOnly
               fallback={
@@ -400,7 +398,6 @@ export default function Navbar({
                   href="/messages"
                   sx={{ color: "white", mr: 2 }}
                 >
-                  {" "}
                   <Badge
                     color="error"
                     variant="dot"
@@ -442,6 +439,7 @@ export default function Navbar({
                 </Tooltip>
               </ClientOnly>
               <ClientOnly>
+                {" "}
                 <Menu
                   sx={{ mt: "45px" }}
                   anchorEl={anchorElUser}
@@ -450,61 +448,59 @@ export default function Navbar({
                   anchorOrigin={{ vertical: "top", horizontal: "right" }}
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
-                  {isLoggedIn ? (
-                    <>
-                      <Box sx={{ px: 2, py: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {greeting}
-                          {userName || "使用者"}
-                        </Typography>
-                      </Box>
-                      <MenuItem
-                        onClick={handleCloseUserMenu}
-                        component={Link}
-                        href="/Profile"
-                      >
-                        <AccountCircleIcon sx={{ mr: 1 }} />
-                        <Typography textAlign="center" component="span">
-                          個人資料
-                        </Typography>
-                      </MenuItem>
-                      <MenuItem onClick={handleLogoutClick}>
-                        <LogoutIcon sx={{ mr: 1 }} />
-                        <Typography textAlign="center" component="span">
-                          登出
-                        </Typography>
-                      </MenuItem>
-                    </>
-                  ) : (
-                    userOptions.map((option) => (
-                      <MenuItem
-                        key={option.name}
-                        onClick={handleCloseUserMenu}
-                        component={Link}
-                        href={option.path}
-                      >
-                        {" "}
-                        <Typography textAlign="center" component="span">
-                          {(() => {
-                            // 使用立即執行函數來處理邏輯判斷
-                            if (
-                              userRole === "club" &&
-                              option.name === "社團註冊"
-                            ) {
-                              return null;
-                            }
-                            if (
-                              userRole === "company" &&
-                              option.name === "企業註冊"
-                            ) {
-                              return null;
-                            }
-                            return option.name;
-                          })()}
-                        </Typography>
-                      </MenuItem>
-                    ))
-                  )}
+                  {isLoggedIn
+                    ? [
+                        <Box key="user-greeting" sx={{ px: 2, py: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {greeting}
+                            {userName || "使用者"}
+                          </Typography>
+                        </Box>,
+                        <MenuItem
+                          key="profile"
+                          onClick={handleCloseUserMenu}
+                          component={Link}
+                          href="/Profile"
+                        >
+                          <AccountCircleIcon sx={{ mr: 1 }} />
+                          <Typography textAlign="center" component="span">
+                            個人資料
+                          </Typography>
+                        </MenuItem>,
+                        <MenuItem key="logout" onClick={handleLogoutClick}>
+                          <LogoutIcon sx={{ mr: 1 }} />
+                          <Typography textAlign="center" component="span">
+                            登出
+                          </Typography>
+                        </MenuItem>,
+                      ]
+                    : userOptions.map((option) => (
+                        <MenuItem
+                          key={option.name}
+                          onClick={handleCloseUserMenu}
+                          component={Link}
+                          href={option.path}
+                        >
+                          <Typography textAlign="center" component="span">
+                            {(() => {
+                              // 使用立即執行函數來處理邏輯判斷
+                              if (
+                                userRole === "club" &&
+                                option.name === "社團註冊"
+                              ) {
+                                return null;
+                              }
+                              if (
+                                userRole === "company" &&
+                                option.name === "企業註冊"
+                              ) {
+                                return null;
+                              }
+                              return option.name;
+                            })()}
+                          </Typography>
+                        </MenuItem>
+                      ))}
                 </Menu>
               </ClientOnly>
             </Box>
@@ -524,8 +520,8 @@ export default function Navbar({
             <Button onClick={handleLogout} color="primary" autoFocus>
               確認登出
             </Button>
-          </DialogActions>
-        </Dialog>{" "}
+          </DialogActions>{" "}
+        </Dialog>
       </AppBar>
     </ClientOnly>
   );

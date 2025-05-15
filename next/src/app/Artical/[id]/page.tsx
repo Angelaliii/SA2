@@ -427,12 +427,12 @@ export default function DemandPostDetailPage() {
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2">
                   <strong>預估金額區間：</strong>
-                  {post.moneyLowerLimit || "?"} 元 -{" "}
-                  {post.moneyUpperLimit || "?"} 元
+                  {post.moneyLowerLimit ?? "?"} 元 -{" "}
+                  {post.moneyUpperLimit ?? "?"} 元
                 </Typography>
                 <Typography variant="body2">
                   <strong>明細說明：</strong>
-                  {post.moneyPurpose || "未提供"}
+                  {post.moneyPurpose ?? "未提供"}
                 </Typography>
               </Box>
             )}
@@ -441,11 +441,11 @@ export default function DemandPostDetailPage() {
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2">
                   <strong>講師類型：</strong>
-                  {post.speakerType || "未提供"}
+                  {post.speakerType ?? "未提供"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>需求描述：</strong>
-                  {post.speakerDetail || "未提供"}
+                  {post.speakerDetail ?? "未提供"}
                 </Typography>
               </Box>
             )}
