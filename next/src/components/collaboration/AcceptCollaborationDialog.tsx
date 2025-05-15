@@ -64,9 +64,8 @@ export default function AcceptCollaborationDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        確認接受合作邀請
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>      <DialogTitle>
+        確認接受合作
       </DialogTitle>
       <DialogContent>
         {error && (

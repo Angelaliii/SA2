@@ -28,7 +28,19 @@ export interface CollaborationRequest {
     reviewerId: string;
     reviewedAt: any;
   };
+  partnerCompleteReview?: {
+    rating: number;
+    comment: string;
+    reviewerId: string;
+    reviewedAt: any;
+  };
   cancelReview?: {
+    rating: number;
+    comment: string;
+    reviewerId: string;
+    reviewedAt: any;
+  };
+  partnerCancelReview?: {
     rating: number;
     comment: string;
     reviewerId: string;
@@ -106,9 +118,7 @@ export const collaborationService = {
       console.error("Error creating collaboration request:", error);
       return { success: false, error: '建立合作請求失敗' };
     }
-  },
-
-    // Get collaboration requests received by a user
+  },    // Get collaboration requests received by a user
     getReceivedRequests: async (userId: string): Promise<CollaborationRequest[]> => {
         console.log('Fetching received requests for user:', userId);
         try {
@@ -131,9 +141,14 @@ export const collaborationService = {
             message: data.message || "",
             rejectReason: data.rejectReason || "",
             completeReview: data.completeReview,
+            partnerCompleteReview: data.partnerCompleteReview,
             cancelReview: data.cancelReview,
+            partnerCancelReview: data.partnerCancelReview,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
+            pendingReviewFor: data.pendingReviewFor,
+            actionInitiator: data.actionInitiator,
+            actionType: data.actionType
             } as CollaborationRequest;
         });
         } catch (error) {
@@ -141,8 +156,7 @@ export const collaborationService = {
         return [];
         }
     },
-    
-    // Get collaboration requests sent by a user
+      // Get collaboration requests sent by a user
     getSentRequests: async (userId: string): Promise<CollaborationRequest[]> => {
         try {
         const requestsQuery = query(
@@ -164,9 +178,14 @@ export const collaborationService = {
             message: data.message || "",
             rejectReason: data.rejectReason || "",
             completeReview: data.completeReview,
+            partnerCompleteReview: data.partnerCompleteReview,
             cancelReview: data.cancelReview,
+            partnerCancelReview: data.partnerCancelReview,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
+            pendingReviewFor: data.pendingReviewFor,
+            actionInitiator: data.actionInitiator,
+            actionType: data.actionType
             } as CollaborationRequest;
         });
         } catch (error) {
@@ -278,8 +297,7 @@ export const collaborationService = {
       return { success: false, error: '拒絕合作請求失敗' };
     }
   },
-  
-  // Update a collaboration's completion status
+    // Update a collaboration's completion status
   updateCollaborationStatus: async (
     collaborationId: string,
     status: 'complete' | 'cancel',
@@ -298,7 +316,7 @@ export const collaborationService = {
       
       // 確定另一方的ID
       const otherUserId = currentUserId === data.requesterId ? data.receiverId : data.requesterId;
-      
+
       await updateDoc(docRef, {
         status: 'pending_review',
         [`${status}Review`]: {
@@ -325,7 +343,6 @@ export const collaborationService = {
       return { success: false, error: '更新合作狀態失敗' };
     }
   },
-
   // Submit review for a collaboration that is pending review
   submitReview: async (
     collaborationId: string,
@@ -349,11 +366,11 @@ export const collaborationService = {
 
       // 使用保存的action類型來確定評價類型
       const statusType = data.actionType;
-      const partnerReviewType = `partner${statusType}Review`;
+      const partnerReviewField = `partner${statusType.charAt(0).toUpperCase() + statusType.slice(1)}Review`;
 
       await updateDoc(docRef, {
         status: statusType,
-        [partnerReviewType]: {
+        [partnerReviewField]: {
           ...review,
           reviewerId: currentUserId,
           reviewedAt: serverTimestamp()
@@ -366,7 +383,7 @@ export const collaborationService = {
       await notificationService.sendCollaborationCompleted(
         data.actionInitiator,
         collaborationId,
-        `對方評價：${review.comment}`
+        `${review.comment}`
       );
 
       return { success: true };
@@ -375,7 +392,6 @@ export const collaborationService = {
       return { success: false, error: '提交評價失敗' };
     }
   },
-
   // Cancel a collaboration without requiring partner review
   cancelCollaboration: async (
     collaborationId: string,

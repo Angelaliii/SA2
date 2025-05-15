@@ -385,7 +385,6 @@ export default function CollaborationList({
       setSnackbar({ open: true, message: "發送提醒失敗", severity: "error" });
     }
   };
-
   const renderPendingReviewItem = (collaboration: any) => {
     const currentUserId = auth.currentUser?.uid;
     const isActionInitiator = currentUserId === collaboration.actionInitiator;
@@ -422,14 +421,15 @@ export default function CollaborationList({
         </Typography>
 
         {hasReviewed ? (
-          // 已評價用戶看到的內容
-          <Box
-            sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, mt: 1 }}
-          >
-            <Typography variant="body2" color="text.secondary" align="center">
-              您已完成評價，等待 {getPartnerName(collaboration)}{" "}
-              完成評價後，此合作將移至已完成區域
-            </Typography>
+          // 已評價用戶看到的內容，顯示提醒對方評價按鈕
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => handleRemindToReview(collaboration.id)}
+            >
+              提醒對方評價
+            </Button>
           </Box>
         ) : (
           // 未評價用戶看到的內容及按鈕
@@ -548,15 +548,7 @@ export default function CollaborationList({
                     sx={{ mb: 2 }}
                   >
                     申請時間：{formatDate(request.createdAt)}
-                  </Typography>
-
-                  <Box
-                    sx={{ my: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}
-                  >
-                    <Typography variant="body2">
-                      <strong>{getPartnerName(request)}</strong> 邀請您合作
-                    </Typography>
-                  </Box>
+                  </Typography>                  {/* 移除 "誰誰誰邀請您合作" 的顯示區塊 */}
 
                   <Box
                     sx={{
@@ -756,31 +748,65 @@ export default function CollaborationList({
                     size="small"
                     icon={getStatusDisplay(collaboration.status).icon}
                   />
-                </Box>
-                <Typography variant="body2" color="text.secondary">
+                </Box>                <Typography variant="body2" color="text.secondary">
                   完成時間：
-                  {formatDate(collaboration.completeReview?.reviewedAt)}
-                </Typography>
-                {collaboration.completeReview && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      bgcolor: "background.paper",
-                      borderRadius: 1,
-                    }}                  >                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Rating
-                        value={collaboration.completeReview.rating}
-                        readOnly
-                        size="small"
-                        precision={0.5}
-                      />
-                    </Box>
-                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                      <strong>評價: </strong>{collaboration.completeReview.comment}
-                    </Typography>
-                  </Box>
-                )}
+                  {formatDate(collaboration.completeReview?.reviewedAt || collaboration.partnerCompleteReview?.reviewedAt)}
+                </Typography>                  {/* 處理顯示評價，只顯示對方給的評價 */}
+                {(() => {
+                  const currentUserId = auth.currentUser?.uid;
+                  
+                  // 檢查誰的評價應該顯示
+                  const isCompleteReviewer = collaboration.completeReview?.reviewerId === currentUserId;
+                  const isPartnerReviewer = collaboration.partnerCompleteReview?.reviewerId === currentUserId;
+                  
+                  // 如果當前用戶是 completeReview 的撰寫者，則顯示 partnerCompleteReview (對方評價)
+                  // 如果當前用戶是 partnerCompleteReview 的撰寫者，則顯示 completeReview (對方評價)
+                  // 如果兩者都不是，則檢查有沒有任何評價可以顯示
+                  let showReview = null;
+                  if (isCompleteReviewer) {
+                    showReview = collaboration.partnerCompleteReview;
+                  } else if (isPartnerReviewer) {
+                    showReview = collaboration.completeReview;
+                  } else if (!isCompleteReviewer && collaboration.completeReview) {
+                    // 如果用戶不是 completeReview 的撰寫者，則顯示 completeReview
+                    showReview = collaboration.completeReview;
+                  } else if (!isPartnerReviewer && collaboration.partnerCompleteReview) {
+                    // 如果用戶不是 partnerCompleteReview 的撰寫者，則顯示 partnerCompleteReview
+                    showReview = collaboration.partnerCompleteReview;
+                  }
+                  
+                  return (
+                    <>
+                      {showReview ? (
+                        <Box
+                          sx={{
+                            mt: 2,
+                            p: 2,
+                            bgcolor: "background.paper",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ mb: 1 }}>對方給您的評價：</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Rating
+                              value={showReview.rating}
+                              readOnly
+                              size="small"
+                              precision={0.5}
+                            />
+                          </Box>
+                          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                            {showReview.comment}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                          尚未收到對方評價
+                        </Typography>
+                      )}
+                    </>
+                  );
+                })()}
               </Paper>
             ))
           ) : (
@@ -822,39 +848,46 @@ export default function CollaborationList({
                     size="small"
                     icon={getStatusDisplay(collaboration.status).icon}
                   />
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  取消時間：{formatDate(collaboration.cancelReview?.reviewedAt)}
-                </Typography>
-                {collaboration.cancelReview && (
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 2,
-                      bgcolor: "background.paper",
-                      borderRadius: 1,
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                      <strong>取消原因：</strong>{" "}
-                      {collaboration.cancelReview.comment}
-                    </Typography>
-                    {collaboration.cancelReview.reviewerId && (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mt: 1 }}
-                      >
-                        由{" "}
-                        {auth.currentUser?.uid ===
-                        collaboration.cancelReview.reviewerId
-                          ? "您"
-                          : getPartnerName(collaboration)}{" "}
-                        取消
-                      </Typography>
-                    )}
-                  </Box>
-                )}
+                </Box>                <Typography variant="body2" color="text.secondary">
+                  取消時間：{formatDate(collaboration.cancelReview?.reviewedAt || collaboration.partnerCancelReview?.reviewedAt)}
+                </Typography>                  {/* 處理顯示取消原因，只顯示一個取消原因 */}
+                {(() => {
+                  // 找出有取消原因的評價，優先使用 cancelReview
+                  const cancelReason = collaboration.cancelReview?.comment || collaboration.partnerCancelReview?.comment;
+                  const reviewerId = collaboration.cancelReview?.reviewerId || collaboration.partnerCancelReview?.reviewerId;
+                  const currentUserId = auth.currentUser?.uid;
+                  
+                  // 判斷取消是由誰發起的
+                  const cancelledByMe = reviewerId === currentUserId;
+                  const cancelledBy = cancelledByMe ? "您" : getPartnerName(collaboration);
+                  
+                  return (
+                    <>
+                      {cancelReason ? (
+                        <Box
+                          sx={{
+                            mt: 2,
+                            p: 2,
+                            bgcolor: "background.paper",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ mb: 1 }}>取消原因：</Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                            {cancelReason}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            由 {cancelledBy} 提出取消
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                          未提供取消原因
+                        </Typography>
+                      )}
+                    </>
+                  );
+                })()}
               </Paper>
             ))
           ) : (

@@ -354,12 +354,13 @@ export const notificationService = {
       const docSnap = await getDoc(docRef);
       const collaboration = docSnap.exists() ? docSnap.data() : null;
       const postTitle = collaboration ? collaboration.postTitle : "未知文章";
-      const postId = collaboration ? collaboration.postId : "";
-
+      const postId = collaboration ? collaboration.postId : "";      const messageContent = `您的合作請求已被婉拒。\n原因：${reason}`;
+      console.log('發送婉拒通知:', messageContent); // 添加日誌以便調試
+      
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `您的合作請求已被婉拒。\n原因：${reason}`,
+        messageContent,
         timestamp: serverTimestamp(),
         type: "collaboration_rejected",
         collaborationId,
@@ -461,7 +462,7 @@ export const notificationService = {
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
-        messageContent: `您的合作已被取消。\n原因：${reason}`,
+        messageContent: `取消本次活動。\n原因：${reason}`,
         timestamp: serverTimestamp(),
         type: "collaboration_cancelled",
         collaborationId,
