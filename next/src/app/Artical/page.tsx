@@ -82,27 +82,7 @@ export default function DemandPostPage() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   // 表單錯誤狀態
-  const [errors, setErrors] = useState({
-    title: false,
-    contactName: false,
-    contactPhone: false,
-    contactEmail: false,
-    eventName: false,
-    eventNature: false,
-    estimatedParticipants: false,
-    sponsorDeadline: false,
-    eventStart: false,
-    eventEnd: false,
-    demandType: false,
-    materialCategory: false,
-    materialDetails: false,
-    moneyLowerLimit: false,
-    moneyUpperLimit: false,
-    moneyPurpose: false,
-    speakerType: false,
-    speakerDetail: false,
-    feedbackDetails: false,
-  });
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   // 表單區塊參考
   const titleRef = React.useRef<HTMLDivElement>(null);
@@ -121,6 +101,33 @@ export default function DemandPostPage() {
     return () => unsubscribe();
   }, []);
 
+  // 添加日期實時校驗
+  useEffect(() => {
+    // 防止初始化時出錯
+    if (!sponsorDeadline || !eventStart) return;
+
+    const deadline = new Date(sponsorDeadline);
+    const start = new Date(eventStart);
+
+    setErrors((prev) => ({
+      ...prev,
+      sponsorDeadline: deadline > start,
+    }));
+  }, [sponsorDeadline, eventStart]);
+
+  useEffect(() => {
+    // 防止初始化時出錯
+    if (!eventStart || !eventEnd) return;
+
+    const start = new Date(eventStart);
+    const end = new Date(eventEnd);
+
+    setErrors((prev) => ({
+      ...prev,
+      eventEnd: start > end,
+    }));
+  }, [eventStart, eventEnd]);
+
   if (isLoggedIn === false) {
     return (
       <>
@@ -132,6 +139,7 @@ export default function DemandPostPage() {
 
   if (isLoggedIn === null) return null;
 
+  // 驗證表單
   const validateForm = () => {
     const newErrors = {
       title: !title.trim(),
