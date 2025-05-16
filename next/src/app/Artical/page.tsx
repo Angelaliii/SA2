@@ -100,7 +100,6 @@ export default function DemandPostPage() {
     });
     return () => unsubscribe();
   }, []);
-
   // 添加日期實時校驗
   useEffect(() => {
     // 防止初始化時出錯
@@ -126,6 +125,11 @@ export default function DemandPostPage() {
       ...prev,
       eventEnd: start > end,
     }));
+
+    // 如果用戶修改了開始日期，且結束日期早於新的開始日期，自動更新結束日期
+    if (eventStart && eventEnd && eventStart > eventEnd) {
+      setEventEnd(eventStart);
+    }
   }, [eventStart, eventEnd]);
 
   if (isLoggedIn === false) {
@@ -331,7 +335,6 @@ export default function DemandPostPage() {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("尚未登入");
-
       const postData = {
         title,
         organizationName,
@@ -346,6 +349,8 @@ export default function DemandPostPage() {
         sponsorDeadline,
         eventStart,
         eventEnd,
+        // 添加向下兼容的 eventDate 字段，以確保舊版本的前端也能顯示
+        eventDate: eventStart,
         demandType,
         materialCategory,
         materialDetails,
@@ -398,7 +403,6 @@ export default function DemandPostPage() {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("尚未登入");
-
       const postData = {
         title: title || "未命名草稿",
         organizationName,
@@ -413,6 +417,8 @@ export default function DemandPostPage() {
         sponsorDeadline,
         eventStart,
         eventEnd,
+        // 添加向下兼容的 eventDate 字段，以確保舊版本的前端也能顯示
+        eventDate: eventStart,
         demandType,
         materialCategory,
         materialDetails,
@@ -696,6 +702,7 @@ export default function DemandPostPage() {
                 />
 
                 <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                  {" "}
                   <TextField
                     fullWidth
                     label={
@@ -705,12 +712,17 @@ export default function DemandPostPage() {
                     }
                     type="date"
                     value={eventStart}
-                    onChange={(e) => setEventStart(e.target.value)}
+                    onChange={(e) => {
+                      setEventStart(e.target.value);
+                      // 檢查是否需要自動調整結束日期
+                      if (eventEnd && e.target.value > eventEnd) {
+                        setEventEnd(e.target.value);
+                      }
+                    }}
                     InputLabelProps={{ shrink: true }}
                     error={errors.eventStart}
                     helperText={errors.eventStart ? "此欄為必填" : ""}
-                  />
-
+                  />{" "}
                   <TextField
                     fullWidth
                     label={
@@ -728,6 +740,9 @@ export default function DemandPostPage() {
                         ? "活動結束日期必須晚於或等於開始日期"
                         : ""
                     }
+                    inputProps={{
+                      min: eventStart || undefined,
+                    }}
                   />
                 </Box>
               </Box>

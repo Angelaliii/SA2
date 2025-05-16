@@ -9,6 +9,7 @@ import {
   Button,
   Container,
   Divider,
+  Grid,
   Link as MuiLink,
   Paper,
   Snackbar,
@@ -223,6 +224,7 @@ export default function DemandPostDetailPage() {
         if (!snapshot.empty) {
           await deleteDoc(doc(db, "favorites", snapshot.docs[0].id));
         }
+        setSnackbarMessage("已取消收藏");
       } else {
         // Add to favorites
         await setDoc(doc(collection(db, "favorites")), {
@@ -234,9 +236,12 @@ export default function DemandPostDetailPage() {
           content: post.content,
           organizationName: post.organizationName || clubInfo?.clubName,
         });
+        setSnackbarMessage("已加入收藏");
       }
 
       setIsFavorite(!isFavorite);
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
     } catch (error) {
       console.error("操作收藏失敗", error);
       setSnackbarMessage("操作失敗，請稍後再試");
@@ -288,9 +293,7 @@ export default function DemandPostDetailPage() {
                 {post.authorId ? (
                   <MuiLink
                     href={`/public-profile/${post.authorId}`}
-                    sx={{
-                      textDecoration: "none",
-                    }}
+                    style={{ textDecoration: "none" }}
                   >
                     <Typography
                       variant="h6"
@@ -315,38 +318,46 @@ export default function DemandPostDetailPage() {
               <Typography variant="body2" color="text.secondary">
                 發布時間：{formattedDate}
               </Typography>
-            </Box>
-
+            </Box>{" "}
             {/* 收藏按鈕 */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
               <Button
-                variant="contained"
-                color={isFavorite ? "error" : "primary"}
+                variant={isFavorite ? "contained" : "outlined"}
+                color="error"
                 onClick={handleToggleFavorite}
                 disabled={favoriteLoading}
                 size="small"
                 startIcon={
                   isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
                 }
+                sx={{
+                  borderRadius: 4,
+                  px: 2,
+                  boxShadow: isFavorite ? 2 : 0,
+                  "&:hover": {
+                    boxShadow: 1,
+                  },
+                }}
               >
-                {isFavorite ? "已收藏" : "加入收藏"}
+                {isFavorite ? "已收藏" : "收藏"}
               </Button>
             </Box>
-
-            <Divider sx={{ mb: 3 }} />
+            <Divider sx={{ mb: 3 }} />{" "}
             <Box
               sx={{
-                bgcolor: "#f8f9fa",
+                backgroundColor: "#f9f9f9",
                 p: 3,
                 borderRadius: 2,
                 mb: 3,
-                border: "1px solid #e0e0e0",
+                border: "1px solid",
+                borderColor: "divider",
               }}
             >
               <Typography
-                variant="subtitle1"
-                fontWeight="medium"
-                sx={{ mb: 2, borderBottom: "1px solid #e0e0e0", pb: 1 }}
+                variant="h6"
+                gutterBottom
+                color="primary"
+                sx={{ mb: 2 }}
               >
                 聯繫窗口資訊
               </Typography>
@@ -358,27 +369,39 @@ export default function DemandPostDetailPage() {
                   gap: 2,
                 }}
               >
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <Box sx={{ display: "flex", flexDirection: "column" }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     聯繫人
                   </Typography>
-                  <Typography variant="body1">
+                  <Typography variant="body1" fontWeight="medium">
                     {post.contactName ?? "未提供"}
                   </Typography>
                 </Box>
 
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <Box sx={{ display: "flex", flexDirection: "column" }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     聯絡電話
                   </Typography>
-                  <Typography variant="body1">
+                  <Typography variant="body1" fontWeight="medium">
                     {post.contactPhone ?? "未提供"}
                   </Typography>
                 </Box>
 
                 {post.email && (
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
                       電子郵件
                     </Typography>
                     <MuiLink href={`mailto:${post.email}`}>
@@ -387,190 +410,433 @@ export default function DemandPostDetailPage() {
                   </Box>
                 )}
 
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <Box sx={{ display: "flex", flexDirection: "column" }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     發布時間
                   </Typography>
-                  <Typography variant="body1">{formattedDate}</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {formattedDate}
+                  </Typography>
                 </Box>
               </Box>
-            </Box>
-
+            </Box>{" "}
             {/* 活動與組織資訊 */}
-            <Box sx={{ mb: 3 }}>
+            <Box
+              sx={{
+                backgroundColor: "#f9f9f9",
+                p: 3,
+                borderRadius: 2,
+                mb: 3,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
               <Typography
-                variant="subtitle1"
-                fontWeight="medium"
-                sx={{ mb: 2, pb: 1, borderBottom: "1px solid rgba(0,0,0,0.1)" }}
+                variant="h6"
+                gutterBottom
+                color="primary"
+                sx={{ mb: 2 }}
               >
                 活動與組織資訊
               </Typography>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: 2,
-                }}
-              >
-                <Typography variant="body2">
-                  <strong>活動標題：</strong>
-                  {post.eventName || "未提供"}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>活動期間：</strong>
-                  {post.eventStart
-                    ? formatDate(post.eventStart)
-                    : "未提供"}{" "}
-                  {post.eventEnd ? `- ${formatDate(post.eventEnd)}` : ""}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>活動地點：</strong>
-                  {post.location || "未提供"}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>活動類型：</strong>
-                  {post.eventNature || "未提供"}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>預估人數：</strong>
-                  {post.estimatedParticipants || "未提供"}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>贊助截止時間：</strong>
-                  {post.sponsorDeadline
-                    ? formatDate(post.sponsorDeadline)
-                    : "未提供"}
-                </Typography>
-              </Box>
-            </Box>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      活動標題
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {post.eventName || "未提供"}
+                    </Typography>
+                  </Box>
+                </Grid>
 
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      活動期間
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {post.eventStart || post.eventDate
+                        ? formatDate(post.eventStart || post.eventDate)
+                        : "未提供"}{" "}
+                      {post.eventEnd ? `- ${formatDate(post.eventEnd)}` : ""}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      活動地點
+                    </Typography>
+                    <Typography variant="body1">
+                      {post.location || "未提供"}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      活動類型
+                    </Typography>
+                    <Typography variant="body1">
+                      {post.eventNature || post.eventType || "未提供"}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      預估人數
+                    </Typography>
+                    <Typography variant="body1">
+                      {post.estimatedParticipants || "未提供"}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      贊助截止時間
+                    </Typography>
+                    <Typography variant="body1">
+                      {post.sponsorDeadline
+                        ? formatDate(post.sponsorDeadline)
+                        : "未提供"}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
             {/* 贊助需求 */}
-            <Box sx={{ mb: 3 }}>
+            <Box
+              sx={{
+                backgroundColor: "#f9f9f9",
+                p: 3,
+                borderRadius: 2,
+                mb: 3,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
               <Typography
-                variant="subtitle1"
-                fontWeight="medium"
-                sx={{ mb: 2, pb: 1, borderBottom: "1px solid rgba(0,0,0,0.1)" }}
+                variant="h6"
+                gutterBottom
+                color="primary"
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
               >
                 贊助需求
               </Typography>
 
-              <Typography variant="body2" sx={{ mb: 1.5 }}>
-                <strong>需求類型：</strong>
-                {post.demandType || "未提供"}
-              </Typography>
+              <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  sx={{ minWidth: 100 }}
+                >
+                  需求類型：
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: "medium",
+                    bgcolor:
+                      post.demandType === "物資"
+                        ? "#e3f2fd"
+                        : post.demandType === "金錢"
+                        ? "#fce4ec"
+                        : post.demandType === "講師"
+                        ? "#e8f5e9"
+                        : "#f5f5f5",
+                    px: 2,
+                    py: 0.5,
+                    borderRadius: 1,
+                  }}
+                >
+                  {post.demandType || "未指定"}
+                </Typography>
+              </Box>
 
               {post.demandType === "物資" && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2">
-                    <strong>物資類型：</strong>
-                    {post.materialCategory?.join("、") || "未提供"}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>物資明細：</strong>
-                    {post.materialDetails || "未提供"}
-                  </Typography>
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", mb: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      物資類型：
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {post.selectedDemands
+                        ? post.selectedDemands.join("、")
+                        : post.materialCategory?.join("、") || "未提供"}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      物資明細：
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        whiteSpace: "pre-line",
+                        bgcolor: "white",
+                        p: 1.5,
+                        borderRadius: 1,
+                        flex: 1,
+                      }}
+                    >
+                      {post.demandDescription ||
+                        post.materialDetails ||
+                        "未提供"}
+                    </Typography>
+                  </Box>
                 </Box>
               )}
 
               {post.demandType === "金錢" && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2">
-                    <strong>預估金額區間：</strong>
-                    {post.moneyLowerLimit ?? "?"} 元 -{" "}
-                    {post.moneyUpperLimit ?? "?"} 元
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>明細說明：</strong>
-                    {post.moneyPurpose ?? "未提供"}
-                  </Typography>
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", mb: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      金額範圍：
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {post.moneyLowerLimit && post.moneyUpperLimit
+                        ? `${post.moneyLowerLimit} - ${post.moneyUpperLimit} 元`
+                        : "未提供"}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      用途說明：
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        whiteSpace: "pre-line",
+                        bgcolor: "white",
+                        p: 1.5,
+                        borderRadius: 1,
+                        flex: 1,
+                      }}
+                    >
+                      {post.moneyPurpose ?? "未提供"}
+                    </Typography>
+                  </Box>
                 </Box>
               )}
 
               {post.demandType === "講師" && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2">
-                    <strong>講師類型：</strong>
-                    {post.speakerType ?? "未提供"}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", mb: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      講師類型：
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {post.speakerType ?? "未提供"}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{ minWidth: 100 }}
+                    >
+                      需求描述：
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        whiteSpace: "pre-line",
+                        bgcolor: "white",
+                        p: 1.5,
+                        borderRadius: 1,
+                        flex: 1,
+                      }}
+                    >
+                      {post.speakerDetail ?? "未提供"}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+            </Box>{" "}
+            {/* 回饋與補充 */}
+            <Box
+              sx={{
+                backgroundColor: "#f9f9f9",
+                p: 3,
+                borderRadius: 2,
+                mb: 3,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Typography
+                variant="h6"
+                gutterBottom
+                color="primary"
+                sx={{ mb: 2 }}
+              >
+                回饋與補充
+              </Typography>
+
+              <Box sx={{ display: "flex", alignItems: "flex-start", mb: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  sx={{ minWidth: 100 }}
+                >
+                  回饋方式：
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    whiteSpace: "pre-line",
+                    bgcolor: "white",
+                    p: 1.5,
+                    borderRadius: 1,
+                    flex: 1,
+                  }}
+                >
+                  {post.feedbackDetails || "未提供"}
+                </Typography>
+              </Box>
+
+              {post.notes && (
+                <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{ minWidth: 100 }}
+                  >
+                    補充說明：
                   </Typography>
-                  <Typography variant="body2">
-                    <strong>需求描述：</strong>
-                    {post.speakerDetail ?? "未提供"}
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      whiteSpace: "pre-line",
+                      bgcolor: "white",
+                      p: 1.5,
+                      borderRadius: 1,
+                      flex: 1,
+                    }}
+                  >
+                    {post.notes}
                   </Typography>
                 </Box>
               )}
             </Box>
-
-            {/* 回饋與補充 */}
-            <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="subtitle1"
-                fontWeight="medium"
-                sx={{ mb: 2, pb: 1, borderBottom: "1px solid rgba(0,0,0,0.1)" }}
+            {/* 底部按鈕區：返回列表和合作按鈕 */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 4,
+                mb: 2,
+              }}
+            >
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => router.push("/Artical/DemandList")}
               >
-                回饋與補充
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>回饋方式：</strong>
-                {post.feedbackDetails || "未提供"}
-              </Typography>
-              <Typography variant="body2">
-                <strong>補充說明：</strong>
-                {post.notes || "未提供"}
-              </Typography>
-            </Box>
+                返回列表
+              </Button>
 
-            {/* 合作按鈕 */}
-            {isLoggedIn && (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  mt: 4,
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
+              {isLoggedIn && (
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={handleSendMessage}
                   disabled={messageSent}
-                  sx={{ width: 200 }}
                   startIcon={<HandshakeIcon />}
                 >
                   {messageSent ? "已發送訊息" : "發送合作訊息"}
                 </Button>
-                {messageSent && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={handleNavigateToCollaborationList}
-                    startIcon={<HandshakeIcon />}
-                  >
-                    前往我的合作記錄確認
-                  </Button>
-                )}
-              </Box>
-            )}
-            {!isLoggedIn && (
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{ mb: 2 }}
-                >
+              )}
+              {!isLoggedIn && (
+                <Typography variant="body2" color="text.secondary">
                   請先登入才能發送合作訊息
                 </Typography>
+              )}
+            </Box>
+            {/* 附加的合作記錄確認按鈕 */}
+            {isLoggedIn && messageSent && (
+              <Box
+                sx={{ display: "flex", justifyContent: "center", mt: 1, mb: 3 }}
+              >
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleNavigateToCollaborationList}
+                  startIcon={<HandshakeIcon />}
+                  size="small"
+                >
+                  前往我的合作記錄確認
+                </Button>
               </Box>
             )}
           </Paper>
-        </Container>
+        </Container>{" "}
         {/* Snackbar */}{" "}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}
           onClose={() => setOpenSnackbar(false)}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
         >
           <Alert
             onClose={() => setOpenSnackbar(false)}

@@ -13,6 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../config";
+import { notifySubscribers } from "./notification-service"; // 引入通知功能
 
 export interface EnterprisePost {
   id?: string;
@@ -71,6 +72,15 @@ export interface EnterprisePost {
 
 const ENTERPRISE_COLLECTION = "enterprisePosts";
 
+const getFormattedCreatedAt = (createdAt: any) => {
+  if (createdAt instanceof Timestamp) {
+    return createdAt.toDate().toISOString();
+  } else if (createdAt) {
+    return new Date(createdAt).toISOString();
+  }
+  return new Date().toISOString();
+};
+
 export const enterpriseService = {
   createPost: async (postData: Omit<EnterprisePost, "id">) => {
     try {
@@ -79,6 +89,12 @@ export const enterpriseService = {
         createdAt: Timestamp.now(),
         postType: "enterprise",
       });
+
+      // 如果不是草稿，發送通知給訂閱者
+      if (!postData.isDraft) {
+        await notifySubscribers(postData.authorId, docRef.id, postData.title);
+      }
+
       return { success: true, id: docRef.id };
     } catch (error) {
       console.error("Error creating enterprise post:", error);
@@ -109,11 +125,7 @@ export const enterpriseService = {
             authorId: data.authorId,
             companyName: data.companyName ?? "未知企業",
             email: data.email ?? "",
-            createdAt: data.createdAt
-              ? data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate().toISOString()
-                : new Date(data.createdAt).toISOString()
-              : new Date().toISOString(),
+            createdAt: getFormattedCreatedAt(data.createdAt),
             status: data.status ?? "active",
             postType: "enterprise",
             isDraft: true,
@@ -131,10 +143,24 @@ export const enterpriseService = {
   publishDraft: async (draftId: string) => {
     try {
       const draftRef = doc(db, ENTERPRISE_COLLECTION, draftId);
+
+      // 獲取草稿資訊
+      const draftDoc = await getDoc(draftRef);
+      if (!draftDoc.exists()) {
+        return { success: false, error: "找不到文章" };
+      }
+
+      const draftData = draftDoc.data();
+
+      // 更新為已發布
       await updateDoc(draftRef, {
         isDraft: false,
         publishedAt: serverTimestamp(),
       });
+
+      // 發送通知給訂閱者
+      await notifySubscribers(draftData.authorId, draftId, draftData.title);
+
       return { success: true };
     } catch (error) {
       console.error("Error publishing draft:", error);
@@ -159,10 +185,7 @@ export const enterpriseService = {
             id: doc.id,
             ...data,
             // 確保 createdAt 是可序列化的格式
-            createdAt:
-              data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate().toISOString()
-                : data.createdAt,
+            createdAt: getFormattedCreatedAt(data.createdAt),
           };
         })
         .filter((post) => post !== null);
@@ -189,10 +212,7 @@ export const enterpriseService = {
         id: postDoc.id,
         ...data,
         // 確保 createdAt 是可序列化的格式
-        createdAt:
-          data.createdAt instanceof Timestamp
-            ? data.createdAt.toDate().toISOString()
-            : data.createdAt,
+        createdAt: getFormattedCreatedAt(data.createdAt),
       } as EnterprisePost;
     } catch (error) {
       console.error("Error getting enterprise post:", error);

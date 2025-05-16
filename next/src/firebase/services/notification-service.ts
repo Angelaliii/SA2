@@ -94,15 +94,15 @@ export const notifySubscribers = async (
       `開始發送訂閱通知 - 作者: ${authorId}, 文章: ${postId}, 標題: ${postTitle}`
     );
 
-    // 獲取所有訂閱者
+    // 獲取所有訂閱者，使用 organizationId 欄位匹配 authorId
     const subscriptionsQuery = query(
       collection(db, "subscriptions"),
-      where("subscribeToId", "==", authorId)
+      where("organizationId", "==", authorId)
     );
     const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
 
     if (subscriptionsSnapshot.empty) {
-      console.log(`沒有找到作者 ${authorId} 的訂閱者`);
+      console.log(`沒有找到組織 ${authorId} 的訂閱者`);
       return { success: true, notified: 0 };
     }
 
@@ -116,11 +116,11 @@ export const notifySubscribers = async (
       if (authorDoc.exists()) {
         const data = authorDoc.data();
         if (data.type === "club") {
-          authorName = data.clubName || "某社團";
+          authorName = data.clubName ?? "某社團";
         } else if (data.type === "company") {
-          authorName = data.companyName || "某企業";
+          authorName = data.companyName ?? "某企業";
         } else {
-          authorName = data.name || "某用戶";
+          authorName = data.name ?? "某用戶";
         }
       }
     } catch (err) {
@@ -132,10 +132,12 @@ export const notifySubscribers = async (
     // 為每個訂閱者創建通知
     const notificationPromises = subscriptionsSnapshot.docs.map((subDoc) => {
       const subscriberData = subDoc.data();
-      console.log(`準備發送通知給訂閱者: ${subscriberData.subscriberId}`);
+      // 使用 userId 代替 subscriberId
+      const subscriberId = subscriberData.userId;
+      console.log(`準備發送通知給訂閱者: ${subscriberId}`);
 
       return createNotification({
-        userId: subscriberData.subscriberId,
+        userId: subscriberId,
         title: `${authorName}發布了新文章`,
         message: `您訂閱的${authorName}剛剛發布了新文章「${postTitle}」`,
         link: `/Artical/${postId}`,
@@ -151,12 +153,14 @@ export const notifySubscribers = async (
     // 同時發送到 messages 集合以確保通知能在通知中心顯示
     const messagePromises = subscriptionsSnapshot.docs.map(async (subDoc) => {
       const subscriberData = subDoc.data();
-      console.log(`準備發送消息給訂閱者: ${subscriberData.subscriberId}`);
+      // 使用 userId 代替 subscriberId
+      const subscriberId = subscriberData.userId;
+      console.log(`準備發送消息給訂閱者: ${subscriberId}`);
 
       try {
         const messageData = {
           senderId: authorId,
-          receiverId: subscriberData.subscriberId,
+          receiverId: subscriberId,
           messageContent: `您訂閱的${authorName}剛剛發布了新文章`,
           timestamp: serverTimestamp(),
           type: "subscription_notification",
@@ -170,7 +174,7 @@ export const notifySubscribers = async (
           return {
             success: true,
             messageId: "server-side-placeholder",
-            receiverId: subscriberData.subscriberId,
+            receiverId: subscriberId,
           };
         }
 
@@ -181,17 +185,17 @@ export const notifySubscribers = async (
         return {
           success: true,
           messageId: messageRef.id,
-          receiverId: subscriberData.subscriberId,
+          receiverId: subscriberId,
         };
       } catch (err) {
         console.error(
-          `Error sending message notification to ${subscriberData.subscriberId}:`,
+          `Error sending message notification to ${subscriberId}:`,
           err
         );
         return {
           success: false,
           error: err,
-          receiverId: subscriberData.subscriberId,
+          receiverId: subscriberId,
         };
       }
     });
@@ -354,9 +358,10 @@ export const notificationService = {
       const docSnap = await getDoc(docRef);
       const collaboration = docSnap.exists() ? docSnap.data() : null;
       const postTitle = collaboration ? collaboration.postTitle : "未知文章";
-      const postId = collaboration ? collaboration.postId : "";      const messageContent = `您的合作請求已被婉拒。\n原因：${reason}`;
-      console.log('發送婉拒通知:', messageContent); // 添加日誌以便調試
-      
+      const postId = collaboration ? collaboration.postId : "";
+      const messageContent = `您的合作請求已被婉拒。\n原因：${reason}`;
+      console.log("發送婉拒通知:", messageContent); // 添加日誌以便調試
+
       await addDoc(collection(db, "messages"), {
         senderId: auth.currentUser?.uid,
         receiverId,
@@ -484,9 +489,9 @@ export const notificationService = {
  * 修改：移除寫入 messages 集合的部分，因為在 DemandPostDetailPage 中已經寫入過一次
  */
 export const sendCollaborationRequest = async (
-  senderId: string, 
-  receiverId: string, 
-  postId: string, 
+  senderId: string,
+  receiverId: string,
+  postId: string,
   postTitle: string
 ) => {
   try {
@@ -502,12 +507,15 @@ export const sendCollaborationRequest = async (
       isRead: false,
     });
     */
-    
+
     // 保留記錄或通知功能，但不寫入 messages 集合
-    console.log('Collaboration request registered without duplicate message', {
-      senderId, receiverId, postId, postTitle
+    console.log("Collaboration request registered without duplicate message", {
+      senderId,
+      receiverId,
+      postId,
+      postTitle,
     });
-    
+
     return { success: true };
   } catch (error) {
     console.error("Error sending collaboration request notification:", error);

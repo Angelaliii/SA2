@@ -1,7 +1,6 @@
 "use client";
 
 import BusinessIcon from "@mui/icons-material/Business";
-import FavoriteIcon from "@mui/icons-material/Favorite";
 import GroupsIcon from "@mui/icons-material/Groups";
 import InfoIcon from "@mui/icons-material/Info";
 import LanguageIcon from "@mui/icons-material/Language";
@@ -301,29 +300,39 @@ export default function OrganizationListPage() {
   // 設置頁面標題
   useEffect(() => {
     document.title = "組織列表 - 社團企業媒合平台";
-  }, []);
-  // 根據當前標籤和搜尋詞過濾組織
-  const filteredOrganizations = [...clubs, ...companies].filter((org) => {
-    // 過濾標籤
-    if (tabValue === 1 && org.type !== "club") return false;
-    if (tabValue === 2 && org.type !== "company") return false;
+  }, []); // 根據當前標籤和搜尋詞過濾組織
+  const filteredOrganizations = [...clubs, ...companies]
+    .filter((org) => {
+      // 過濾標籤
+      if (tabValue === 1 && org.type !== "club") return false;
+      if (tabValue === 2 && org.type !== "company") return false;
 
-    // 搜尋過濾
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        org.name.toLowerCase().includes(searchLower) ||
-        (org.description &&
-          org.description.toLowerCase().includes(searchLower)) ||
-        (org.type === "club" &&
-          org.additionalInfo?.clubType?.toLowerCase().includes(searchLower)) ||
-        (org.type === "company" &&
-          org.additionalInfo?.industryType?.toLowerCase().includes(searchLower))
-      );
-    }
+      // 搜尋過濾
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          org.name.toLowerCase().includes(searchLower) ||
+          (org.description &&
+            org.description.toLowerCase().includes(searchLower)) ||
+          (org.type === "club" &&
+            org.additionalInfo?.clubType
+              ?.toLowerCase()
+              .includes(searchLower)) ||
+          (org.type === "company" &&
+            org.additionalInfo?.industryType
+              ?.toLowerCase()
+              .includes(searchLower))
+        );
+      }
 
-    return true;
-  });
+      return true;
+    })
+    // 按照創建時間排序（最新的在前面）
+    .sort((a, b) => {
+      if (!a.createdAt) return 1;
+      if (!b.createdAt) return -1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   // 計算總頁數
   const pageCount = Math.ceil(filteredOrganizations.length / itemsPerPage);
 
@@ -747,13 +756,11 @@ export default function OrganizationListPage() {
                                   }}
                                   disabled={!isAuthenticated}
                                 >
+                                  {" "}
                                   {subscribedOrganizations.includes(org.id) ? (
-                                    <FavoriteIcon
-                                      fontSize="small"
-                                      color="error"
-                                    />
+                                    <SubscriptionsIcon color="primary" />
                                   ) : (
-                                    <SubscriptionsIcon fontSize="small" />
+                                    <SubscriptionsIcon />
                                   )}
                                 </IconButton>
                               </Tooltip>

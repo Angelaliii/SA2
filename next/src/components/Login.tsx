@@ -36,13 +36,14 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetPasswordSent, setResetPasswordSent] = useState(false);
-
   // 重置錯誤信息當重新開始輸入
   useEffect(() => {
     if (email.length > 0 || password.length > 0) {
       setError("");
     }
-  }, [email, password]); // Handle form submission for login
+  }, [email, password]);
+
+  // Handle form submission for login
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -62,6 +63,9 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
 
     try {
       console.log("開始嘗試登入...");
+      // 添加延遲以確保 Firebase 已完全初始化
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const result = await authServices.login(email, password);
 
       if (result.success) {
@@ -77,7 +81,9 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
       }
     } catch (err) {
       console.error("登入過程發生錯誤", err);
-      setError(handleFirebaseAuthError(err));
+      const errorMessage = handleFirebaseAuthError(err);
+      console.log("處理後的錯誤訊息:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -79,53 +79,6 @@ const ReadOnlyClubProfile = ({ clubData }: { clubData: Club }) => (
   </Paper>
 );
 
-// 分離 Logo 上傳區域
-const LogoUploadSection = ({
-  logoPreview,
-  handleLogoChange,
-}: {
-  logoPreview: string | null;
-  handleLogoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <Grid
-    item
-    xs={12}
-    display="flex"
-    flexDirection="column"
-    alignItems="center"
-    mb={2}
-  >
-    {logoPreview && (
-      <Box
-        component="img"
-        src={logoPreview}
-        alt="社團標誌預覽"
-        sx={{
-          width: 120,
-          height: 120,
-          objectFit: "contain",
-          borderRadius: "50%",
-          mb: 2,
-          border: "1px solid #e0e0e0",
-        }}
-      />
-    )}
-    <Button
-      component="label"
-      variant="outlined"
-      sx={{ mt: logoPreview ? 1 : 0 }}
-    >
-      {logoPreview ? "更換標誌" : "上傳社團標誌"}
-      <input type="file" accept="image/*" onChange={handleLogoChange} hidden />
-    </Button>
-    {logoPreview && (
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-        建議使用正方形圖片，檔案大小不超過2MB
-      </Typography>
-    )}
-  </Grid>
-);
-
 // 社團類型選項
 const clubTypes = [
   "學術研究",
@@ -190,22 +143,25 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
     return <ReadOnlyClubProfile clubData={clubData} />;
   }
 
+  // 表單狀態
   const [formData, setFormData] = useState<Partial<Club>>({
-    clubName: clubData.clubName ?? "",
-    schoolName: clubData.schoolName ?? "",
-    clubType: clubData.clubType ?? "",
-    contactName: clubData.contactName ?? "",
-    contactPhone: clubData.contactPhone ?? "",
-    email: clubData.email ?? "",
-    clubDescription: clubData.clubDescription ?? "",
+    clubName: clubData.clubName || "",
+    schoolName: clubData.schoolName || "",
+    clubType: clubData.clubType || "",
+    contactName: clubData.contactName || "",
+    contactPhone: clubData.contactPhone || "",
+    email: clubData.email || "",
+    clubDescription: clubData.clubDescription || "",
   });
 
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  // 顯示用標誌預覽
   const [logoPreview, setLogoPreview] = useState<string | null>(
-    clubData.logoURL ?? null
+    clubData.logoURL || null
   );
+
+  // 驗證錯誤狀態
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof Club, string>>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -220,14 +176,6 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
         ...prev,
         [name]: "",
       }));
-    }
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
     }
   };
 
@@ -246,10 +194,7 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile ?? undefined);
-      if (logoFile) {
-        setLogoFile(null);
-      }
+      await onSubmit(formData, undefined);
     } finally {
       setIsSubmitting(false);
     }
@@ -264,10 +209,32 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Logo Upload Section */}
-          <LogoUploadSection
-            logoPreview={logoPreview}
-            handleLogoChange={handleLogoChange}
-          />
+          <Grid
+            item
+            xs={12}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            mb={2}
+          >
+            {logoPreview && (
+              <Box
+                component="img"
+                src={logoPreview}
+                alt="社團標誌預覽"
+                sx={{
+                  width: 120,
+                  height: 120,
+                  objectFit: "contain",
+                  borderRadius: "50%",
+                  mb: 2,
+                }}
+              />
+            )}
+            <Typography variant="body2" color="textSecondary" align="center">
+              圖片上傳功能已停用
+            </Typography>
+          </Grid>
 
           {/* Club Information Fields */}
           <Grid item xs={12} md={6}>

@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authServices } from "../../../firebase/services/auth-service";
 import { Club, clubServices } from "../../../firebase/services/club-service";
 import {
@@ -18,6 +16,11 @@ export function useProfileData() {
     "unknown"
   );
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // 在組件掛載時自動獲取用戶資料
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
 
   // 獲取用戶資料
   const fetchUserProfile = async () => {

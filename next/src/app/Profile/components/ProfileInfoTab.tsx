@@ -3,6 +3,8 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 import ClubProfileForm from "../../../components/profile/ClubProfileForm";
 import CompanyProfileForm from "../../../components/profile/CompanyProfileForm";
+import { Club } from "../../../firebase/services/club-service";
+import { Company } from "../../../firebase/services/company-service";
 import { useProfileData } from "../hooks/useProfileData";
 
 export default function ProfileInfoTab() {
@@ -28,7 +30,7 @@ export default function ProfileInfoTab() {
       {userType === "club" && clubData && (
         <ClubProfileForm
           clubData={clubData}
-          onSubmit={async (data, file) => {
+          onSubmit={async (data: Partial<Club>, file?: File) => {
             await handleClubProfileUpdate(data, file);
           }}
         />
@@ -36,7 +38,7 @@ export default function ProfileInfoTab() {
       {userType === "company" && companyData && (
         <CompanyProfileForm
           companyData={companyData}
-          onSubmit={async (data, file) => {
+          onSubmit={async (data: Partial<Company>, file?: File) => {
             await handleCompanyProfileUpdate(data, file);
           }}
         />

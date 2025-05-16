@@ -2,6 +2,8 @@
 
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添加 Icon
 import BusinessIcon from "@mui/icons-material/Business";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Alert,
@@ -30,7 +32,7 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import NavbarClientOnly from "../../../components/NavbarClientOnly";
+import HydratedNavbar from "../../../components/NavbarHydrated";
 import { auth, db } from "../../../firebase/config";
 import { companyServices } from "../../../firebase/services/company-service";
 import { enterpriseService } from "../../../firebase/services/enterprise-service";
@@ -99,11 +101,13 @@ export default function EnterpriseListPage() {
           where("userId", "==", auth.currentUser.uid)
         );
         const snapshot = await getDocs(q);
-
         const favMap: Record<string, boolean> = {};
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
-          if (data.articleId) {
+          // 同時支持 postId 和 articleId 字段
+          if (data.postId) {
+            favMap[data.postId] = true;
+          } else if (data.articleId) {
             favMap[data.articleId] = true;
           }
         });
@@ -188,11 +192,15 @@ export default function EnterpriseListPage() {
 
     checkUserRole();
   }, []);
-
   // 处理收藏
   const toggleFavorite = async (post: EnterprisePost) => {
     if (!auth.currentUser) {
-      alert("請先登入");
+      // 使用 Snackbar 通知替代 alert
+      setSnackbar({
+        open: true,
+        message: "請先登入後再收藏文章",
+        severity: "info",
+      });
       return;
     }
 
@@ -200,36 +208,65 @@ export default function EnterpriseListPage() {
       const postId = post.id;
       const userId = auth.currentUser.uid;
 
+      // 同時檢查 articleId 和 postId 字段
       const q = query(
         collection(db, "favorites"),
         where("userId", "==", userId),
-        where("articleId", "==", postId)
+        where("postId", "==", postId)
       );
 
       const snapshot = await getDocs(q);
 
+      // 如果沒找到，再檢查舊版的 articleId 欄位
       if (snapshot.empty) {
-        // 添加收藏
-        const favoriteData = {
-          userId,
-          articleId: postId,
-          createdAt: new Date().toISOString(),
-          postType: "enterprise",
-          title: post.title,
-          content: post.content,
-          companyName: post.companyName ?? "未知企業",
-        };
-        await setDoc(doc(collection(db, "favorites")), favoriteData);
-        setFavorites((prev) => ({ ...prev, [postId]: true }));
+        const oldQuery = query(
+          collection(db, "favorites"),
+          where("userId", "==", userId),
+          where("articleId", "==", postId)
+        );
 
-        // 顯示收藏成功的 Snackbar 通知
-        setSnackbar({
-          open: true,
-          message: "已加入收藏",
-          severity: "success",
-        });
+        const oldSnapshot = await getDocs(oldQuery);
+
+        if (oldSnapshot.empty) {
+          // 添加收藏
+          const favoriteData = {
+            userId,
+            postId: postId, // 使用新字段
+            articleId: postId, // 保留舊字段以兼容
+            createdAt: new Date().toISOString(),
+            postType: "enterprise",
+            title: post.title,
+            content: post.content,
+            companyName: post.companyName ?? "未知企業",
+          };
+          await setDoc(doc(collection(db, "favorites")), favoriteData);
+          setFavorites((prev) => ({ ...prev, [postId]: true }));
+
+          // 顯示收藏成功的 Snackbar 通知
+          setSnackbar({
+            open: true,
+            message: "已加入收藏",
+            severity: "success",
+          });
+        } else {
+          // 已在收藏中 (舊格式) -> 移除
+          const favoriteDoc = oldSnapshot.docs[0];
+          await deleteDoc(doc(db, "favorites", favoriteDoc.id));
+          setFavorites((prev) => {
+            const newFavorites = { ...prev };
+            delete newFavorites[postId];
+            return newFavorites;
+          });
+
+          // 顯示已移除收藏的通知
+          setSnackbar({
+            open: true,
+            message: "已移除收藏",
+            severity: "info",
+          });
+        }
       } else {
-        // 取消收藏
+        // 取消收藏 (新格式)
         const favoriteDoc = snapshot.docs[0];
         await deleteDoc(doc(db, "favorites", favoriteDoc.id));
         setFavorites((prev) => {
@@ -327,7 +364,7 @@ export default function EnterpriseListPage() {
   }, []);
   return (
     <>
-      <NavbarClientOnly />
+      <HydratedNavbar />
       <Box
         sx={{
           pt: "84px",
@@ -783,6 +820,7 @@ export default function EnterpriseListPage() {
                           ml: 2,
                         }}
                       >
+                        {" "}
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -791,7 +829,11 @@ export default function EnterpriseListPage() {
                           }}
                           sx={{ mb: 1 }}
                         >
-                          {favorites[post.id] ? "❤️" : "🤍"}
+                          {favorites[post.id] ? (
+                            <FavoriteIcon color="primary" />
+                          ) : (
+                            <FavoriteBorderIcon />
+                          )}
                         </IconButton>
                         <Button
                           variant="outlined"
@@ -824,7 +866,6 @@ export default function EnterpriseListPage() {
           )}
         </Container>
       </Box>
-
       {/* 浮動發布企業公告按鈕 - 只有企業用戶能看到 */}
       {isCompany && (
         <Box
@@ -858,8 +899,7 @@ export default function EnterpriseListPage() {
           </Button>
         </Box>
       )}
-
-      {/* Snackbar 通知元件 */}
+      {/* Snackbar 通知元件 */}{" "}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

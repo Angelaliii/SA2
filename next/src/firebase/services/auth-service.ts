@@ -30,6 +30,14 @@ export const authServices = {
       }
 
       console.log("嘗試登入:", { email, passwordLength: password?.length });
+      // 檢查是否有 apiKey
+      if (!auth.app.options.apiKey) {
+        console.error("Firebase API Key is missing");
+        return {
+          success: false,
+          error: "Firebase 設定不完整，請檢查環境變數",
+        };
+      }
 
       const userCredential: UserCredential = await signInWithEmailAndPassword(
         auth,

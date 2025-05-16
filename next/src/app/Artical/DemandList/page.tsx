@@ -2,6 +2,8 @@
 
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添加 Icon
 import EventIcon from "@mui/icons-material/Event";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import GroupIcon from "@mui/icons-material/Group";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -33,11 +35,10 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import NavbarClientOnly from "../../../components/NavbarClientOnly";
+import HydratedNavbar from "../../../components/NavbarHydrated";
 import { auth, db } from "../../../firebase/config";
 import { clubServices } from "../../../firebase/services/club-service"; // 添加 clubServices
 import { ClientOnly } from "../../../hooks/useHydration";
-import { scrollToTop } from "../../../utils/clientUtils";
 
 // Add interfaces for proper typing
 interface Post {
@@ -49,11 +50,20 @@ interface Post {
   authorId?: string;
   organizationName?: string;
   organizationIcon?: string;
+  eventStart?: string;
+  eventEnd?: string;
+  eventDate?: string;
+  demandType?: string;
+  eventNature?: string;
+  itemType?: string;
+  customItems?: string[];
+  moneyLowerLimit?: string;
+  moneyUpperLimit?: string;
+  speakerType?: string;
   tags?: string[];
   createdAt?: any;
   selectedDemands?: string[];
   eventName?: string;
-  eventDate?: string;
   eventType?: string;
   location?: string;
   isDraft?: boolean;
@@ -61,16 +71,9 @@ interface Post {
   // 添加缺少的屬性
   purposeType?: string;
   estimatedParticipants?: string;
-  customItems?: string[];
   participationType?: string;
   eventEndDate?: string;
   eventDescription?: string;
-  eventNature?: string;
-  demandType?: string;
-  itemType?: string;
-  moneyLowerLimit?: string;
-  moneyUpperLimit?: string;
-  speakerType?: string;
   feedbackDetails?: string;
   sponsorDeadline?: string;
 }
@@ -142,11 +145,13 @@ export default function DemandListPage() {
           where("userId", "==", auth.currentUser.uid)
         );
         const snapshot = await getDocs(q);
-
         const favMap: Record<string, boolean> = {};
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
-          if (data.articleId) {
+          // 同時支持 postId 和 articleId 字段
+          if (data.postId) {
+            favMap[data.postId] = true;
+          } else if (data.articleId) {
             favMap[data.articleId] = true;
           }
         });
@@ -298,15 +303,12 @@ export default function DemandListPage() {
 
   // Calculate pagination
   const totalItems = filteredPosts.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage); // Handle page change
-  const handlePageChange = (
-    event: React.ChangeEvent<unknown>,
-    value: number
-  ) => {
-    setCurrentPage(value);
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-    // Use our client utility instead of inline window check
-    scrollToTop(true, 10);
+  // Handle page change
+  const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
+    setCurrentPage(value);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Get current page data
@@ -314,11 +316,15 @@ export default function DemandListPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   // Toggle favorite
   const toggleFavorite = async (post: Post) => {
     if (!auth.currentUser) {
-      alert("請先登入");
+      // 使用 Snackbar 通知替代 alert
+      setSnackbar({
+        open: true,
+        message: "請先登入後再收藏文章",
+        severity: "info",
+      });
       return;
     }
 
@@ -326,33 +332,63 @@ export default function DemandListPage() {
       const postId = post.id;
       const userId = auth.currentUser.uid;
 
-      // Check if already favorited
+      // 同時檢查 articleId 和 postId 字段
       const q = query(
         collection(db, "favorites"),
         where("userId", "==", userId),
-        where("articleId", "==", postId)
+        where("postId", "==", postId)
       );
 
       const snapshot = await getDocs(q);
 
+      // 如果沒找到，再檢查舊版的 articleId 欄位
       if (snapshot.empty) {
-        // Not favorited -> Add to favorites
-        const favoriteData = {
-          userId,
-          articleId: postId,
-          createdAt: new Date().toISOString(),
-        };
+        const oldQuery = query(
+          collection(db, "favorites"),
+          where("userId", "==", userId),
+          where("articleId", "==", postId)
+        );
 
-        await setDoc(doc(collection(db, "favorites")), favoriteData);
-        setFavorites((prev) => ({ ...prev, [postId]: true }));
-        // 顯示已加入收藏的通知
-        setSnackbar({
-          open: true,
-          message: "已加入收藏",
-          severity: "success",
-        });
+        const oldSnapshot = await getDocs(oldQuery);
+
+        if (oldSnapshot.empty) {
+          // 不在收藏中 -> 添加到收藏
+          const favoriteData = {
+            userId,
+            postId: postId, // 使用新字段
+            articleId: postId, // 保留舊字段以兼容
+            createdAt: new Date().toISOString(),
+            postType: "demand",
+            title: post.title,
+            content: post.content,
+            organizationName: post.organizationName || "未知組織",
+          };
+
+          await setDoc(doc(collection(db, "favorites")), favoriteData);
+          setFavorites((prev) => ({ ...prev, [postId]: true }));
+          // 顯示已加入收藏的通知
+          setSnackbar({
+            open: true,
+            message: "已加入收藏",
+            severity: "success",
+          });
+        } else {
+          // 已在收藏中 (舊格式) -> 移除
+          const favoriteDoc = oldSnapshot.docs[0];
+          await deleteDoc(doc(db, "favorites", favoriteDoc.id));
+          setFavorites((prev) => {
+            const newFavorites = { ...prev };
+            delete newFavorites[postId];
+            return newFavorites;
+          });
+          setSnackbar({
+            open: true,
+            message: "已從收藏中移除",
+            severity: "info",
+          });
+        }
       } else {
-        // Already favorited -> Remove from favorites
+        // 已在收藏中 -> 移除
         const favoriteDoc = snapshot.docs[0];
         await deleteDoc(doc(db, "favorites", favoriteDoc.id));
         setFavorites((prev) => {
@@ -360,16 +396,19 @@ export default function DemandListPage() {
           delete newFavorites[postId];
           return newFavorites;
         });
-        // 顯示已移除收藏的通知
         setSnackbar({
           open: true,
-          message: "已移除收藏",
+          message: "已從收藏中移除",
           severity: "info",
         });
       }
-    } catch (err) {
-      console.error("操作收藏失敗", err);
-      alert("操作失敗，請稍後再試");
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      setSnackbar({
+        open: true,
+        message: "操作失敗，請稍後再試",
+        severity: "error",
+      });
     }
   };
 
@@ -551,7 +590,7 @@ export default function DemandListPage() {
   // ✅ 更改 return 部分，通過新的方式處理 Material UI 組件
   return (
     <ClientOnly>
-      <NavbarClientOnly />
+      <HydratedNavbar />
       {!isMounted ? (
         // 靜態加載骨架，避免 Material UI 組件在掛載前渲染
         <Box
@@ -588,7 +627,6 @@ export default function DemandListPage() {
                 瀏覽所有合作需求，找到適合您的合作機會
               </Typography>
             </Box>
-
             {/* 篩選條件區塊 */}
             <Paper
               elevation={1}
@@ -841,10 +879,8 @@ export default function DemandListPage() {
                 </>
               )}
             </Paper>
-
             {/* Removing the category filter buttons */}
             <Box sx={{ mt: 2, mb: 3 }}></Box>
-
             <Stack spacing={3}>
               {loading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
@@ -1100,9 +1136,32 @@ export default function DemandListPage() {
                             <EventIcon fontSize="small" sx={{ mr: 1 }} />
                             <Typography variant="body2" color="text.secondary">
                               活動日期：
-                              {post.eventDate &&
-                              post.eventDate !== "undefined" &&
-                              post.eventDate !== "null"
+                              {post.eventStart &&
+                              post.eventStart !== "undefined" &&
+                              post.eventStart !== "null"
+                                ? new Date(post.eventStart).toLocaleDateString(
+                                    "zh-TW",
+                                    {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                    }
+                                  ) +
+                                  (post.eventEnd &&
+                                  post.eventEnd !== "undefined" &&
+                                  post.eventEnd !== "null"
+                                    ? " ~ " +
+                                      new Date(
+                                        post.eventEnd
+                                      ).toLocaleDateString("zh-TW", {
+                                        year: "numeric",
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                      })
+                                    : "")
+                                : post.eventDate &&
+                                  post.eventDate !== "undefined" &&
+                                  post.eventDate !== "null"
                                 ? new Date(post.eventDate).toLocaleDateString(
                                     "zh-TW",
                                     {
@@ -1147,6 +1206,7 @@ export default function DemandListPage() {
                             ml: 2,
                           }}
                         >
+                          {" "}
                           <IconButton
                             size="small"
                             onClick={(e) => {
@@ -1155,7 +1215,11 @@ export default function DemandListPage() {
                             }}
                             sx={{ mb: 1 }}
                           >
-                            {favorites[post.id] ? "❤️" : "🤍"}
+                            {favorites[post.id] ? (
+                              <FavoriteIcon color="primary" />
+                            ) : (
+                              <FavoriteBorderIcon />
+                            )}
                           </IconButton>
                           <Button
                             variant="outlined"
@@ -1174,17 +1238,16 @@ export default function DemandListPage() {
                   </motion.div>
                 ))
               )}
-            </Stack>
-
+            </Stack>{" "}
             {/* 分頁控制 */}
-            {totalPages > 1 && (
+            {!loading && filteredPosts.length > 0 && (
               <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                {" "}
                 <Pagination
-                  count={totalPages}
+                  count={Math.ceil(filteredPosts.length / itemsPerPage)}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"
-                  size="large"
                 />
               </Box>
             )}

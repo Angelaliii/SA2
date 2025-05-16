@@ -112,25 +112,17 @@ export const getDemandItems = async (): Promise<string[]> => {
 
 export const createPost = async (postData: Omit<PostData, "createdAt">) => {
   try {
-    // 如果是草稿，不發送通知
-    if (postData.isDraft) {
-      const postsCollection = collection(db, "posts");
-      const docRef = await addDoc(postsCollection, {
-        ...postData,
-        createdAt: serverTimestamp(),
-      });
-      return { id: docRef.id, success: true };
-    }
-
-    // 不是草稿，發布並通知訂閱者
+    // 創建新文章到集合
     const postsCollection = collection(db, "posts");
     const docRef = await addDoc(postsCollection, {
       ...postData,
       createdAt: serverTimestamp(),
     });
 
-    // 發送通知給訂閱者（只在不是草稿時）
-    await notifySubscribers(postData.authorId, docRef.id, postData.title);
+    // 如果不是草稿，才發送通知給訂閱者
+    if (!postData.isDraft) {
+      await notifySubscribers(postData.authorId, docRef.id, postData.title);
+    }
 
     return { id: docRef.id, success: true };
   } catch (error) {
@@ -393,7 +385,9 @@ export const getPostById = async (
       eventType: postData.eventType ?? "",
       email: postData.email ?? "",
       eventEndDate: postData.eventEndDate ?? "",
-      customItems: Array.isArray(postData.customItems) ? postData.customItems : [],
+      customItems: Array.isArray(postData.customItems)
+        ? postData.customItems
+        : [],
       // New fields
       contactName: postData.contactName ?? "",
       contactPhone: postData.contactPhone ?? "",
@@ -403,7 +397,9 @@ export const getPostById = async (
       eventStart: postData.eventStart ?? "",
       eventEnd: postData.eventEnd ?? "",
       demandType: postData.demandType ?? "",
-      materialCategory: Array.isArray(postData.materialCategory) ? postData.materialCategory : [],
+      materialCategory: Array.isArray(postData.materialCategory)
+        ? postData.materialCategory
+        : [],
       materialDetails: postData.materialDetails ?? "",
       moneyLowerLimit: postData.moneyLowerLimit ?? "",
       moneyUpperLimit: postData.moneyUpperLimit ?? "",
@@ -411,7 +407,7 @@ export const getPostById = async (
       speakerType: postData.speakerType ?? "",
       speakerDetail: postData.speakerDetail ?? "",
       feedbackDetails: postData.feedbackDetails ?? "",
-      notes: postData.notes ?? ""
+      notes: postData.notes ?? "",
     };
   } catch (error) {
     console.error("Error getting post by ID:", error);

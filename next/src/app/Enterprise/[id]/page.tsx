@@ -3,6 +3,8 @@
 import BusinessIcon from "@mui/icons-material/Business";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EmailIcon from "@mui/icons-material/Email";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Alert,
   Box,
@@ -408,23 +410,31 @@ export default function EnterpriseDetailPage() {
               <Typography variant="body2" color="text.secondary">
                 發布時間：{hydrated ? formatDate(post.createdAt) : "載入中..."}
               </Typography>
-            </Box>
-
+            </Box>{" "}
             {/* 收藏按鈕 */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
               <Button
-                variant="contained"
-                color="primary"
+                variant={isFavorite ? "contained" : "outlined"}
+                color="error"
                 onClick={handleToggleFavorite}
                 disabled={favoriteLoading}
                 size="small"
+                startIcon={
+                  isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
+                }
+                sx={{
+                  borderRadius: 4,
+                  px: 2,
+                  boxShadow: isFavorite ? 2 : 0,
+                  "&:hover": {
+                    boxShadow: 1,
+                  },
+                }}
               >
-                {isFavorite ? "已收藏" : "加入收藏"}
+                {isFavorite ? "已收藏" : "收藏"}
               </Button>
             </Box>
-
             <Divider sx={{ mb: 3 }} />
-
             {/* 根據公告類型顯示特定欄位 */}
             {post.announcementType && (
               <Box sx={{ mb: 4 }}>
@@ -857,9 +867,7 @@ export default function EnterpriseDetailPage() {
                 </Box>
               </Box>
             )}
-
             <Divider sx={{ mb: 3 }} />
-
             {/* 內容區 */}
             <Box
               sx={{
@@ -893,7 +901,6 @@ export default function EnterpriseDetailPage() {
                 {post.content ?? "尚無合作內容說明"}
               </Typography>
             </Box>
-
             {/* 聯絡按鈕和返回列表按鈕 */}
             <Box
               sx={{
@@ -929,11 +936,12 @@ export default function EnterpriseDetailPage() {
             </Box>
           </Paper>
         </Container>
-      </Box>
+      </Box>{" "}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}

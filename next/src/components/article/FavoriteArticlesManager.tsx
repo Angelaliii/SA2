@@ -36,7 +36,8 @@ import { useAuth } from "../../hooks/useAuth";
 interface Favorite {
   id: string;
   userId: string;
-  articleId: string;
+  articleId?: string; // 兼容舊格式
+  postId?: string; // 兼容新格式
   [key: string]: any;
 }
 
@@ -85,7 +86,10 @@ export default function FavoriteArticlesManager() {
         ...doc.data(),
       })) as Favorite[];
 
-      const articleIds = favoritesData.map((fav) => fav.postId);
+      // 同時支持 articleId 和 postId
+      const articleIds = favoritesData
+        .map((fav) => fav.postId || fav.articleId)
+        .filter((id) => id !== undefined);
 
       if (articleIds.length === 0) {
         setArticles([]);
@@ -147,7 +151,9 @@ export default function FavoriteArticlesManager() {
 
       const articlesWithFavoriteInfo = allArticles.map((article) => {
         const favorite = favoritesData.find(
-          (fav) => fav.postId === article.id
+          (fav) =>
+            (fav.postId && fav.postId === article.id) ||
+            (fav.articleId && fav.articleId === article.id)
         );
         return {
           ...article,
@@ -392,12 +398,12 @@ export default function FavoriteArticlesManager() {
           </Stack>
         )}
       </Box>{" "}
-      {/* Success/Error Snackbar */}
+      {/* Success/Error Snackbar */}{" "}
       <Snackbar
         open={!!success}
         autoHideDuration={3000}
         onClose={() => setSuccess("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity="success" sx={{ width: "100%" }}>
           {success}
@@ -407,7 +413,7 @@ export default function FavoriteArticlesManager() {
         open={!!error}
         autoHideDuration={3000}
         onClose={() => setError("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity="error" sx={{ width: "100%" }}>
           {error}

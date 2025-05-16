@@ -1,5 +1,3 @@
-import { FirebaseError } from "firebase/app";
-
 /**
  * 處理 Firebase 身份驗證錯誤，返回用戶友好的錯誤信息
  * @param error Firebase 錯誤對象
@@ -8,20 +6,30 @@ import { FirebaseError } from "firebase/app";
 export function handleFirebaseAuthError(error: unknown): string {
   console.log("處理Firebase錯誤:", error);
 
-  if (!(error instanceof FirebaseError)) {
-    if (error instanceof Error) {
-      console.error("非Firebase錯誤:", error.message);
-      return `發生錯誤: ${error.message}`;
-    }
+  // 檢查錯誤是否為字串或一般對象
+  if (typeof error === "string") {
+    return `錯誤: ${error}`;
+  }
+
+  // 處理非 FirebaseError 類型的錯誤
+  if (!(error instanceof Error)) {
     return "發生未知錯誤，請稍後再試";
   }
 
+  // 檢查是否為 FirebaseError
+  const firebaseError = error as any;
+  const errorCode = firebaseError.code || "";
+  const errorMessage = firebaseError.message || "";
+
+  console.log(`處理錯誤: ${errorCode}, 訊息: ${errorMessage}`);
+
   // 解析 Firebase 錯誤代碼
-  switch (error.code) {
+  switch (errorCode) {
     // 登入相關錯誤
     case "auth/user-not-found":
     case "auth/wrong-password":
     case "auth/invalid-credential":
+    case "auth/invalid-email":
       return "帳號或密碼錯誤，請重新輸入";
     case "auth/too-many-requests":
       return "嘗試次數過多，請稍後再試或重設密碼";
@@ -46,7 +54,7 @@ export function handleFirebaseAuthError(error: unknown): string {
 
     // 其他錯誤
     default:
-      console.error("Firebase錯誤:", error.code, error.message);
-      return `登入過程中發生錯誤 (${error.code})，請稍後再試`;
+      console.error("Firebase錯誤:", errorCode, errorMessage);
+      return `登入過程中發生錯誤 (${errorCode})，請稍後再試`;
   }
 }

@@ -33,7 +33,7 @@ function NavbarFallback() {
 }
 
 // 穩定的包裝組件，可以在任何地方安全使用
-export default function HydratedNavbar(props: any) {
+export default function NavbarHydrated(props: any) {
   return (
     <ClientOnly fallback={<NavbarFallback />}>
       <NavbarClientOnly {...props} />

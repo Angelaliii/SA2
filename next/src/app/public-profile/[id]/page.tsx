@@ -395,6 +395,7 @@ export default function PublicProfilePage() {
           }}
         >
           <Box sx={{ flex: 1 }}>
+            {" "}
             <Link
               href={
                 article.postType === "enterprise"
@@ -402,11 +403,12 @@ export default function PublicProfilePage() {
                   : `/Artical/${article.id}`
               }
               passHref
+              style={{ textDecoration: "none" }}
             >
               {" "}
               <Typography
                 variant="h6"
-                component="span" // Changed from "a" to "span" to avoid nesting <a> tags
+                component="span"
                 sx={{
                   color: "primary.main",
                   "&:hover": { color: "primary.dark" },
@@ -414,11 +416,14 @@ export default function PublicProfilePage() {
               >
                 {article.title ?? "(未命名文章)"}
               </Typography>
-            </Link>
+            </Link>{" "}
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {article.postType === "enterprise"
-                ? article.content
-                : article.demandDescription ?? "(無內容)"}
+                ? article.content || article.description || "企業公告內容"
+                : article.demandDescription ||
+                  article.content ||
+                  article.description ||
+                  "需求文章內容"}
             </Typography>
             <Typography variant="caption" display="block" sx={{ mt: 2 }}>
               發布日期：
@@ -466,11 +471,16 @@ export default function PublicProfilePage() {
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           >
-            <Link href={`/Activities/${activity.id}`} passHref>
+            {" "}
+            <Link
+              href={`/Activities/${activity.id}`}
+              passHref
+              style={{ textDecoration: "none" }}
+            >
               {" "}
               <Typography
                 variant="h6"
-                component="span" // Changed from "a" to "span" to avoid nesting <a> tags
+                component="span"
                 sx={{
                   color: "primary.main",
                   "&:hover": { color: "primary.dark" },

@@ -112,7 +112,6 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
     companyDescription: companyData.companyDescription ?? "",
   });
 
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(
     companyData.logoURL ?? null
   );
@@ -134,14 +133,6 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
         ...prev,
         [name]: "",
       }));
-    }
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
     }
   };
 
@@ -191,10 +182,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile || undefined);
-      if (logoFile) {
-        setLogoFile(null);
-      }
+      await onSubmit(formData);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,7 +195,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
       </Typography>{" "}
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Logo Upload Section */}
+          {/* Logo Display Section */}
           <Grid
             item
             xs={12}
@@ -231,28 +219,9 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
                 }}
               />
             )}
-            <Button
-              component="label"
-              variant="outlined"
-              sx={{ mt: logoPreview ? 1 : 0 }}
-            >
-              {logoPreview ? "更換標誌" : "上傳企業標誌"}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                hidden
-              />
-            </Button>
-            {logoPreview && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 1 }}
-              >
-                建議使用正方形圖片，檔案大小不超過2MB
-              </Typography>
-            )}
+            <Typography variant="body2" color="textSecondary" align="center">
+              圖片上傳功能已停用
+            </Typography>
           </Grid>
 
           {/* Company Information Fields */}
