@@ -12,7 +12,7 @@ import {
   CircularProgress,
   Container,
   Divider,
-  Link,
+  Link as MuiLink,
   Paper,
   Snackbar,
   Typography,
@@ -26,10 +26,12 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../../components/Navbar";
 import { auth, db } from "../../../firebase/config";
+import { companyServices } from "../../../firebase/services/company-service";
 import enterpriseService from "../../../firebase/services/enterprise-service";
 import useHydration from "../../../hooks/useHydration";
 
@@ -103,6 +105,36 @@ export default function EnterpriseDetailPage() {
   const router = useRouter();
   const hydrated = useHydration();
 
+  // 更新頁面標題
+  useEffect(() => {
+    if (post?.title) {
+      document.title = `${post.title} - 企業牆`;
+    } else {
+      document.title = "企業牆 - 社團企業媒合平台";
+    }
+  }, [post]);
+
+  // 維持企業用戶的身份狀態，確保從詳情頁返回列表頁時不會丟失狀態
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const companies = await companyServices.getCompaniesByUserId(
+            user.uid
+          );
+          if (companies.length > 0 && typeof window !== "undefined") {
+            sessionStorage.setItem("isCompanyUser", "true");
+          }
+        } catch (error) {
+          console.error("檢查企業用戶時出錯:", error);
+        }
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
   // 檢查用戶是否已收藏該文章
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -136,8 +168,8 @@ export default function EnterpriseDetailPage() {
           setPost({
             id: postData.id ?? id,
             title: postData.title || "無標題",
-            companyName: postData.companyName || "未知企業",
-            email: postData.email || "",
+            companyName: postData.companyName ?? "未知企業",
+            email: postData.email ?? "",
             content: postData.content || "",
             createdAt: postData.createdAt || new Date(),
             status: postData.status || "active",
@@ -296,11 +328,11 @@ export default function EnterpriseDetailPage() {
           <Box sx={{ pt: "84px", textAlign: "center", py: 8 }}>
             <Typography variant="h5" color="text.secondary" gutterBottom>
               找不到文章
-            </Typography>
+            </Typography>{" "}
             <Button
               variant="contained"
               color="primary"
-              component={Link}
+              component={MuiLink}
               href="/Enterprise/EnterpriseList"
               sx={{ mt: 2 }}
             >
@@ -334,7 +366,7 @@ export default function EnterpriseDetailPage() {
             }}
           >
             {/* 標題與企業資訊 */}
-            <Box sx={{ textAlign: "center", mb: 4 }}>
+            <Box sx={{ textAlign: "center", mb: 4, position: "relative" }}>
               <Typography
                 variant="h4"
                 gutterBottom
@@ -342,66 +374,67 @@ export default function EnterpriseDetailPage() {
                 color="primary"
               >
                 {post.title}
-              </Typography>
-
-              {/* 企業資訊與聯絡方式 */}
+              </Typography>{" "}
               <Box
                 sx={{
                   display: "flex",
+                  alignItems: "center",
                   justifyContent: "center",
-                  gap: 3,
-                  mb: 2,
+                  mb: 1,
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <BusinessIcon color="primary" />
-                  <Typography variant="subtitle1">
+                <BusinessIcon sx={{ mr: 1, color: "text.secondary" }} />
+                {post.authorId ? (
+                  <Link
+                    href={`/public-profile/${post.authorId}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <Typography
+                      variant="h6"
+                      color="primary"
+                      sx={{
+                        cursor: "pointer",
+                        fontWeight: "medium",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
+                      {post.companyName}
+                    </Typography>
+                  </Link>
+                ) : (
+                  <Typography variant="h6" color="text.secondary">
                     {post.companyName}
                   </Typography>
-                </Box>
-                {post.email && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <EmailIcon color="primary" />
-                    <Typography variant="subtitle1">
-                      <Link
-                        href={`mailto:${post.email}`}
-                        underline="hover"
-                        sx={{
-                          color: "primary.main",
-                          "&:hover": {
-                            color: "primary.dark",
-                          },
-                        }}
-                      >
-                        {post.email}
-                      </Link>
-                    </Typography>
-                  </Box>
                 )}
               </Box>
               <Typography variant="body2" color="text.secondary">
                 發布時間：{hydrated ? formatDate(post.createdAt) : "載入中..."}
               </Typography>
-            </Box>
-
+            </Box>{" "}
             {/* 收藏按鈕 */}
             <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
               <Button
                 variant={isFavorite ? "contained" : "outlined"}
-                color={isFavorite ? "error" : "primary"}
-                startIcon={
-                  isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
-                }
+                color="error"
                 onClick={handleToggleFavorite}
                 disabled={favoriteLoading}
                 size="small"
+                startIcon={
+                  isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
+                }
+                sx={{
+                  borderRadius: 4,
+                  px: 2,
+                  boxShadow: isFavorite ? 2 : 0,
+                  "&:hover": {
+                    boxShadow: 1,
+                  },
+                }}
               >
-                {isFavorite ? "已收藏" : "加入收藏"}
+                {isFavorite ? "已收藏" : "收藏"}
               </Button>
             </Box>
-
             <Divider sx={{ mb: 3 }} />
-
             {/* 根據公告類型顯示特定欄位 */}
             {post.announcementType && (
               <Box sx={{ mb: 4 }}>
@@ -579,14 +612,14 @@ export default function EnterpriseDetailPage() {
                             color="text.secondary"
                           >
                             相關文件
-                          </Typography>
-                          <Link
+                          </Typography>{" "}
+                          <MuiLink
                             href={post.documentURL}
                             target="_blank"
                             rel="noopener"
                           >
                             查看文件
-                          </Link>
+                          </MuiLink>
                         </Box>
                       )}
                     </Box>
@@ -764,14 +797,14 @@ export default function EnterpriseDetailPage() {
                       <Box>
                         <Typography variant="subtitle2" color="text.secondary">
                           附加說明文件
-                        </Typography>
-                        <Link
+                        </Typography>{" "}
+                        <MuiLink
                           href={post.additionalDocumentURL}
                           target="_blank"
                           rel="noopener"
                         >
                           查看文件
-                        </Link>
+                        </MuiLink>
                       </Box>
                     )}
                   </Box>
@@ -821,19 +854,20 @@ export default function EnterpriseDetailPage() {
 
                     {post.email && (
                       <Box>
+                        {" "}
                         <Typography variant="subtitle2" color="text.secondary">
                           電子郵件
                         </Typography>
-                        <Link href={`mailto:${post.email}`}>{post.email}</Link>
+                        <MuiLink href={`mailto:${post.email}`}>
+                          {post.email}
+                        </MuiLink>
                       </Box>
                     )}
                   </Box>
                 </Box>
               </Box>
             )}
-
             <Divider sx={{ mb: 3 }} />
-
             {/* 內容區 */}
             <Box
               sx={{
@@ -867,7 +901,6 @@ export default function EnterpriseDetailPage() {
                 {post.content ?? "尚無合作內容說明"}
               </Typography>
             </Box>
-
             {/* 聯絡按鈕和返回列表按鈕 */}
             <Box
               sx={{
@@ -903,11 +936,12 @@ export default function EnterpriseDetailPage() {
             </Box>
           </Paper>
         </Container>
-      </Box>
+      </Box>{" "}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}

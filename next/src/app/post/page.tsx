@@ -12,14 +12,15 @@ import {
   Paper,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar"; // 套用你的共用 Navbar
 import { getPostById, PostData } from "../../firebase/services/post-service";
 
 export default function PostDetailPage() {
-  const router = useRouter(); // 取得網址參數 id
-  const { id } = router.query;
+  const router = useRouter();
+  const params = useParams();
+  const id = params?.id;
   const [post, setPost] = useState<PostData | null>(null); // 儲存文章資料
   const [loading, setLoading] = useState(true); // 載入狀態
   const [liked, setLiked] = useState(false); // 收藏狀態

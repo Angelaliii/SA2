@@ -34,6 +34,10 @@ export default function ActivityListPage() {
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // 每頁顯示的活動數量
+  // 設置頁面標題
+  useEffect(() => {
+    document.title = "活動資訊 - 社團企業媒合平台";
+  }, []);
 
   useEffect(() => {
     const fetchActivities = async () => {

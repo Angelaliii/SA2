@@ -211,11 +211,12 @@ export default function ActivityFormDialog({
                 {loading ? "發布中..." : "發布"}
               </Button>
             </DialogActions>
-          </Dialog>
+          </Dialog>{" "}
           <Snackbar
             open={success}
             autoHideDuration={2000}
             onClose={() => setSuccess(false)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
           >
             <Alert severity="success" sx={{ width: "100%" }}>
               ✅ 活動發布成功！
@@ -225,6 +226,7 @@ export default function ActivityFormDialog({
             open={!!error}
             autoHideDuration={3000}
             onClose={() => setError("")}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
           >
             <Alert severity="error" sx={{ width: "100%" }}>
               ❌ {error}

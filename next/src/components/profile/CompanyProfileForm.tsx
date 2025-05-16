@@ -1,5 +1,6 @@
 import SaveIcon from "@mui/icons-material/Save";
 import {
+  Box,
   Button,
   Grid,
   MenuItem,
@@ -13,6 +14,7 @@ import { Company } from "../../firebase/services/company-service";
 interface CompanyProfileFormProps {
   companyData: Company;
   onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
+  readonly?: boolean;
 }
 
 // Industry types options
@@ -32,20 +34,86 @@ const industryTypes = [
 const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
   companyData,
   onSubmit,
+  readonly = false,
 }) => {
+  if (readonly) {
+    return (
+      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          企業資料
+        </Typography>
+
+        <Grid container spacing={2}>
+          {companyData.logoURL && (
+            <Grid item xs={12} display="flex" justifyContent="center" mb={2}>
+              <Box
+                component="img"
+                src={companyData.logoURL}
+                alt={`${companyData.companyName}的標誌`}
+                sx={{
+                  width: 120,
+                  height: 120,
+                  objectFit: "contain",
+                  borderRadius: "50%",
+                }}
+              />
+            </Grid>
+          )}
+          <Grid item xs={12} sm={6}>
+            <Typography>
+              <strong>企業名稱：</strong> {companyData.companyName}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography>
+              <strong>統一編號：</strong> {companyData.businessId}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography>
+              <strong>產業類型：</strong> {companyData.industryType}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography>
+              <strong>聯絡人姓名：</strong> {companyData.contactName}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography>
+              <strong>聯絡電話：</strong> {companyData.contactPhone}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography>
+              <strong>電子郵件：</strong> {companyData.email}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography sx={{ mt: 2 }}>
+              <strong>企業簡介：</strong>
+            </Typography>
+            <Typography sx={{ whiteSpace: "pre-line" }}>
+              {companyData.companyDescription}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+    );
+  }
   const [formData, setFormData] = useState<Partial<Company>>({
-    companyName: companyData.companyName || "",
-    businessId: companyData.businessId || "",
-    industryType: companyData.industryType || "",
-    contactName: companyData.contactName || "",
-    contactPhone: companyData.contactPhone || "",
-    email: companyData.email || "",
-    companyDescription: companyData.companyDescription || "",
+    companyName: companyData.companyName ?? "",
+    businessId: companyData.businessId ?? "",
+    industryType: companyData.industryType ?? "",
+    contactName: companyData.contactName ?? "",
+    contactPhone: companyData.contactPhone ?? "",
+    email: companyData.email ?? "",
+    companyDescription: companyData.companyDescription ?? "",
   });
 
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(
-    companyData.logoURL || null
+    companyData.logoURL ?? null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof Company, string>>>(
@@ -65,14 +133,6 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
         ...prev,
         [name]: "",
       }));
-    }
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
     }
   };
 
@@ -122,10 +182,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile || undefined);
-      if (logoFile) {
-        setLogoFile(null);
-      }
+      await onSubmit(formData);
     } finally {
       setIsSubmitting(false);
     }
@@ -135,11 +192,37 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
     <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
       <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
         企業資料
-      </Typography>
-
+      </Typography>{" "}
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Logo Upload Section */}
+          {/* Logo Display Section */}
+          <Grid
+            item
+            xs={12}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            mb={2}
+          >
+            {logoPreview && (
+              <Box
+                component="img"
+                src={logoPreview}
+                alt="企業標誌預覽"
+                sx={{
+                  width: 120,
+                  height: 120,
+                  objectFit: "contain",
+                  borderRadius: "50%",
+                  mb: 2,
+                  border: "1px solid #e0e0e0",
+                }}
+              />
+            )}
+            <Typography variant="body2" color="textSecondary" align="center">
+              圖片上傳功能已停用
+            </Typography>
+          </Grid>
 
           {/* Company Information Fields */}
           <Grid item xs={12} md={6}>
@@ -182,7 +265,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               margin="normal"
               required
               error={!!errors.industryType}
-              helperText={errors.industryType || "請選擇最接近貴公司的產業類型"}
+              helperText={errors.industryType ?? "請選擇最接近貴公司的產業類型"}
             >
               {industryTypes.map((option) => (
                 <MenuItem key={option} value={option}>

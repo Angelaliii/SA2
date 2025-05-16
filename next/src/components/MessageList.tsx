@@ -8,6 +8,7 @@ import {
   getDocs,
   query,
   where,
+  Timestamp,
 } from "firebase/firestore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -16,7 +17,7 @@ import { auth, db } from "../firebase/config";
 interface MessageItem {
   senderId: string;
   messageContent: string;
-  timestamp: any;
+  timestamp: Timestamp;
   postId: string;
 }
 
@@ -54,39 +55,45 @@ const MessageList = () => {
 
           // 根據 senderId 查 club name
           try {
-            const clubSnap = await getDocs(
-              query(
-                collection(db, "clubs"),
-                where("userId", "==", msg.senderId)
-              )
-            );
-            if (!clubSnap.empty) {
-              senderName = clubSnap.docs[0].data().clubName;
-            } else {
-              // 如果不是社團，查詢企業資料
-              const companySnap = await getDocs(
+            if (msg.senderId) {  // Add null check
+              const clubSnap = await getDocs(
                 query(
-                  collection(db, "companies"),
+                  collection(db, "clubs"),
                   where("userId", "==", msg.senderId)
                 )
               );
-              if (!companySnap.empty) {
-                senderName = companySnap.docs[0].data().companyName;
+              if (!clubSnap.empty) {
+                senderName = clubSnap.docs[0].data().clubName;
               } else {
-                // 如果都沒找到，使用寄件者 ID
-                senderName = msg.senderId;
+                // 如果不是社團，查詢企業資料
+                const companySnap = await getDocs(
+                  query(
+                    collection(db, "companies"),
+                    where("userId", "==", msg.senderId)
+                  )
+                );
+                if (!companySnap.empty) {
+                  senderName = companySnap.docs[0].data().companyName;
+                } else {
+                  // 如果都沒找到，使用寄件者 ID
+                  senderName = msg.senderId;
+                }
               }
+            } else {
+              senderName = "未知寄件者";
             }
           } catch (e) {
             console.warn("查詢寄件者資訊失敗", e);
-            senderName = msg.senderId;
+            senderName = msg.senderId || "未知寄件者";
           }
 
           // 根據 postId 查文章標題
           try {
-            const postSnap = await getDoc(doc(db, "posts", msg.postId));
-            if (postSnap.exists()) {
-              postTitle = postSnap.data().title;
+            if (msg.postId) {  // Add null check
+              const postSnap = await getDoc(doc(db, "posts", msg.postId));
+              if (postSnap.exists()) {
+                postTitle = postSnap.data().title;
+              }
             }
           } catch (e) {
             console.warn("查詢文章標題失敗", e);
@@ -136,11 +143,7 @@ const MessageList = () => {
             )}
             <p>
               <em>
-                {new Date(
-                  msg.timestamp?.seconds
-                    ? msg.timestamp.seconds * 1000
-                    : msg.timestamp
-                ).toLocaleString()}
+                {msg.timestamp?.toDate().toLocaleString()}
               </em>
             </p>
           </div>
