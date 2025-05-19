@@ -16,9 +16,10 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { authServices } from "../firebase/services";
 import useHydration from "../hooks/useHydration";
+import { handleFirebaseAuthError } from "../utils/firebaseErrorUtils";
 
 interface LoginProps {
   readonly onSuccess?: () => void;
@@ -35,6 +36,12 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetPasswordSent, setResetPasswordSent] = useState(false);
+  // 重置錯誤信息當重新開始輸入
+  useEffect(() => {
+    if (email.length > 0 || password.length > 0) {
+      setError("");
+    }
+  }, [email, password]);
 
   // Handle form submission for login
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -42,7 +49,23 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
     setError("");
     setLoading(true);
 
+    if (!email.trim()) {
+      setError("請輸入電子郵件地址");
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError("請輸入密碼");
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log("開始嘗試登入...");
+      // 添加延遲以確保 Firebase 已完全初始化
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const result = await authServices.login(email, password);
 
       if (result.success) {
@@ -53,11 +76,14 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
           router.push("/"); // 導向首頁或儀表板
         }
       } else {
+        console.error("登入失敗:", result.error);
         setError(result.error ?? "登入失敗");
       }
     } catch (err) {
       console.error("登入過程發生錯誤", err);
-      setError("登入過程中發生錯誤，請稍後再試");
+      const errorMessage = handleFirebaseAuthError(err);
+      console.log("處理後的錯誤訊息:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,7 +100,6 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
 
     try {
       const result = await authServices.resetPassword(email);
-
       if (result.success) {
         setResetPasswordSent(true);
         setError("");
@@ -83,7 +108,7 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
       }
     } catch (err) {
       console.error("重設密碼過程發生錯誤", err);
-      setError("重設密碼過程中發生錯誤，請稍後再試");
+      setError(handleFirebaseAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -107,7 +132,6 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
       </div>
     );
   }
-
   return (
     <Paper
       elevation={3}
@@ -120,7 +144,7 @@ export default function Login({ onSuccess }: Readonly<LoginProps>) {
         boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
       }}
     >
-      <Typography variant="h4" gutterBottom align="center">
+      <Typography variant="h4" gutterBottom align="center" component="h1">
         登入
       </Typography>
       {error && (

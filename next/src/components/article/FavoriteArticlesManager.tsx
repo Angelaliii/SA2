@@ -1,7 +1,7 @@
 "use client";
 
-import BookmarkIcon from "@mui/icons-material/Bookmark";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
@@ -36,7 +36,8 @@ import { useAuth } from "../../hooks/useAuth";
 interface Favorite {
   id: string;
   userId: string;
-  articleId: string;
+  articleId?: string; // 兼容舊格式
+  postId?: string; // 兼容新格式
   [key: string]: any;
 }
 
@@ -85,7 +86,10 @@ export default function FavoriteArticlesManager() {
         ...doc.data(),
       })) as Favorite[];
 
-      const articleIds = favoritesData.map((fav) => fav.articleId);
+      // 同時支持 articleId 和 postId
+      const articleIds = favoritesData
+        .map((fav) => fav.postId || fav.articleId)
+        .filter((id) => id !== undefined);
 
       if (articleIds.length === 0) {
         setArticles([]);
@@ -147,7 +151,9 @@ export default function FavoriteArticlesManager() {
 
       const articlesWithFavoriteInfo = allArticles.map((article) => {
         const favorite = favoritesData.find(
-          (fav) => fav.articleId === article.id
+          (fav) =>
+            (fav.postId && fav.postId === article.id) ||
+            (fav.articleId && fav.articleId === article.id)
         );
         return {
           ...article,
@@ -220,7 +226,6 @@ export default function FavoriteArticlesManager() {
           我的收藏
         </Typography>
         <Divider sx={{ mb: 2 }} />
-
         {/* Add tag filter buttons */}
         <Box sx={{ display: "flex", gap: 1, my: 2, flexWrap: "wrap" }}>
           <Chip
@@ -243,11 +248,10 @@ export default function FavoriteArticlesManager() {
               fontWeight: selectedTag === "enterprise" ? "bold" : "normal",
             }}
           />
-        </Box>
-
+        </Box>{" "}
         {articles.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 4 }}>
-            <BookmarkBorderIcon
+            <FavoriteBorderIcon
               sx={{ fontSize: 60, color: "text.disabled", mb: 2 }}
             />
             <Typography color="text.secondary" variant="h6">
@@ -378,14 +382,14 @@ export default function FavoriteArticlesManager() {
                         startIcon={<VisibilityIcon />}
                       >
                         查看
-                      </Button>
+                      </Button>{" "}
                       <IconButton
                         size="small"
                         color="primary"
                         onClick={() => handleRemoveFavorite(article)}
                         title="移除收藏"
                       >
-                        <BookmarkIcon fontSize="small" />
+                        <FavoriteIcon fontSize="small" />
                       </IconButton>
                     </CardActions>
                   </Card>
@@ -393,12 +397,13 @@ export default function FavoriteArticlesManager() {
               ))}
           </Stack>
         )}
-      </Box>
-      {/* Success/Error Snackbar */}
+      </Box>{" "}
+      {/* Success/Error Snackbar */}{" "}
       <Snackbar
         open={!!success}
         autoHideDuration={3000}
         onClose={() => setSuccess("")}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity="success" sx={{ width: "100%" }}>
           {success}
@@ -408,6 +413,7 @@ export default function FavoriteArticlesManager() {
         open={!!error}
         autoHideDuration={3000}
         onClose={() => setError("")}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity="error" sx={{ width: "100%" }}>
           {error}

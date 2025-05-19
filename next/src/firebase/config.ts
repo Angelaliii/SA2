@@ -14,6 +14,30 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// 檢查必要的設定
+const isConfigValid =
+  !!firebaseConfig.apiKey &&
+  !!firebaseConfig.authDomain &&
+  !!firebaseConfig.projectId;
+
+// Debug configuration for troubleshooting
+console.log("Firebase Config 狀態:", {
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  hasApiKey: !!firebaseConfig.apiKey,
+  isConfigValid,
+});
+
+if (!isConfigValid) {
+  console.error(
+    "Firebase 配置無效 - 缺少必要參數:",
+    !firebaseConfig.apiKey ? "ApiKey" : "",
+    !firebaseConfig.authDomain ? "AuthDomain" : "",
+    !firebaseConfig.projectId ? "ProjectId" : ""
+  );
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -21,5 +45,10 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// 在開發環境使用更詳細的錯誤訊息
+if (process.env.NODE_ENV === "development") {
+  auth.useDeviceLanguage();
+}
 
 export default app;

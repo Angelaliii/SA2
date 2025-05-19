@@ -1,5 +1,8 @@
+"use client";
+
 import SaveIcon from "@mui/icons-material/Save";
 import {
+  Box,
   Button,
   Grid,
   MenuItem,
@@ -10,10 +13,71 @@ import {
 import React, { useState } from "react";
 import { Club } from "../../firebase/services/club-service";
 
-interface ClubProfileFormProps {
-  clubData: Club;
-  onSubmit: (updatedData: Partial<Club>, logoFile?: File) => Promise<void>;
-}
+// 分離出唯讀視圖組件
+const ReadOnlyClubProfile = ({ clubData }: { clubData: Club }) => (
+  <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
+    <Typography variant="h5" fontWeight="bold" gutterBottom>
+      社團資料
+    </Typography>
+
+    <Grid container spacing={2}>
+      {clubData.logoURL && (
+        <Grid item xs={12} display="flex" justifyContent="center" mb={2}>
+          <Box
+            component="img"
+            src={clubData.logoURL}
+            alt={`${clubData.clubName}的標誌`}
+            sx={{
+              width: 120,
+              height: 120,
+              objectFit: "contain",
+              borderRadius: "50%",
+            }}
+          />
+        </Grid>
+      )}
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>社團名稱：</strong> {clubData.clubName}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>學校名稱：</strong> {clubData.schoolName}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>社團類型：</strong> {clubData.clubType}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>聯絡人姓名：</strong> {clubData.contactName}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>聯絡電話：</strong> {clubData.contactPhone}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>電子郵件：</strong> {clubData.email}
+        </Typography>
+      </Grid>
+
+      <Grid item xs={12}>
+        <Typography sx={{ mt: 2 }}>
+          <strong>社團簡介：</strong>
+        </Typography>
+        <Typography sx={{ whiteSpace: "pre-line" }}>
+          {clubData.clubDescription}
+        </Typography>
+      </Grid>
+    </Grid>
+  </Paper>
+);
 
 // 社團類型選項
 const clubTypes = [
@@ -28,10 +92,50 @@ const clubTypes = [
   "其他",
 ];
 
-const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
+// 驗證工具函數
+const validateClubForm = (formData: Partial<Club>) => {
+  const newErrors: Partial<Record<keyof Club, string>> = {};
+
+  if (!formData.clubName?.trim()) {
+    newErrors.clubName = "此欄位為必填";
+  }
+
+  if (!formData.schoolName?.trim()) {
+    newErrors.schoolName = "此欄位為必填";
+  }
+
+  if (!formData.clubType) {
+    newErrors.clubType = "此欄位為必填";
+  }
+
+  if (!formData.contactName?.trim()) {
+    newErrors.contactName = "此欄位為必填";
+  }
+
+  if (!formData.contactPhone?.trim()) {
+    newErrors.contactPhone = "此欄位為必填";
+  } else if (!/^\d{8,10}$/.test(formData.contactPhone.trim())) {
+    newErrors.contactPhone = "請輸入有效的電話號碼";
+  }
+
+  if (!formData.email?.trim()) {
+    newErrors.email = "此欄位為必填";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    newErrors.email = "請輸入有效的電子郵件地址";
+  }
+
+  return newErrors;
+};
+
+// 可編輯的社團表單
+const EditableClubProfile = ({
   clubData,
   onSubmit,
+}: {
+  clubData: Club;
+  onSubmit: (updatedData: Partial<Club>, logoFile?: File) => Promise<void>;
 }) => {
+  // 表單狀態
   const [formData, setFormData] = useState<Partial<Club>>({
     clubName: clubData.clubName || "",
     schoolName: clubData.schoolName || "",
@@ -42,12 +146,14 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
     clubDescription: clubData.clubDescription || "",
   });
 
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  // 顯示用標誌預覽
   const [logoPreview, setLogoPreview] = useState<string | null>(
     clubData.logoURL || null
   );
+
+  // 驗證錯誤狀態
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof Club, string>>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -65,45 +171,8 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
-    }
-  };
-
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof Club, string>> = {};
-
-    if (!formData.clubName?.trim()) {
-      newErrors.clubName = "此欄位為必填";
-    }
-
-    if (!formData.schoolName?.trim()) {
-      newErrors.schoolName = "此欄位為必填";
-    }
-
-    if (!formData.clubType) {
-      newErrors.clubType = "此欄位為必填";
-    }
-
-    if (!formData.contactName?.trim()) {
-      newErrors.contactName = "此欄位為必填";
-    }
-
-    if (!formData.contactPhone?.trim()) {
-      newErrors.contactPhone = "此欄位為必填";
-    } else if (!/^[0-9]{8,10}$/.test(formData.contactPhone.trim())) {
-      newErrors.contactPhone = "請輸入有效的電話號碼";
-    }
-
-    if (!formData.email?.trim()) {
-      newErrors.email = "此欄位為必填";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = "請輸入有效的電子郵件地址";
-    }
-
+    const newErrors = validateClubForm(formData);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -117,10 +186,7 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData, logoFile || undefined);
-      if (logoFile) {
-        setLogoFile(null);
-      }
+      await onSubmit(formData, undefined);
     } finally {
       setIsSubmitting(false);
     }
@@ -135,6 +201,32 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Logo Upload Section */}
+          <Grid
+            item
+            xs={12}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            mb={2}
+          >
+            {logoPreview && (
+              <Box
+                component="img"
+                src={logoPreview}
+                alt="社團標誌預覽"
+                sx={{
+                  width: 120,
+                  height: 120,
+                  objectFit: "contain",
+                  borderRadius: "50%",
+                  mb: 2,
+                }}
+              />
+            )}
+            <Typography variant="body2" color="textSecondary" align="center">
+              圖片上傳功能已停用
+            </Typography>
+          </Grid>
 
           {/* Club Information Fields */}
           <Grid item xs={12} md={6}>
@@ -176,7 +268,7 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
               margin="normal"
               required
               error={!!errors.clubType}
-              helperText={errors.clubType || "請選擇最接近貴社團的類型"}
+              helperText={errors.clubType ?? "請選擇最接近貴社團的類型"}
             >
               {clubTypes.map((option) => (
                 <MenuItem key={option} value={option}>
@@ -268,6 +360,26 @@ const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
       </form>
     </Paper>
   );
+};
+
+// 主要 ClubProfileForm 組件
+interface ClubProfileFormProps {
+  clubData: Club;
+  onSubmit: (updatedData: Partial<Club>, logoFile?: File) => Promise<void>;
+  readonly?: boolean;
+}
+
+const ClubProfileForm: React.FC<ClubProfileFormProps> = ({
+  clubData,
+  onSubmit,
+  readonly = false,
+}) => {
+  // 根據 readonly 屬性決定顯示唯讀或可編輯模式
+  if (readonly) {
+    return <ReadOnlyClubProfile clubData={clubData} />;
+  }
+
+  return <EditableClubProfile clubData={clubData} onSubmit={onSubmit} />;
 };
 
 export default ClubProfileForm;

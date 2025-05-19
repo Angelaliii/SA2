@@ -13,6 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../config";
+import { notifySubscribers } from "./notification-service"; // 引入通知功能
 
 export interface EnterprisePost {
   id?: string;
@@ -25,23 +26,26 @@ export interface EnterprisePost {
   status: "active" | "closed";
   postType: "enterprise";
   isDraft?: boolean;
-  
+
   // 公告類型欄位
-  announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation"; 
-  
+  announcementType?:
+    | "specialOfferPartnership"
+    | "activityCooperation"
+    | "internshipCooperation";
+
   // 特約商店特有欄位
   partnershipName?: string; // 特約商店名稱
   contractPeriodDuration?: string; // 合約期限
   contractDetails?: string; // 合約內容
-  
+
   // 聯繫窗口（共用）
   contactName?: string; // 聯繫窗口姓名
   contactPhone?: string; // 聯繫窗口電話
   contactEmail?: string; // 聯繫窗口Email
-  
+
   // 活動合作特有欄位
   activityName?: string; // 活動名稱
-  activityType?: string; // 活動類型（演講/工作坊/展覽/比賽等）
+  activityType?: string; // 活動類型（演講/比賽等）
   activityStartDate?: string; // 活動開始日期
   activityEndDate?: string; // 活動結束日期
   activityLocation?: string; // 活動地點
@@ -68,6 +72,15 @@ export interface EnterprisePost {
 
 const ENTERPRISE_COLLECTION = "enterprisePosts";
 
+const getFormattedCreatedAt = (createdAt: any) => {
+  if (createdAt instanceof Timestamp) {
+    return createdAt.toDate().toISOString();
+  } else if (createdAt) {
+    return new Date(createdAt).toISOString();
+  }
+  return new Date().toISOString();
+};
+
 export const enterpriseService = {
   createPost: async (postData: Omit<EnterprisePost, "id">) => {
     try {
@@ -75,7 +88,19 @@ export const enterpriseService = {
         ...postData,
         createdAt: Timestamp.now(),
         postType: "enterprise",
-      });
+      }); // 如果不是草稿，發送通知給訂閱者
+      if (!postData.isDraft) {
+        console.log(
+          `開始為新發布的企業公告「${postData.title}」發送訂閱通知...`
+        );
+        const notificationResult = await notifySubscribers(
+          postData.authorId,
+          docRef.id,
+          postData.title
+        );
+        console.log(`新企業公告通知發送結果:`, notificationResult);
+      }
+
       return { success: true, id: docRef.id };
     } catch (error) {
       console.error("Error creating enterprise post:", error);
@@ -106,11 +131,7 @@ export const enterpriseService = {
             authorId: data.authorId,
             companyName: data.companyName ?? "未知企業",
             email: data.email ?? "",
-            createdAt: data.createdAt
-              ? data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate().toISOString()
-                : new Date(data.createdAt).toISOString()
-              : new Date().toISOString(),
+            createdAt: getFormattedCreatedAt(data.createdAt),
             status: data.status ?? "active",
             postType: "enterprise",
             isDraft: true,
@@ -128,10 +149,28 @@ export const enterpriseService = {
   publishDraft: async (draftId: string) => {
     try {
       const draftRef = doc(db, ENTERPRISE_COLLECTION, draftId);
+
+      // 獲取草稿資訊
+      const draftDoc = await getDoc(draftRef);
+      if (!draftDoc.exists()) {
+        return { success: false, error: "找不到文章" };
+      }
+
+      const draftData = draftDoc.data();
+
+      // 更新為已發布
       await updateDoc(draftRef, {
         isDraft: false,
         publishedAt: serverTimestamp(),
-      });
+      }); // 發送通知給訂閱者
+      console.log(`開始為企業公告「${draftData.title}」發送訂閱通知...`);
+      const notificationResult = await notifySubscribers(
+        draftData.authorId,
+        draftId,
+        draftData.title
+      );
+      console.log(`企業公告通知發送結果:`, notificationResult);
+
       return { success: true };
     } catch (error) {
       console.error("Error publishing draft:", error);
@@ -156,10 +195,7 @@ export const enterpriseService = {
             id: doc.id,
             ...data,
             // 確保 createdAt 是可序列化的格式
-            createdAt:
-              data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate().toISOString()
-                : data.createdAt,
+            createdAt: getFormattedCreatedAt(data.createdAt),
           };
         })
         .filter((post) => post !== null);
@@ -186,22 +222,24 @@ export const enterpriseService = {
         id: postDoc.id,
         ...data,
         // 確保 createdAt 是可序列化的格式
-        createdAt:
-          data.createdAt instanceof Timestamp
-            ? data.createdAt.toDate().toISOString()
-            : data.createdAt,
+        createdAt: getFormattedCreatedAt(data.createdAt),
       } as EnterprisePost;
     } catch (error) {
       console.error("Error getting enterprise post:", error);
       return null;
     }
   },
-
   updatePost: async (id: string, updateData: Partial<EnterprisePost>) => {
     try {
       const postRef = doc(db, ENTERPRISE_COLLECTION, id);
+
+      // 清理數據，移除所有 undefined 值
+      const cleanedData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+
       await updateDoc(postRef, {
-        ...updateData,
+        ...cleanedData,
         updatedAt: Timestamp.now(),
       });
       return { success: true };

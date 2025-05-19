@@ -1,10 +1,12 @@
 "use client";
 
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 添加 Icon
 import BusinessIcon from "@mui/icons-material/Business";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import SearchIcon from "@mui/icons-material/Search";
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -12,6 +14,7 @@ import {
   Container,
   IconButton,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -29,11 +32,11 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import Navbar from "../../../components/Navbar";
+import HydratedNavbar from "../../../components/NavbarHydrated";
 import { auth, db } from "../../../firebase/config";
+import { companyServices } from "../../../firebase/services/company-service";
 import { enterpriseService } from "../../../firebase/services/enterprise-service";
 import { ClientOnly } from "../../../hooks/useHydration";
-import useHydration from "../../../hooks/useHydration";
 
 interface EnterprisePost {
   id: string;
@@ -45,8 +48,17 @@ interface EnterprisePost {
   status?: string;
   authorId?: string;
   isDraft?: boolean;
-  announcementType?: "specialOfferPartnership" | "activityCooperation" | "internshipCooperation";
+  announcementType?:
+    | "specialOfferPartnership"
+    | "activityCooperation"
+    | "internshipCooperation";
+  // 添加子篩選所需欄位
+  contractPeriodDuration?: string; // 合約年限
+  activityType?: string; // 活動類型
+  interviewMethod?: string; // 面試方式
 }
+
+// 只在客戶端環境中使用 sessionStorage，改用 useHydration
 
 export default function EnterpriseListPage() {
   const [posts, setPosts] = useState<EnterprisePost[]>([]);
@@ -54,11 +66,29 @@ export default function EnterpriseListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  
+  const [isCompany, setIsCompany] = useState(false); // 添加公司權限檢查狀態
+
   // 修改：添加篩選類型狀態，預設為「全部」
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  
+
+  // 添加子篩選項狀態
+  const [contractPeriod, setContractPeriod] = useState<string>("");
+  const [activityType, setActivityType] = useState<string>("");
+  const [interviewMethod, setInterviewMethod] = useState<string>("");
+
+  // Snackbar 通知狀態
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info" | "warning",
+  });
+
   const itemsPerPage = 8;
+
+  // 篩選選項
+  const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
+  const activityTypeOptions = ["演講", "比賽", "其他"];
+  const interviewMethodOptions = ["線上面試", "實體面試", "其他"];
 
   // 獲取收藏狀態
   useEffect(() => {
@@ -71,11 +101,13 @@ export default function EnterpriseListPage() {
           where("userId", "==", auth.currentUser.uid)
         );
         const snapshot = await getDocs(q);
-
         const favMap: Record<string, boolean> = {};
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
-          if (data.articleId) {
+          // 同時支持 postId 和 articleId 字段
+          if (data.postId) {
+            favMap[data.postId] = true;
+          } else if (data.articleId) {
             favMap[data.articleId] = true;
           }
         });
@@ -107,10 +139,68 @@ export default function EnterpriseListPage() {
     fetchPosts();
   }, []);
 
+  // 檢查當前用戶是否為企業用戶
+  useEffect(() => {
+    // 首先檢查 sessionStorage 中是否有保存的狀態
+    if (typeof window !== "undefined") {
+      const savedIsCompany = sessionStorage.getItem("isCompanyUser");
+      if (savedIsCompany === "true") {
+        setIsCompany(true);
+      }
+    }
+
+    const checkUserRole = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setIsCompany(false);
+        // 清除 sessionStorage 中的狀態
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("isCompanyUser");
+        }
+        return;
+      }
+
+      try {
+        // 檢查用戶是否是企業用戶
+        const companies = await companyServices.getCompaniesByUserId(user.uid);
+        console.log(
+          "企業用戶檢查:",
+          user.uid,
+          "找到企業:",
+          companies.length > 0 ? "是" : "否"
+        );
+        const isUserCompany = companies.length > 0;
+        setIsCompany(isUserCompany);
+
+        // 將企業用戶狀態保存到 sessionStorage，防止頁面刷新後丟失狀態
+        if (typeof window !== "undefined") {
+          if (isUserCompany) {
+            sessionStorage.setItem("isCompanyUser", "true");
+          } else {
+            sessionStorage.removeItem("isCompanyUser");
+          }
+        }
+      } catch (error) {
+        console.error("檢查用戶類型時出錯:", error);
+        setIsCompany(false);
+        // 發生錯誤時清除 sessionStorage
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("isCompanyUser");
+        }
+      }
+    };
+
+    checkUserRole();
+  }, []);
   // 处理收藏
   const toggleFavorite = async (post: EnterprisePost) => {
     if (!auth.currentUser) {
-      alert("請先登入");
+      // 使用 Snackbar 通知替代 alert
+      setSnackbar({
+        open: true,
+        message: "請先登入後再收藏文章",
+        severity: "info",
+      });
       return;
     }
 
@@ -118,33 +208,65 @@ export default function EnterpriseListPage() {
       const postId = post.id;
       const userId = auth.currentUser.uid;
 
+      // 同時檢查 articleId 和 postId 字段
       const q = query(
         collection(db, "favorites"),
         where("userId", "==", userId),
-        where("articleId", "==", postId)
+        where("postId", "==", postId)
       );
 
       const snapshot = await getDocs(q);
 
+      // 如果沒找到，再檢查舊版的 articleId 欄位
       if (snapshot.empty) {
-        // 添加收藏
-        const favoriteData = {
-          userId,
-          articleId: postId,
-          createdAt: new Date().toISOString(),
-          postType: "enterprise",
-          title: post.title,
-          content: post.content,
-          companyName: post.companyName ?? "未知企業",
-        };
+        const oldQuery = query(
+          collection(db, "favorites"),
+          where("userId", "==", userId),
+          where("articleId", "==", postId)
+        );
 
-        await setDoc(doc(collection(db, "favorites")), favoriteData);
-        setFavorites((prev) => ({ ...prev, [postId]: true }));
+        const oldSnapshot = await getDocs(oldQuery);
 
-        // 顯示簡短提示而不跳轉頁面
-        alert("已成功加入收藏！");
+        if (oldSnapshot.empty) {
+          // 添加收藏
+          const favoriteData = {
+            userId,
+            postId: postId, // 使用新字段
+            articleId: postId, // 保留舊字段以兼容
+            createdAt: new Date().toISOString(),
+            postType: "enterprise",
+            title: post.title,
+            content: post.content,
+            companyName: post.companyName ?? "未知企業",
+          };
+          await setDoc(doc(collection(db, "favorites")), favoriteData);
+          setFavorites((prev) => ({ ...prev, [postId]: true }));
+
+          // 顯示收藏成功的 Snackbar 通知
+          setSnackbar({
+            open: true,
+            message: "已加入收藏",
+            severity: "success",
+          });
+        } else {
+          // 已在收藏中 (舊格式) -> 移除
+          const favoriteDoc = oldSnapshot.docs[0];
+          await deleteDoc(doc(db, "favorites", favoriteDoc.id));
+          setFavorites((prev) => {
+            const newFavorites = { ...prev };
+            delete newFavorites[postId];
+            return newFavorites;
+          });
+
+          // 顯示已移除收藏的通知
+          setSnackbar({
+            open: true,
+            message: "已移除收藏",
+            severity: "info",
+          });
+        }
       } else {
-        // 取消收藏
+        // 取消收藏 (新格式)
         const favoriteDoc = snapshot.docs[0];
         await deleteDoc(doc(db, "favorites", favoriteDoc.id));
         setFavorites((prev) => {
@@ -152,10 +274,21 @@ export default function EnterpriseListPage() {
           delete newFavorites[postId];
           return newFavorites;
         });
+
+        // 顯示已移除收藏的通知
+        setSnackbar({
+          open: true,
+          message: "已移除收藏",
+          severity: "info",
+        });
       }
     } catch (err) {
       console.error("收藏操作失敗", err);
-      alert("操作失敗，請稍後再試");
+      setSnackbar({
+        open: true,
+        message: "操作失敗，請稍後再試",
+        severity: "error",
+      });
     }
   };
 
@@ -174,14 +307,37 @@ export default function EnterpriseListPage() {
       return false;
     }
 
-    // 如果搜尋詞為空，顯示所有符合類型篩選的非草稿文章
-    if (!searchTerm.trim()) return true;
+    // 應用子篩選條件
+    if (
+      selectedType === "specialOfferPartnership" &&
+      contractPeriod &&
+      post.contractPeriodDuration !== contractPeriod
+    ) {
+      return false;
+    }
 
-    // 搜尋邏輯，確保即使屬性為空也能正確處理
+    if (
+      selectedType === "activityCooperation" &&
+      activityType &&
+      post.activityType !== activityType
+    ) {
+      return false;
+    }
+
+    if (
+      selectedType === "internshipCooperation" &&
+      interviewMethod &&
+      post.interviewMethod !== interviewMethod
+    ) {
+      return false;
+    }
+
+    // 如果搜尋詞為空，顯示所有符合類型篩選的非草稿文章
+    if (!searchTerm.trim()) return true; // 搜尋邏輯，確保即使屬性為空也能正確處理
     return (
-      (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.companyName || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (post.title ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.content ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.companyName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -189,25 +345,26 @@ export default function EnterpriseListPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   // 格式化日期 - 修改為使用ISO字符串確保伺服器端與客戶端一致
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "未知日期";
     try {
-      // Use a consistent format that doesn't depend on locale settings
+      // 使用一致的格式以避免依賴本地設置
       const date = new Date(dateStr);
-      // During hydration, return a simple string to avoid mismatches
-      return date.toISOString().split('T')[0];
+      // 返回固定格式的日期字符串
+      return date.toISOString().split("T")[0];
     } catch (e) {
-      return "日期格式錯誤";
+      console.error("日期格式化錯誤:", e);
+      return "2023-01-01"; // 錯誤時返回固定日期
     }
   };
-  
-  const hydrated = useHydration();
-
+  // 設置頁面標題
+  useEffect(() => {
+    document.title = "企業牆 - 社團企業媒合平台";
+  }, []);
   return (
     <>
-      <Navbar />
+      <HydratedNavbar />
       <Box
         sx={{
           pt: "84px",
@@ -217,7 +374,7 @@ export default function EnterpriseListPage() {
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ mb: 4 }}>
+          <Box sx={{ textAlign: "center", mb: 3 }}>
             <Typography
               variant="h4"
               component="h1"
@@ -248,81 +405,262 @@ export default function EnterpriseListPage() {
               placeholder="搜尋企業名稱或合作內容..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              // Use modern approach instead of deprecated InputProps
               slotProps={{
                 input: {
                   startAdornment: (
-                    <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />
+                    <SearchIcon sx={{ color: "action.active", mr: 1 }} />
                   ),
                 },
               }}
               sx={{ bgcolor: "background.paper" }}
             />
-          </Paper>{" "}
-          
-          {/* 公告類型篩選按鈕 */}
-          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="subtitle1" fontWeight="medium">
-              公告類型篩選
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button 
-                variant={selectedType === null ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType(null);
-                  setCurrentPage(1);
-                }}
-                size="medium"
-              >
-                全部公告
-              </Button>
-              <Button 
-                variant={selectedType === "specialOfferPartnership" ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType("specialOfferPartnership");
-                  setCurrentPage(1);
-                }}
-                size="medium"
-                color="primary"
-              >
-                特約商店
-              </Button>
-              <Button 
-                variant={selectedType === "activityCooperation" ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType("activityCooperation");
-                  setCurrentPage(1);
-                }}
-                size="medium"
-                color="secondary"
-              >
-                活動合作
-              </Button>
-              <Button 
-                variant={selectedType === "internshipCooperation" ? "contained" : "outlined"}
-                onClick={() => {
-                  setSelectedType("internshipCooperation");
-                  setCurrentPage(1);
-                }}
-                size="medium"
-                color="success"
-              >
-                實習合作
-              </Button>
+            {/* 公告類型篩選按鈕 */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                公告類型篩選
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                <Button
+                  variant={selectedType === null ? "contained" : "outlined"}
+                  onClick={() => {
+                    setSelectedType(null);
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                >
+                  全部公告
+                </Button>
+                <Button
+                  variant={
+                    selectedType === "specialOfferPartnership"
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => {
+                    setSelectedType("specialOfferPartnership");
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                  color="primary"
+                >
+                  特約商店
+                </Button>
+                <Button
+                  variant={
+                    selectedType === "activityCooperation"
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => {
+                    setSelectedType("activityCooperation");
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                  color="secondary"
+                >
+                  活動合作
+                </Button>
+                <Button
+                  variant={
+                    selectedType === "internshipCooperation"
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => {
+                    setSelectedType("internshipCooperation");
+                    setCurrentPage(1);
+                  }}
+                  size="medium"
+                  color="success"
+                >
+                  實習合作
+                </Button>
+              </Box>
             </Box>
-          </Box>
-          
+            {/* 根據選擇的公告類型顯示對應的子篩選器 */}
+            {selectedType && (
+              <Box
+                sx={{
+                  mt: 2.5,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                  pt: 2.5,
+                }}
+              >
+                {selectedType === "specialOfferPartnership" && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      合約年限
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Button
+                        variant={
+                          contractPeriod === "" ? "contained" : "outlined"
+                        }
+                        onClick={() => {
+                          setContractPeriod("");
+                          setCurrentPage(1);
+                        }}
+                        size="small"
+                      >
+                        全部
+                      </Button>
+                      {contractPeriodOptions.map((option) => (
+                        <Button
+                          key={option}
+                          variant={
+                            contractPeriod === option ? "contained" : "outlined"
+                          }
+                          onClick={() => {
+                            setContractPeriod(option);
+                            setCurrentPage(1);
+                          }}
+                          size="small"
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {selectedType === "activityCooperation" && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      活動類型
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Button
+                        variant={activityType === "" ? "contained" : "outlined"}
+                        onClick={() => {
+                          setActivityType("");
+                          setCurrentPage(1);
+                        }}
+                        size="small"
+                        color="secondary"
+                      >
+                        全部
+                      </Button>
+                      {activityTypeOptions.map((option) => (
+                        <Button
+                          key={option}
+                          variant={
+                            activityType === option ? "contained" : "outlined"
+                          }
+                          onClick={() => {
+                            setActivityType(option);
+                            setCurrentPage(1);
+                          }}
+                          size="small"
+                          color="secondary"
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {selectedType === "internshipCooperation" && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      面試方式
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Button
+                        variant={
+                          interviewMethod === "" ? "contained" : "outlined"
+                        }
+                        onClick={() => {
+                          setInterviewMethod("");
+                          setCurrentPage(1);
+                        }}
+                        size="small"
+                        color="success"
+                      >
+                        全部
+                      </Button>
+                      {interviewMethodOptions.map((option) => (
+                        <Button
+                          key={option}
+                          variant={
+                            interviewMethod === option
+                              ? "contained"
+                              : "outlined"
+                          }
+                          onClick={() => {
+                            setInterviewMethod(option);
+                            setCurrentPage(1);
+                          }}
+                          size="small"
+                          color="success"
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Paper>
+
           {/* 貼文列表 */}
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                p: 8,
+              }}
+            >
               <CircularProgress />
             </Box>
           ) : filteredPosts.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography variant="h6" color="text.secondary">
-                目前沒有符合條件的企業公告
+            <Paper
+              sx={{
+                p: 5,
+                borderRadius: 2,
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                找不到符合的企業公告
               </Typography>
-            </Box>
+              <Typography variant="body2" color="text.secondary">
+                {searchTerm ||
+                selectedType ||
+                contractPeriod ||
+                activityType ||
+                interviewMethod
+                  ? "沒有找到符合篩選條件的企業公告，請嘗試調整篩選條件"
+                  : "目前還沒有任何企業公告"}
+              </Typography>
+              {(searchTerm ||
+                selectedType ||
+                contractPeriod ||
+                activityType ||
+                interviewMethod) && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedType(null);
+                    setContractPeriod("");
+                    setActivityType("");
+                    setInterviewMethod("");
+                  }}
+                  sx={{ mt: 2 }}
+                >
+                  清除所有篩選條件
+                </Button>
+              )}
+            </Paper>
           ) : (
             <Stack spacing={3}>
               {currentPosts.map((post, index) => (
@@ -342,6 +680,10 @@ export default function EnterpriseListPage() {
                         transform: "translateY(-4px)",
                         transition: "all 0.3s ease",
                       },
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      window.location.href = `/Enterprise/${post.id}`;
                     }}
                   >
                     <Box
@@ -362,56 +704,58 @@ export default function EnterpriseListPage() {
                         >
                           {post.title}
                         </Typography>
-
                         {/* 顯示公告類型標籤 */}
                         {post.announcementType && (
                           <Box sx={{ mb: 1.5 }}>
-                            {post.announcementType === "specialOfferPartnership" && (
+                            {post.announcementType ===
+                              "specialOfferPartnership" && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="primary"
                                 disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
                                   textTransform: "none",
                                   borderRadius: "12px",
-                                  mr: 1
+                                  mr: 1,
                                 }}
                               >
                                 特約商店
                               </Button>
                             )}
-                            {post.announcementType === "activityCooperation" && (
+                            {post.announcementType ===
+                              "activityCooperation" && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="secondary"
                                 disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
                                   textTransform: "none",
                                   borderRadius: "12px",
-                                  mr: 1
+                                  mr: 1,
                                 }}
                               >
                                 活動合作
                               </Button>
                             )}
-                            {post.announcementType === "internshipCooperation" && (
+                            {post.announcementType ===
+                              "internshipCooperation" && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="success"
                                 disableElevation
-                                sx={{ 
-                                  fontSize: "0.7rem", 
-                                  py: 0.2, 
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  py: 0.2,
                                   textTransform: "none",
                                   borderRadius: "12px",
-                                  mr: 1
+                                  mr: 1,
                                 }}
                               >
                                 實習合作
@@ -419,16 +763,28 @@ export default function EnterpriseListPage() {
                             )}
                           </Box>
                         )}
-
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 1 }}
                         >
                           <BusinessIcon fontSize="small" sx={{ mr: 1 }} />
-                          <Typography variant="body2">
-                            {post.companyName ?? "未知企業"}
-                          </Typography>
-                        </Box>
 
+                          <Link
+                            href={`/public-profile/${post.authorId}`}
+                            style={{ textDecoration: "none" }}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "primary.main",
+                                cursor: "pointer",
+                                fontWeight: "medium",
+                                "&:hover": { textDecoration: "underline" },
+                              }}
+                            >
+                              {post.companyName ?? "未知企業"}
+                            </Typography>
+                          </Link>
+                        </Box>
                         <Typography
                           variant="body2"
                           color="text.secondary"
@@ -442,14 +798,15 @@ export default function EnterpriseListPage() {
                           }}
                         >
                           {post.content}
-                        </Typography>
-
+                        </Typography>{" "}
                         <Typography
                           variant="caption"
                           color="text.secondary"
                           sx={{ display: "block", mt: 1 }}
                         >
-                          發布時間：{formatDate(post.createdAt?.toString())}
+                          <ClientOnly>
+                            發布時間：{formatDate(post.createdAt?.toString())}
+                          </ClientOnly>
                         </Typography>
                       </Box>
 
@@ -463,6 +820,7 @@ export default function EnterpriseListPage() {
                           ml: 2,
                         }}
                       >
+                        {" "}
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -470,19 +828,19 @@ export default function EnterpriseListPage() {
                             toggleFavorite(post);
                           }}
                           sx={{ mb: 1 }}
-                          color={favorites[post.id] ? "error" : "default"}
                         >
                           {favorites[post.id] ? (
-                            <FavoriteIcon />
+                            <FavoriteIcon color="primary" />
                           ) : (
                             <FavoriteBorderIcon />
                           )}
                         </IconButton>
-
                         <Button
                           variant="outlined"
-                          component={Link}
-                          href={`/Enterprise/${post.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/Enterprise/${post.id}`;
+                          }}
                           size="small"
                           sx={{ whiteSpace: "nowrap" }}
                         >
@@ -498,7 +856,6 @@ export default function EnterpriseListPage() {
           {/* 分頁 */}
           {!loading && filteredPosts.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              {" "}
               <Pagination
                 count={Math.ceil(filteredPosts.length / itemsPerPage)}
                 page={currentPage}
@@ -509,6 +866,53 @@ export default function EnterpriseListPage() {
           )}
         </Container>
       </Box>
+      {/* 浮動發布企業公告按鈕 - 只有企業用戶能看到 */}
+      {isCompany && (
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 30,
+            right: 30,
+            zIndex: 999,
+          }}
+        >
+          <Button
+            component={Link}
+            href="/Enterprise"
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<AddCircleOutlineIcon />}
+            sx={{
+              borderRadius: 30,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+              "&:hover": {
+                boxShadow: "0 6px 25px rgba(0,0,0,0.15)",
+                transform: "translateY(-2px)",
+                transition: "all 0.3s ease",
+              },
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            發布企業公告
+          </Button>
+        </Box>
+      )}
+      {/* Snackbar 通知元件 */}{" "}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

@@ -95,34 +95,19 @@ export default function EnterprisePostPage() {
     useState<string>("");
 
   // 活動類型選項
-  const activityTypeOptions = [
-    "演講",
-    "工作坊",
-    "展覽",
-    "比賽",
-    "營隊",
-    "其他",
-  ];
+  const activityTypeOptions = ["演講", "比賽", "其他"];
   // 合作方式選項
-  const cooperationTypeOptions = [
-    "贊助",
-    "場地提供",
-    "技術支援",
-    "媒體宣傳",
-    "其他",
-  ];
+  // const cooperationTypeOptions = [
+  //   "贊助",
+  //   "場地提供",
+  //   "技術支援",
+  //   "媒體宣傳",
+  //   "其他",
+  // ];
   // 面試方式選項
-  const interviewMethodOptions = [
-    "線上面試",
-    "實體面試",
-    "電話面試",
-    "專案測試",
-    "多輪面試",
-    "其他",
-  ];
+  const interviewMethodOptions = ["線上面試", "實體面試", "其他"];
   // 合約期限選項
   const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
-
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setIsLoggedIn(!!user);
@@ -135,6 +120,11 @@ export default function EnterprisePostPage() {
           if (companies && companies.length > 0) {
             setCompanyName(companies[0].companyName);
             setCompanyEmail(companies[0].email ?? user.email ?? "");
+
+            // 標記用戶為企業用戶
+            sessionStorage.setItem("isCompanyUser", "true");
+          } else {
+            console.log("用戶不是企業用戶，無法獲取企業信息");
           }
         } catch (error) {
           console.error("Error fetching company info:", error);
@@ -169,6 +159,39 @@ export default function EnterprisePostPage() {
       loadUserDrafts();
     }
   }, [openDraftsDialog]);
+
+  // 添加日期實時校驗
+  const [formErrors, setFormErrors] = useState({
+    activityStartDate: false,
+    activityEndDate: false,
+    applicationDeadline: false,
+  });
+
+  useEffect(() => {
+    // 防止初始化時出錯或當沒有值時
+    if (!activityStartDate || !activityEndDate) return;
+
+    const start = new Date(activityStartDate);
+    const end = new Date(activityEndDate);
+
+    setFormErrors((prev) => ({
+      ...prev,
+      activityEndDate: start > end,
+    }));
+  }, [activityStartDate, activityEndDate]);
+
+  useEffect(() => {
+    // 防止初始化時出錯或當沒有值時
+    if (!applicationDeadline || !activityStartDate) return;
+
+    const deadline = new Date(applicationDeadline);
+    const start = new Date(activityStartDate);
+
+    setFormErrors((prev) => ({
+      ...prev,
+      applicationDeadline: deadline >= start,
+    }));
+  }, [applicationDeadline, activityStartDate]);
 
   // 載入選擇的草稿
   const handleLoadDraft = async (draftId: string) => {
@@ -296,6 +319,18 @@ export default function EnterprisePostPage() {
         setOpenSnackbar(true);
         return;
       }
+
+      // 檢查申請截止日期必須早於活動開始日期
+      if (
+        applicationDeadline &&
+        activityStartDate &&
+        applicationDeadline >= activityStartDate
+      ) {
+        setSnackbarMessage("申請截止日期必須早於活動開始日期");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        return;
+      }
     } else if (announcementType === "internshipCooperation") {
       if (
         !internshipTitle ||
@@ -390,7 +425,6 @@ export default function EnterprisePostPage() {
           throw new Error(isDraftParam ? "儲存草稿失敗" : "發布失敗"); // 使用函數參數
         }
       }
-
       setSnackbarSeverity("success");
 
       // 清空表單
@@ -399,6 +433,19 @@ export default function EnterprisePostPage() {
       setAnnouncementType("");
       setPartnershipName("");
       setContractPeriodDuration("");
+
+      // 觸發資料刷新
+      localStorage.setItem("refreshArticles", "true");
+
+      // 標記用戶為企業用戶，確保發布按鈕在列表頁顯示
+      sessionStorage.setItem("isCompanyUser", "true");
+
+      // 添加跳轉
+      if (!isDraftParam) {
+        setTimeout(() => {
+          router.push("/Enterprise/EnterpriseList");
+        }, 2000);
+      }
       setContactName("");
       setContactPhone("");
       setContactEmail("");
@@ -1033,6 +1080,7 @@ export default function EnterprisePostPage() {
         open={openSnackbar}
         autoHideDuration={6000}
         onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={() => setOpenSnackbar(false)}

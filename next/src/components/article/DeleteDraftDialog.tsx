@@ -27,12 +27,25 @@ export default function DeleteDraftDialog({
         <DialogContentText>
           確定要刪除此草稿嗎？此操作無法撤銷。
         </DialogContentText>
-      </DialogContent>
+      </DialogContent>{" "}
       <DialogActions>
-        <Button onClick={onClose} color="primary">
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            onClose();
+          }}
+          color="primary"
+        >
           取消
         </Button>
-        <Button onClick={onConfirm} color="error" autoFocus>
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            onConfirm();
+          }}
+          color="error"
+          autoFocus
+        >
           刪除
         </Button>
       </DialogActions>

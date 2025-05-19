@@ -44,6 +44,59 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  // 訊息格式轉換函數
+  const transformMessageContent = (content: string): string => {
+    // 🟡 合作回應相關 - 先檢查更特定的情況
+    if (
+      content.includes("接受您的合作請求") ||
+      content.includes("合作請求已被接受")
+    ) {
+      return "接受您的合作請求！請前往[個人資料頁面](/Profile)審核合作邀約~";
+    }
+
+    // 婉拒合作 - 先檢查更特定的情況
+    if (
+      content.includes("婉拒合作") ||
+      content.includes("已被婉拒") ||
+      content.includes("合作請求已被婉拒")
+    ) {
+      const reasonMatch = content.match(/原因：(.*?)($|\n)/);
+      const reason = reasonMatch ? reasonMatch[1] : "";
+      console.log("找到婉拒消息，原因:", reason); // 添加日誌以便調試
+      return `婉拒您的合作請求。\n原因：${reason}`;
+    }
+
+    // 🔵 一般合作意願訊息
+    if (
+      content.includes("有意願和你合作") &&
+      !content.includes("請求") &&
+      !content.includes("接受") &&
+      !content.includes("婉拒")
+    ) {
+      return "有意願和你合作，請前往[個人資料頁面](/Profile)審核合作邀約~";
+    }
+
+    // 🟢 合作請求相關 - 最後檢查最一般的情況
+    if (
+      (content.includes("合作請求") && !content.includes("已被婉拒")) ||
+      (content.includes("有意願和你合作") && content.includes("請求"))
+    ) {
+      return "有意願和你合作。請前往 [個人資料頁面](/Profile) 審核合作邀約~";
+    }
+
+    // 合作已完成
+    if (content.includes("合作已完成")) {
+      const messageMatch = content.match(/評價：(.*?)($|\n)/);
+      const message = messageMatch ? messageMatch[1] : "";
+      return `已經填寫完評價。您有合作完成囉~\n${message}`;
+    }
+    // 填寫評價
+    if (content.includes("填寫評價")) {
+      return "已經填寫完評價，請至[個人資料頁面](/Profile)完成評價~";
+    }
+
+    return content;
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -59,7 +112,7 @@ export default function NotificationsPage() {
         const messagesQuery = query(
           collection(db, "messages"),
           where("receiverId", "==", user.uid),
-          orderBy("timestamp", "desc") // 依照時間遞減排序
+          orderBy("timestamp", "desc")
         );
         const querySnapshot = await getDocs(messagesQuery);
 
@@ -71,7 +124,6 @@ export default function NotificationsPage() {
             let postTitle = "";
 
             try {
-              // 先查詢社團資料
               const clubSnap = await getDocs(
                 query(
                   collection(db, "clubs"),
@@ -81,7 +133,6 @@ export default function NotificationsPage() {
               if (!clubSnap.empty) {
                 senderName = clubSnap.docs[0].data().clubName;
               } else {
-                // 如果不是社團，查詢企業資料
                 const companySnap = await getDocs(
                   query(
                     collection(db, "companies"),
@@ -91,7 +142,6 @@ export default function NotificationsPage() {
                 if (!companySnap.empty) {
                   senderName = companySnap.docs[0].data().companyName;
                 } else {
-                  // 如果都沒找到，使用寄件者 ID
                   senderName = data.senderId;
                 }
               }
@@ -107,10 +157,15 @@ export default function NotificationsPage() {
               }
             } catch {}
 
+            // 套用訊息格式轉換
+            const transformedMessage = transformMessageContent(
+              data.messageContent
+            );
+
             return {
               id,
               senderId: data.senderId,
-              messageContent: data.messageContent,
+              messageContent: transformedMessage,
               timestamp: data.timestamp,
               postId: data.postId,
               isRead: data.isRead ?? false,
@@ -119,10 +174,9 @@ export default function NotificationsPage() {
             };
           })
         );
-
         setNotifications(enriched);
       } catch (error) {
-        console.error("Error fetching notifications:", error);
+        console.error("載入通知時發生錯誤:", error);
       } finally {
         setLoading(false);
       }
@@ -183,6 +237,120 @@ export default function NotificationsPage() {
       return "日期格式錯誤";
     }
   };
+  const renderMessageWithClickableTitle = (
+    messageContent: string,
+    postId?: string,
+    postTitle?: string
+  ) => {
+    // 新增：先處理方括號格式的連結 [文字](/連結)
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let linkMatches;
+    const links = [];
+
+    while ((linkMatches = linkRegex.exec(messageContent)) !== null) {
+      const [fullMatch, text, url] = linkMatches;
+      links.push({ fullMatch, text, url, index: linkMatches.index });
+    }
+
+    // 如果找到方括號格式的連結
+    if (links.length > 0) {
+      let linkLastIndex = 0;
+      const linkResult = [];
+
+      links.forEach((link) => {
+        // 添加連結前的文字
+        if (link.index > linkLastIndex) {
+          linkResult.push(messageContent.substring(linkLastIndex, link.index));
+        }
+
+        // 添加帶有鏈接的文字
+        linkResult.push(
+          <Link
+            key={link.index}
+            href={link.url}
+            style={{
+              color: "#1976d2",
+              textDecoration: "none",
+              fontWeight: "medium",
+            }}
+          >
+            {link.text}
+          </Link>
+        );
+
+        // 更新 linkLastIndex
+        linkLastIndex = link.index + link.fullMatch.length;
+      });
+
+      // 添加剩餘的文字
+      if (linkLastIndex < messageContent.length) {
+        linkResult.push(messageContent.substring(linkLastIndex));
+      }
+
+      return <>{linkResult}</>;
+    }
+
+    // 舊的處理邏輯：檢查訊息中是否包含文章標題，如「文章標題」這樣的格式
+    if (!postTitle || !postId) return messageContent;
+
+    const regex = new RegExp(`「([^」]*)」`, "g");
+    let matches;
+    let titleLastIndex = 0;
+    const titleResult = [];
+    let foundMatch = false;
+
+    while ((matches = regex.exec(messageContent)) !== null) {
+      const matchText = matches[1];
+
+      // 只有當匹配到的文字是文章標題時才處理
+      if (matchText === postTitle) {
+        foundMatch = true;
+        // 添加匹配前的文字
+        if (matches.index > titleLastIndex) {
+          titleResult.push(
+            messageContent.substring(titleLastIndex, matches.index + 1)
+          ); // +1 to include the opening quote
+        }
+
+        // 添加帶有鏈接的標題
+        titleResult.push(
+          <Link
+            key={matches.index}
+            href={`/Artical/${postId}`}
+            style={{
+              color: "#1976d2",
+              textDecoration: "none",
+              fontWeight: "medium",
+            }}
+          >
+            {matchText}
+          </Link>
+        );
+
+        // 更新 titleLastIndex 為匹配結束位置
+        titleLastIndex = matches.index + matches[0].length - 1; // -1 to exclude the closing quote
+      }
+    }
+
+    // 添加剩餘的文字
+    if (titleLastIndex < messageContent.length) {
+      titleResult.push(messageContent.substring(titleLastIndex));
+    }
+
+    // 如果沒有找到匹配，但有 postTitle 和 postId，強制添加一個隱藏的連結
+    if (!foundMatch && postTitle && postId) {
+      return (
+        <>
+          {messageContent}
+          <Box sx={{ display: "none" }}>
+            <Link href={`/Artical/${postId}`}>{postTitle}</Link>
+          </Box>
+        </>
+      );
+    }
+
+    return titleResult.length > 0 ? <>{titleResult}</> : messageContent;
+  };
 
   return (
     <>
@@ -223,6 +391,8 @@ export default function NotificationsPage() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     mb: 2,
+                    flexWrap: "wrap",
+                    gap: 1,
                   }}
                 >
                   <Typography
@@ -236,13 +406,15 @@ export default function NotificationsPage() {
                   >
                     通知中心
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    onClick={markAllAsRead}
-                    disabled={notifications.every((n) => n.isRead)}
-                  >
-                    全部標記為已讀
-                  </Button>
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    <Button
+                      variant="outlined"
+                      onClick={markAllAsRead}
+                      disabled={notifications.every((n) => n.isRead)}
+                    >
+                      全部標記為已讀
+                    </Button>
+                  </Box>
                 </Box>
                 <Divider sx={{ my: 2 }} />
 
@@ -287,6 +459,7 @@ export default function NotificationsPage() {
                                 : "rgba(25, 118, 210, 0.08)",
                               boxShadow: "0 3px 10px rgba(0,0,0,0.08)",
                             },
+                            position: "relative",
                           }}
                         >
                           <Box
@@ -300,14 +473,18 @@ export default function NotificationsPage() {
                             <Typography
                               fontWeight={msg.isRead ? "normal" : "bold"}
                             >
-                              {msg.senderName || msg.senderId}
+                              {msg.senderName ?? msg.senderId}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               {formatDate(msg.timestamp)}
                             </Typography>
                           </Box>
                           <Typography sx={{ mt: 1, mb: 1 }}>
-                            {msg.messageContent}
+                            {renderMessageWithClickableTitle(
+                              msg.messageContent,
+                              msg.postId,
+                              msg.postTitle
+                            )}
                           </Typography>
                           {msg.postTitle && (
                             <Box

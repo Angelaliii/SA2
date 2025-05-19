@@ -359,13 +359,21 @@ export default function useArticleForm() {
         return;
       }
 
+      // 確保至少有標題
+      if (!title.trim()) {
+        setSnackbarMessage("草稿需要填寫標題");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        return;
+      }
+
       // 準備要儲存的草稿資料
       const draftData = {
         title, // 標題
-        content, // 內容
-        location, // 發布位置
-        postType, // 文章類型
-        tags, // 標籤
+        content: content || "", // 內容
+        location: location || "", // 發布位置
+        postType: postType || "一般文章", // 文章類型
+        tags: tags || [], // 標籤
         authorId: currentUser.uid, // 作者ID
 
         // 日期轉換為ISO字串，若無則為null
@@ -373,7 +381,7 @@ export default function useArticleForm() {
           ? cooperationDeadline.toISOString()
           : null,
 
-        cooperationType, // 合作類型
+        cooperationType: cooperationType || "", // 合作類型
 
         // 預算處理，如有值則轉為數字
         budget:
@@ -383,7 +391,7 @@ export default function useArticleForm() {
 
         // 活動日期，若有則轉為ISO字串
         eventDate: eventDate ? eventDate.toISOString() : null,
-        visibility, // 可見性設定
+        visibility: visibility || "公開", // 可見性設定
         isDraft: true, // 標記為草稿
       };
 
