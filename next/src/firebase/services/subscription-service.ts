@@ -60,6 +60,7 @@ export const subscriptionServices = {
     organizationId: string
   ): Promise<boolean> => {
     try {
+      // 首先檢查 userId 和 organizationId 欄位匹配的訂閱
       const subscriptionsQuery = query(
         collection(db, SUBSCRIPTIONS_COLLECTION),
         where("userId", "==", userId),
@@ -67,7 +68,22 @@ export const subscriptionServices = {
       );
 
       const querySnapshot = await getDocs(subscriptionsQuery);
-      return !querySnapshot.empty;
+
+      // 如果找到匹配記錄，則返回已訂閱
+      if (!querySnapshot.empty) {
+        return true;
+      }
+
+      // 再檢查兼容性處理：檢查舊格式的訂閱記錄 (subscriberId/subscribeToId)
+      const oldFormatQuery = query(
+        collection(db, SUBSCRIPTIONS_COLLECTION),
+        where("subscriberId", "==", userId),
+        where("subscribeToId", "==", organizationId)
+      );
+
+      const oldFormatSnapshot = await getDocs(oldFormatQuery);
+
+      return !oldFormatSnapshot.empty;
     } catch (error) {
       console.error("檢查訂閱狀態時出錯:", error);
       return false;

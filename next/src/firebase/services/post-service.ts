@@ -117,11 +117,15 @@ export const createPost = async (postData: Omit<PostData, "createdAt">) => {
     const docRef = await addDoc(postsCollection, {
       ...postData,
       createdAt: serverTimestamp(),
-    });
-
-    // 如果不是草稿，才發送通知給訂閱者
+    }); // 如果不是草稿，才發送通知給訂閱者
     if (!postData.isDraft) {
-      await notifySubscribers(postData.authorId, docRef.id, postData.title);
+      console.log(`開始為新發布的文章「${postData.title}」發送訂閱通知...`);
+      const notificationResult = await notifySubscribers(
+        postData.authorId,
+        docRef.id,
+        postData.title
+      );
+      console.log(`新文章通知發送結果:`, notificationResult);
     }
 
     return { id: docRef.id, success: true };
@@ -224,10 +228,14 @@ export const publishDraft = async (draftId: string, userEmail?: string) => {
       isDraft: false,
       publishedAt: serverTimestamp(),
       authorEmail: userEmail ?? null,
-    });
-
-    // 發送通知給訂閱者
-    await notifySubscribers(draftData.authorId, draftId, draftData.title);
+    }); // 發送通知給訂閱者
+    console.log(`開始為文章「${draftData.title}」發送訂閱通知...`);
+    const notificationResult = await notifySubscribers(
+      draftData.authorId,
+      draftId,
+      draftData.title
+    );
+    console.log(`通知發送結果:`, notificationResult);
 
     return { success: true };
   } catch (error) {

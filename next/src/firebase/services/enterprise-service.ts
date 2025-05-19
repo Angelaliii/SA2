@@ -88,11 +88,17 @@ export const enterpriseService = {
         ...postData,
         createdAt: Timestamp.now(),
         postType: "enterprise",
-      });
-
-      // 如果不是草稿，發送通知給訂閱者
+      }); // 如果不是草稿，發送通知給訂閱者
       if (!postData.isDraft) {
-        await notifySubscribers(postData.authorId, docRef.id, postData.title);
+        console.log(
+          `開始為新發布的企業公告「${postData.title}」發送訂閱通知...`
+        );
+        const notificationResult = await notifySubscribers(
+          postData.authorId,
+          docRef.id,
+          postData.title
+        );
+        console.log(`新企業公告通知發送結果:`, notificationResult);
       }
 
       return { success: true, id: docRef.id };
@@ -156,10 +162,14 @@ export const enterpriseService = {
       await updateDoc(draftRef, {
         isDraft: false,
         publishedAt: serverTimestamp(),
-      });
-
-      // 發送通知給訂閱者
-      await notifySubscribers(draftData.authorId, draftId, draftData.title);
+      }); // 發送通知給訂閱者
+      console.log(`開始為企業公告「${draftData.title}」發送訂閱通知...`);
+      const notificationResult = await notifySubscribers(
+        draftData.authorId,
+        draftId,
+        draftData.title
+      );
+      console.log(`企業公告通知發送結果:`, notificationResult);
 
       return { success: true };
     } catch (error) {

@@ -15,6 +15,8 @@ import { auth, db } from "../config";
 
 // 添加一個標志來檢查是否在客戶端環境中
 const isClient = typeof window !== "undefined";
+// 注意：現在我們需要確保通知功能在服務器端也能正常工作
+// 通知系統應該能夠在服務器端運行，這樣當文章發布時能確保通知被發送
 
 /**
  * 創建一個新的通知
@@ -89,12 +91,11 @@ export const notifySubscribers = async (
     if (!isClient) {
       return { success: true, notified: 0 };
     }
-
     console.log(
       `開始發送訂閱通知 - 作者: ${authorId}, 文章: ${postId}, 標題: ${postTitle}`
     );
-
     // 獲取所有訂閱者，使用 organizationId 欄位匹配 authorId
+    // 需要同時檢查舊格式和新格式的訂閱記錄
     const subscriptionsQuery = query(
       collection(db, "subscriptions"),
       where("organizationId", "==", authorId)
@@ -127,13 +128,11 @@ export const notifySubscribers = async (
       console.error("Error fetching author info:", err);
     }
 
-    console.log(`作者名稱: ${authorName}`);
-
-    // 為每個訂閱者創建通知
+    console.log(`作者名稱: ${authorName}`); // 為每個訂閱者創建通知
     const notificationPromises = subscriptionsSnapshot.docs.map((subDoc) => {
       const subscriberData = subDoc.data();
-      // 使用 userId 代替 subscriberId
-      const subscriberId = subscriberData.userId;
+      // 使用 userId 作為訂閱者ID，兼容新舊格式
+      const subscriberId = subscriberData.userId ?? subscriberData.subscriberId;
       console.log(`準備發送通知給訂閱者: ${subscriberId}`);
 
       return createNotification({
@@ -153,15 +152,15 @@ export const notifySubscribers = async (
     // 同時發送到 messages 集合以確保通知能在通知中心顯示
     const messagePromises = subscriptionsSnapshot.docs.map(async (subDoc) => {
       const subscriberData = subDoc.data();
-      // 使用 userId 代替 subscriberId
-      const subscriberId = subscriberData.userId;
+      // 使用 userId 作為訂閱者ID，兼容新舊格式
+      const subscriberId = subscriberData.userId ?? subscriberData.subscriberId;
       console.log(`準備發送消息給訂閱者: ${subscriberId}`);
 
       try {
         const messageData = {
           senderId: authorId,
           receiverId: subscriberId,
-          messageContent: `您訂閱的${authorName}剛剛發布了新文章`,
+          messageContent: `您訂閱的${authorName}剛剛發布了新文章「${postTitle}」`,
           timestamp: serverTimestamp(),
           type: "subscription_notification",
           isRead: false,
@@ -203,10 +202,18 @@ export const notifySubscribers = async (
     // 等待所有消息創建完成
     const messageResults = await Promise.all(messagePromises);
     console.log(`消息創建結果:`, messageResults);
+    const successfulNotifications = messageResults.filter(
+      (result) => result.success
+    ).length;
+
+    console.log(
+      `成功發送通知：${successfulNotifications}/${subscriptionsSnapshot.size}`
+    );
 
     return {
       success: true,
       notified: subscriptionsSnapshot.size,
+      successfulNotifications,
       notificationResults,
       messageResults,
     };

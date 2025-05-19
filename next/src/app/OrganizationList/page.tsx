@@ -131,14 +131,34 @@ export default function OrganizationListPage() {
         setSubscribedOrganizations((prev) => prev.filter((id) => id !== orgId));
         setSnackbarMessage("已取消訂閱組織");
       } else {
-        // 添加訂閱
-        await subscriptionServices.subscribeToOrganization(
+        // 添加訂閱前，再次檢查是否已訂閱，避免並發操作導致重複訂閱
+        const checkResult = await subscriptionServices.checkSubscription(
           currentUser.uid,
-          orgId,
-          orgType
+          orgId
         );
-        setSubscribedOrganizations((prev) => [...prev, orgId]);
-        setSnackbarMessage("已成功訂閱組織");
+        if (checkResult) {
+          console.log("已經訂閱過此組織");
+          setSnackbarMessage("您已經訂閱過此組織");
+        } else {
+          // 添加訂閱
+          const result = await subscriptionServices.subscribeToOrganization(
+            currentUser.uid,
+            orgId,
+            orgType
+          );
+          // 檢查返回值，如果是 "already-subscribed" 則表示已訂閱
+          if (result === "already-subscribed") {
+            console.log("已經訂閱過此組織，但UI狀態不同步");
+            // 更新UI以反映實際狀態
+            if (!subscribedOrganizations.includes(orgId)) {
+              setSubscribedOrganizations((prev) => [...prev, orgId]);
+            }
+            setSnackbarMessage("您已經訂閱過此組織");
+          } else {
+            setSubscribedOrganizations((prev) => [...prev, orgId]);
+            setSnackbarMessage("已成功訂閱組織");
+          }
+        }
       }
       setSnackbarOpen(true);
     } catch (error) {
@@ -744,11 +764,7 @@ export default function OrganizationListPage() {
                                 }
                               >
                                 <IconButton
-                                  color={
-                                    subscribedOrganizations.includes(org.id)
-                                      ? "primary"
-                                      : "default"
-                                  }
+                                  color="primary"
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -756,11 +772,14 @@ export default function OrganizationListPage() {
                                   }}
                                   disabled={!isAuthenticated}
                                 >
-                                  {" "}
                                   {subscribedOrganizations.includes(org.id) ? (
-                                    <SubscriptionsIcon color="primary" />
+                                    <SubscriptionsIcon
+                                      sx={{ color: "primary.main" }}
+                                    />
                                   ) : (
-                                    <SubscriptionsIcon />
+                                    <SubscriptionsIcon
+                                      sx={{ color: "text.disabled" }}
+                                    />
                                   )}
                                 </IconButton>
                               </Tooltip>

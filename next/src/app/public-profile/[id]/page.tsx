@@ -47,9 +47,9 @@ export default function PublicProfilePage() {
   const [subscribing, setSubscribing] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
-    "success"
-  );
+  const [snackbarSeverity, setSnackbarSeverity] = useState<
+    "success" | "error" | "info"
+  >("success");
   // 檢查是否為當前用戶自己的資料
   const [isCurrentUser, setIsCurrentUser] = useState(false);
   useEffect(() => {
@@ -260,15 +260,36 @@ export default function PublicProfilePage() {
         const organizationType = userType === "club" ? "club" : "company";
         const targetName = getDisplayName();
 
-        await subscriptionServices.subscribeToOrganization(
+        // 再次檢查是否已訂閱，避免重複訂閱
+        const checkResult = await subscriptionServices.checkSubscription(
           currentUserId,
-          id as string,
-          organizationType as "club" | "company"
+          id as string
         );
 
-        setIsSubscribed(true);
-        setSnackbarMessage(`成功訂閱 ${targetName}`);
-        setSnackbarSeverity("success");
+        if (checkResult) {
+          console.log("已經訂閱過此組織");
+          setIsSubscribed(true);
+          setSnackbarMessage("您已經訂閱過此組織");
+          setSnackbarSeverity("info");
+        } else {
+          const result = await subscriptionServices.subscribeToOrganization(
+            currentUserId,
+            id as string,
+            organizationType as "club" | "company"
+          );
+
+          // 檢查返回值，如果是 "already-subscribed" 則表示已訂閱
+          if (result === "already-subscribed") {
+            console.log("已經訂閱過此組織，但UI狀態不同步");
+            setIsSubscribed(true);
+            setSnackbarMessage("您已經訂閱過此組織");
+            setSnackbarSeverity("info");
+          } else {
+            setIsSubscribed(true);
+            setSnackbarMessage(`成功訂閱 ${targetName}`);
+            setSnackbarSeverity("success");
+          }
+        }
       }
       setSnackbarOpen(true);
     } catch (error) {
