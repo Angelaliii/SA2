@@ -14,7 +14,7 @@ import { blue, green } from "@mui/material/colors";
 import { doc, getDoc } from "firebase/firestore";
 import { useParams } from "next/navigation"; // 使用 useParams 獲取動態路由的 id 參數
 import { useEffect, useState } from "react";
-import Navbar from "../../../components/Navbar"; // 引入 Navbar 元件
+import Navbar from "../../../components/Navbar";
 import { db } from "../../../firebase/config";
 
 export default function ActivityDetailPage() {

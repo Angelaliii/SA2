@@ -337,16 +337,10 @@ export default function NotificationsPage() {
       titleResult.push(messageContent.substring(titleLastIndex));
     }
 
-    // 如果沒有找到匹配，但有 postTitle 和 postId，強制添加一個隱藏的連結
+    // 如果沒有找到匹配，但有 postTitle 和 postId，不再回傳隱藏的連結
+    // 避免在 Typography (p 標籤) 內嵌套 Box (div 標籤)
     if (!foundMatch && postTitle && postId) {
-      return (
-        <>
-          {messageContent}
-          <Box sx={{ display: "none" }}>
-            <Link href={`/Artical/${postId}`}>{postTitle}</Link>
-          </Box>
-        </>
-      );
+      return messageContent;
     }
 
     return titleResult.length > 0 ? <>{titleResult}</> : messageContent;
@@ -486,6 +480,29 @@ export default function NotificationsPage() {
                               msg.postTitle
                             )}
                           </Typography>
+
+                          {/* 文章相關連結 - 已移出 Typography 避免 p 標籤內嵌套 div */}
+                          {!msg.messageContent.includes(
+                            `「${msg.postTitle}」`
+                          ) &&
+                            msg.postTitle &&
+                            msg.postId && (
+                              <Box sx={{ mt: 1, width: "100%" }}>
+                                <Typography variant="body2" component="span">
+                                  <Link
+                                    href={`/Artical/${msg.postId}`}
+                                    style={{
+                                      color: "#1976d2",
+                                      textDecoration: "none",
+                                      fontWeight: "medium",
+                                    }}
+                                  >
+                                    相關文章連結
+                                  </Link>
+                                </Typography>
+                              </Box>
+                            )}
+
                           {msg.postTitle && (
                             <Box
                               sx={{

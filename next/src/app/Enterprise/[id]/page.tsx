@@ -842,7 +842,6 @@ export default function EnterpriseDetailPage() {
                         {post.contactName ?? "未提供"}
                       </Typography>
                     </Box>
-
                     <Box>
                       <Typography variant="subtitle2" color="text.secondary">
                         聯繫電話
@@ -850,16 +849,17 @@ export default function EnterpriseDetailPage() {
                       <Typography variant="body1">
                         {post.contactPhone ?? "未提供"}
                       </Typography>
-                    </Box>
-
-                    {post.email && (
+                    </Box>{" "}
+                    {(post.contactEmail || post.email) && (
                       <Box>
                         {" "}
                         <Typography variant="subtitle2" color="text.secondary">
                           電子郵件
                         </Typography>
-                        <MuiLink href={`mailto:${post.email}`}>
-                          {post.email}
+                        <MuiLink
+                          href={`mailto:${post.contactEmail || post.email}`}
+                        >
+                          {post.contactEmail || post.email}
                         </MuiLink>
                       </Box>
                     )}
@@ -917,14 +917,13 @@ export default function EnterpriseDetailPage() {
                 href="/Enterprise/EnterpriseList"
               >
                 返回列表
-              </Button>
-
-              {post.email ? (
+              </Button>{" "}
+              {post.contactEmail || post.email ? (
                 <Button
                   variant="contained"
                   color="primary"
                   startIcon={<EmailIcon />}
-                  href={`mailto:${post.email}`}
+                  href={`mailto:${post.contactEmail || post.email}`}
                 >
                   聯絡企業
                 </Button>
