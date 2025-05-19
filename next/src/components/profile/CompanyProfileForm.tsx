@@ -1,3 +1,5 @@
+"use client";
+
 import SaveIcon from "@mui/icons-material/Save";
 import {
   Box,
@@ -11,11 +13,71 @@ import {
 import React, { useState } from "react";
 import { Company } from "../../firebase/services/company-service";
 
-interface CompanyProfileFormProps {
-  companyData: Company;
-  onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
-  readonly?: boolean;
-}
+// 分離出唯讀視圖組件
+const ReadOnlyCompanyProfile = ({ companyData }: { companyData: Company }) => (
+  <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
+    <Typography variant="h5" fontWeight="bold" gutterBottom>
+      企業資料
+    </Typography>
+
+    <Grid container spacing={2}>
+      {companyData.logoURL && (
+        <Grid item xs={12} display="flex" justifyContent="center" mb={2}>
+          <Box
+            component="img"
+            src={companyData.logoURL}
+            alt={`${companyData.companyName}的標誌`}
+            sx={{
+              width: 120,
+              height: 120,
+              objectFit: "contain",
+              borderRadius: "50%",
+            }}
+          />
+        </Grid>
+      )}
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>企業名稱：</strong> {companyData.companyName}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>統一編號：</strong> {companyData.businessId}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>產業類型：</strong> {companyData.industryType}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>聯絡人姓名：</strong> {companyData.contactName}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>聯絡電話：</strong> {companyData.contactPhone}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography>
+          <strong>電子郵件：</strong> {companyData.email}
+        </Typography>
+      </Grid>
+
+      <Grid item xs={12}>
+        <Typography sx={{ mt: 2 }}>
+          <strong>企業簡介：</strong>
+        </Typography>
+        <Typography sx={{ whiteSpace: "pre-line" }}>
+          {companyData.companyDescription}
+        </Typography>
+      </Grid>
+    </Grid>
+  </Paper>
+);
 
 // Industry types options
 const industryTypes = [
@@ -31,77 +93,14 @@ const industryTypes = [
   "其他",
 ];
 
-const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
+// 可編輯的企業表單
+const EditableCompanyProfile = ({
   companyData,
   onSubmit,
-  readonly = false,
+}: {
+  companyData: Company;
+  onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
 }) => {
-  if (readonly) {
-    return (
-      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          企業資料
-        </Typography>
-
-        <Grid container spacing={2}>
-          {companyData.logoURL && (
-            <Grid item xs={12} display="flex" justifyContent="center" mb={2}>
-              <Box
-                component="img"
-                src={companyData.logoURL}
-                alt={`${companyData.companyName}的標誌`}
-                sx={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "contain",
-                  borderRadius: "50%",
-                }}
-              />
-            </Grid>
-          )}
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>企業名稱：</strong> {companyData.companyName}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>統一編號：</strong> {companyData.businessId}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>產業類型：</strong> {companyData.industryType}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>聯絡人姓名：</strong> {companyData.contactName}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>聯絡電話：</strong> {companyData.contactPhone}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography>
-              <strong>電子郵件：</strong> {companyData.email}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography sx={{ mt: 2 }}>
-              <strong>企業簡介：</strong>
-            </Typography>
-            <Typography sx={{ whiteSpace: "pre-line" }}>
-              {companyData.companyDescription}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-    );
-  }
   const [formData, setFormData] = useState<Partial<Company>>({
     companyName: companyData.companyName ?? "",
     businessId: companyData.businessId ?? "",
@@ -192,10 +191,11 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
     <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
       <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
         企業資料
-      </Typography>{" "}
+      </Typography>
+
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Logo Display Section */}
+          {/* Logo Upload Section */}
           <Grid
             item
             xs={12}
@@ -215,7 +215,6 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
                   objectFit: "contain",
                   borderRadius: "50%",
                   mb: 2,
-                  border: "1px solid #e0e0e0",
                 }}
               />
             )}
@@ -250,7 +249,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               required
               error={!!errors.businessId}
               helperText={errors.businessId}
-              disabled={!!companyData.businessId} // 已註冊的企業不可更改統一編號
+              disabled={!!companyData.businessId}
             />
           </Grid>
 
@@ -265,7 +264,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               margin="normal"
               required
               error={!!errors.industryType}
-              helperText={errors.industryType ?? "請選擇最接近貴公司的產業類型"}
+              helperText={errors.industryType ?? "請選擇貴公司的產業類型"}
             >
               {industryTypes.map((option) => (
                 <MenuItem key={option} value={option}>
@@ -303,7 +302,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="電子郵件"
@@ -315,7 +314,6 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               required
               error={!!errors.email}
               helperText={errors.email}
-              disabled={!!companyData.email} // 已註冊的企業不可更改郵件
             />
           </Grid>
 
@@ -329,7 +327,7 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
               margin="normal"
               multiline
               rows={4}
-              placeholder="請輸入企業簡介，描述企業文化、產品服務等"
+              placeholder="請輸入企業簡介，描述企業的定位、主要業務等"
               helperText="建議字數：100-300字"
             />
           </Grid>
@@ -357,6 +355,28 @@ const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
         </Grid>
       </form>
     </Paper>
+  );
+};
+
+// 主要 CompanyProfileForm 組件
+interface CompanyProfileFormProps {
+  companyData: Company;
+  onSubmit: (updatedData: Partial<Company>, logoFile?: File) => Promise<void>;
+  readonly?: boolean;
+}
+
+const CompanyProfileForm: React.FC<CompanyProfileFormProps> = ({
+  companyData,
+  onSubmit,
+  readonly = false,
+}) => {
+  // 根據 readonly 屬性決定顯示唯讀或可編輯模式
+  if (readonly) {
+    return <ReadOnlyCompanyProfile companyData={companyData} />;
+  }
+
+  return (
+    <EditableCompanyProfile companyData={companyData} onSubmit={onSubmit} />
   );
 };
 

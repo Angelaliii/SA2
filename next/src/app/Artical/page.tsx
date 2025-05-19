@@ -26,15 +26,7 @@ import * as postService from "../../firebase/services/post-service";
 import { ClientOnly } from "../../hooks/useHydration";
 
 // 定義活動性質選項
-const eventNatureOptions = [
-  "迎新",
-  "講座",
-  "比賽",
-  "展覽",
-  "工作坊",
-  "營隊",
-  "其他",
-];
+const eventNatureOptions = ["迎新", "講座", "比賽", "營隊", "其他"];
 
 export default function DemandPostPage() {
   const router = useRouter();

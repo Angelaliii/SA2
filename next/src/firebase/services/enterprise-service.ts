@@ -45,7 +45,7 @@ export interface EnterprisePost {
 
   // 活動合作特有欄位
   activityName?: string; // 活動名稱
-  activityType?: string; // 活動類型（演講/工作坊/展覽/比賽等）
+  activityType?: string; // 活動類型（演講/比賽等）
   activityStartDate?: string; // 活動開始日期
   activityEndDate?: string; // 活動結束日期
   activityLocation?: string; // 活動地點

@@ -54,14 +54,7 @@ export default function EnterpriseEditDialog({
   });
 
   // 定義選項
-  const activityTypeOptions = [
-    "演講",
-    "工作坊",
-    "展覽",
-    "比賽",
-    "營隊",
-    "其他",
-  ];
+  const activityTypeOptions = ["演講", "比賽", "營隊", "其他"];
   const interviewMethodOptions = [
     "線上面試",
     "實體面試",

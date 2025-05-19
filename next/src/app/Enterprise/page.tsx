@@ -95,7 +95,7 @@ export default function EnterprisePostPage() {
     useState<string>("");
 
   // 活動類型選項
-  const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "其他"];
+  const activityTypeOptions = ["演講", "比賽", "其他"];
   // 合作方式選項
   // const cooperationTypeOptions = [
   //   "贊助",

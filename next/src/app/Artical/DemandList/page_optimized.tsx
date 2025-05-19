@@ -29,11 +29,10 @@ import {
   getDocs,
   orderBy,
   query,
-  setDoc,
   where,
 } from "firebase/firestore";
-import Link from "next/link";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import HydratedNavbar from "../../../components/NavbarHydrated";
 import { auth, db } from "../../../firebase/config";

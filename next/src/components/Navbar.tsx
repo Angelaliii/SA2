@@ -398,11 +398,12 @@ export default function Navbar({
                   href="/messages"
                   sx={{ color: "white", mr: 2 }}
                 >
+                  {" "}
                   <Badge
                     color="error"
                     variant="dot"
                     overlap="circular"
-                    invisible={!hasUnread}
+                    invisible={!displayUnread} // 使用 displayUnread 來控制通知徽章
                   >
                     <NotificationsIcon />
                   </Badge>

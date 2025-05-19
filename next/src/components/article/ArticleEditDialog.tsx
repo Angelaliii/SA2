@@ -72,7 +72,7 @@ export default function ArticleEditDialog({
   const [estimatedParticipants, setEstimatedParticipants] = useState("");
 
   // 事件類型選項
-  const eventTypes = ["講座", "工作坊", "表演", "比賽", "展覽", "營隊", "其他"];
+  const eventTypes = ["講座", "表演", "比賽", "營隊", "其他"];
   // 講師類型選項
   const speakerTypes = ["技術講師", "學術講師", "創業講師", "職涯講師", "其他"];
 

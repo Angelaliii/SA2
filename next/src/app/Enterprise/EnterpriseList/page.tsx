@@ -87,7 +87,7 @@ export default function EnterpriseListPage() {
 
   // 篩選選項
   const contractPeriodOptions = ["一個月", "三個月", "半年", "一年"];
-  const activityTypeOptions = ["演講", "工作坊", "展覽", "比賽", "其他"];
+  const activityTypeOptions = ["演講", "比賽", "其他"];
   const interviewMethodOptions = ["線上面試", "實體面試", "其他"];
 
   // 獲取收藏狀態
