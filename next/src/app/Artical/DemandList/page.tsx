@@ -766,10 +766,10 @@ export default function DemandListPage() {
                   ))}
                 </TextField>{" "}
                 <TextField
-                  fullWidth
-                  type="date"
-                  label="活動開始日期"
-                  value={eventStartDate}
+                  fullWidth // 佔滿整行
+                  type="date" // 日期輸入框
+                  label="活動開始日期" // 標籤文字
+                  value={eventStartDate} // 綁定開始日期狀態
                   onChange={(e) => {
                     setEventStartDate(e.target.value);
                     // 如果結束日期已經設定，且新的開始日期晚於結束日期，則自動更新結束日期
@@ -778,69 +778,63 @@ export default function DemandListPage() {
                     }
                     setCurrentPage(1); // 重置到第一頁
                   }}
-                  InputLabelProps={{ shrink: true }}
+                  InputLabelProps={{ shrink: true }} // 縮小標籤
                   inputProps={{
-                    max: eventEndDate || undefined,
+                    max: eventEndDate || undefined, // 最大值限制為結束日期
                   }}
                   helperText={
                     eventStartDate && eventStartDate > eventEndDate
                       ? "開始日期不能晚於結束日期"
                       : ""
-                  }
-                  error={
-                    !!(
-                      eventStartDate &&
-                      eventEndDate &&
-                      eventStartDate > eventEndDate
-                    )
-                  }
-                  sx={{ flexGrow: 1, minWidth: "200px" }}
+                  } // 提示文字
+                  error={!!(eventStartDate && eventStartDate > eventEndDate)} // 錯誤提示：開始日期晚於結束日期時顯示錯誤
+                  sx={{ flexGrow: 1, minWidth: "200px" }} // 版面配置
                 />
                 <TextField
-                  fullWidth
-                  type="date"
-                  label="活動結束日期"
-                  value={eventEndDate}
+                  fullWidth // 佔滿整行
+                  type="date" // 日期輸入框
+                  label="活動結束日期" // 標籤文字
+                  value={eventEndDate} // 綁定結束日期狀態
                   onChange={(e) => {
                     setEventEndDate(e.target.value);
                     setCurrentPage(1); // 重置到第一頁
                   }}
-                  InputLabelProps={{ shrink: true }}
+                  InputLabelProps={{ shrink: true }} // 縮小標籤
                   inputProps={{
-                    min: eventStartDate || undefined,
+                    min: eventStartDate || undefined, // 最小值限制為開始日期
                   }}
                   helperText={
                     eventStartDate && eventStartDate > eventEndDate
                       ? "結束日期不能早於開始日期"
                       : ""
-                  }
-                  error={!!(eventStartDate && eventStartDate > eventEndDate)}
-                  sx={{ flexGrow: 1, minWidth: "200px" }}
+                  } // 提示文字
+                  error={!!(eventStartDate && eventStartDate > eventEndDate)} // 錯誤提示：開始日期晚於結束日期時顯示錯誤
+                  sx={{ flexGrow: 1, minWidth: "200px" }} // 版面配置
                 />
                 <TextField
-                  fullWidth
-                  type="number"
-                  label="最少參與人數"
-                  value={filters.minParticipants}
-                  onChange={handleFilterChange}
-                  name="minParticipants"
-                  sx={{ flexGrow: 1, minWidth: "150px" }}
+                  fullWidth // 佔滿整行
+                  type="number" // 數字輸入框
+                  label="最少參與人數" // 標籤文字
+                  value={filters.minParticipants} // 綁定參與人數狀態
+                  onChange={handleFilterChange} // 變更時觸發事件
+                  name="minParticipants" // 對應狀態名稱
+                  sx={{ flexGrow: 1, minWidth: "150px" }} // 版面配置
                 />
               </Box>
 
               {/* 清除篩選按鈕 */}
-              {(searchTerm ||
-                filters.selectedDemand ||
-                filters.selectedEventType ||
-                filters.startDate ||
-                filters.endDate ||
-                filters.minParticipants ||
-                demandType) && (
+              {(searchTerm || // 有搜尋詞
+                filters.selectedDemand || // 有選擇需求
+                filters.selectedEventType || // 有選擇活動類型
+                filters.startDate || // 有設定開始日期
+                filters.endDate || // 有設定結束日期
+                filters.minParticipants || // 有設定最少參與人數
+                demandType) && ( // 有選擇需求類型
                 <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={clearAllFilters}
-                  sx={{ mt: 2 }}
+                  variant="outlined" // 外框按鈕
+                  color="primary" // 主色
+                  onClick={clearAllFilters} // 點擊時清除所有篩選
+                  sx={{ mt: 2 }} // 上邊距
                 >
                   清除所有篩選條件
                 </Button>

@@ -923,32 +923,32 @@ export default function DemandPostPage() {
                           {...params}
                           label={
                             <>
-                              講師性質{" "}
-                              <span style={{ color: "#d32f2f" }}>*</span>
+                              講師性質{" "} // 標籤文字
+                              <span style={{ color: "#d32f2f" }}>*</span> // 必填欄位紅色星號
                             </>
                           }
-                          error={errors.speakerType}
-                          helperText={errors.speakerType ? "此欄為必填" : ""}
-                          sx={{ mb: 3 }}
+                          error={errors.speakerType} // 錯誤狀態：講師性質
+                          helperText={errors.speakerType ? "此欄為必填" : ""} // 錯誤提示文字
+                          sx={{ mb: 3 }} // 下邊距
                         />
                       )}
                     />
                     <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
+                      fullWidth // 佔滿整行
+                      multiline // 多行輸入
+                      rows={3} // 顯示3行高度
                       label={
                         <>
-                          講師具體需求{" "}
-                          <span style={{ color: "#d32f2f" }}>*</span>
+                          講師具體需求{" "} // 標籤文字
+                          <span style={{ color: "#d32f2f" }}>*</span> // 必填欄位紅色星號
                         </>
                       }
-                      placeholder="希望講師具備電商經驗，分享創業歷程"
-                      value={speakerDetail}
-                      onChange={(e) => setSpeakerDetail(e.target.value)}
-                      error={errors.speakerDetail}
-                      helperText={errors.speakerDetail ? "此欄為必填" : ""}
-                      sx={{ mb: 3 }}
+                      placeholder="希望講師具備電商經驗，分享創業歷程" // 預設提示文字
+                      value={speakerDetail} // 綁定講師需求內容
+                      onChange={(e) => setSpeakerDetail(e.target.value)} // 內容變更時更新狀態
+                      error={errors.speakerDetail} // 錯誤狀態：講師具體需求
+                      helperText={errors.speakerDetail ? "此欄為必填" : ""} // 錯誤提示文字
+                      sx={{ mb: 3 }} // 下邊距
                     />{" "}
                   </>
                 )}

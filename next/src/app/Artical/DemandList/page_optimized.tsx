@@ -1,59 +1,56 @@
-"use client";
+"use client"; // 指定為前端元件
 
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import EventIcon from "@mui/icons-material/Event";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import SearchIcon from "@mui/icons-material/Search";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // 新增圖示
+import EventIcon from "@mui/icons-material/Event"; // 活動圖示
+import FavoriteIcon from "@mui/icons-material/Favorite"; // 已收藏圖示
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder"; // 未收藏圖示
+import SearchIcon from "@mui/icons-material/Search"; // 搜尋圖示
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CircularProgress,
-  Container,
-  IconButton,
-  InputAdornment,
-  Pagination,
-  Paper,
-  Snackbar,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+  Alert, // 提示訊息元件
+  Box, // 版面配置元件
+  Button, // 按鈕元件
+  Card, // 卡片元件
+  CircularProgress, // 載入中動畫
+  Container, // 容器元件
+  IconButton, // 圖示按鈕
+  InputAdornment, // 輸入框裝飾
+  Pagination, // 分頁元件
+  Paper, // 紙張樣式元件
+  Snackbar, // 提示條元件
+  Stack, // 垂直堆疊元件
+  TextField, // 輸入框元件
+  Typography, // 文字元件
+} from "@mui/material"; // MUI 元件庫
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import HydratedNavbar from "../../../components/NavbarHydrated";
-import { auth, db } from "../../../firebase/config";
-import { clubServices } from "../../../firebase/services/club-service";
-import { ClientOnly } from "../../../hooks/useHydration";
-import { DemandFilters, DemandPost } from "../../../types/demand";
+  addDoc, // 新增文件
+  collection, // 取得集合
+  deleteDoc, // 刪除文件
+  doc, // 取得文件
+  getDocs, // 取得多個文件
+  orderBy, // 排序
+  query, // 查詢
+  where, // 條件查詢
+} from "firebase/firestore"; // Firebase Firestore 函式
+import { motion } from "framer-motion"; // 動畫庫
+import Link from "next/link"; // Next.js 連結
+import { useEffect, useState } from "react"; // React hooks
+import HydratedNavbar from "../../../components/NavbarHydrated"; // 導覽列元件
+import { auth, db } from "../../../firebase/config"; // Firebase 認證與資料庫
+import { clubServices } from "../../../firebase/services/club-service"; // 社團服務
+import { ClientOnly } from "../../../hooks/useHydration"; // 僅客戶端渲染元件
+import { DemandFilters, DemandPost } from "../../../types/demand"; // 型別定義
 
-export default function DemandListPage() {
-  // 首先分離 Material-UI 樣式創建
-  const [isMounted, setIsMounted] = useState(false);
+export default function DemandListPage() { // 需求列表頁元件
+  const [isMounted, setIsMounted] = useState(false); // 掛載狀態
 
-  // 在客戶端掛載完成後設置標誌
   useEffect(() => {
-    setIsMounted(true);
-    document.title = "需求牆 - 社團企業媒合平台";
+    setIsMounted(true); // 設定已掛載
+    document.title = "需求牆 - 社團企業媒合平台"; // 設定頁面標題
   }, []);
 
-  const [posts, setPosts] = useState<DemandPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<DemandPost[]>([]); // 文章列表狀態
+  const [loading, setLoading] = useState(true); // 載入狀態
 
-  // 使用完整的 DemandFilters 類型
   const [filters, setFilters] = useState<DemandFilters>({
     selectedDemand: "",
     selectedEventType: "",
@@ -65,47 +62,43 @@ export default function DemandListPage() {
     moneyMinAmount: "",
     moneyMaxAmount: "",
     speakerType: "",
-  });
+  }); // 篩選條件
 
-  // 新增篩選條件的狀態
-  const [demandType, setDemandType] = useState<string>("");
-  const [location, setLocation] = useState<string>("");
-  const [materialCategory, setMaterialCategory] = useState<string>("");
-  const [minAmount, setMinAmount] = useState<string>("");
-  const [maxAmount, setMaxAmount] = useState<string>("");
-  const [speakerType, setSpeakerType] = useState<string>("");
-  const [keywordEvent, setKeywordEvent] = useState<string>("");
-  const [keywordOrg, setKeywordOrg] = useState<string>("");
-  const [eventStartDate, setEventStartDate] = useState<string>("");
-  const [eventEndDate, setEventEndDate] = useState<string>("");
-  const [eventNature, setEventNature] = useState<string>("");
+  const [demandType, setDemandType] = useState<string>(""); // 需求類型
+  const [location, setLocation] = useState<string>(""); // 地點
+  const [materialCategory, setMaterialCategory] = useState<string>(""); // 物資類別
+  const [minAmount, setMinAmount] = useState<string>(""); // 金額下限
+  const [maxAmount, setMaxAmount] = useState<string>(""); // 金額上限
+  const [speakerType, setSpeakerType] = useState<string>(""); // 講師主題
+  const [keywordEvent, setKeywordEvent] = useState<string>(""); // 活動關鍵字
+  const [keywordOrg, setKeywordOrg] = useState<string>(""); // 組織關鍵字
+  const [eventStartDate, setEventStartDate] = useState<string>(""); // 活動開始日期
+  const [eventEndDate, setEventEndDate] = useState<string>(""); // 活動結束日期
+  const [eventNature, setEventNature] = useState<string>(""); // 活動性質
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string>("全部");
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(""); // 搜尋詞
+  const [selectedTag, setSelectedTag] = useState<string>("全部"); // 選擇的標籤
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({}); // 收藏狀態
+  const [currentPage, setCurrentPage] = useState(1); // 當前頁碼
   const itemsPerPage = 8; // 每頁顯示8筆資料
   const [isClub, setIsClub] = useState(false); // 添加社團權限檢查狀態
-  // 分別篩選收起
-  const [selectedFilterType, setSelectedFilterType] = useState<string>("");
+  const [selectedFilterType, setSelectedFilterType] = useState<string>(""); // 當前篩選類型
 
-  // Snackbar 通知狀態
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error" | "info" | "warning",
-  });
+    open: false, // 是否開啟
+    message: "", // 訊息內容
+    severity: "success" as "success" | "error" | "info" | "warning", // 類型
+  }); // Snackbar 通知狀態
 
-  const handleDemandTypeClick = (type: string) => {
-    setDemandType(type === "全部" ? "" : type);
-    setSelectedFilterType(type === "全部" ? "" : type);
+  const handleDemandTypeClick = (type: string) => { // 點擊需求類型按鈕
+    setDemandType(type === "全部" ? "" : type); // 設定需求類型
+    setSelectedFilterType(type === "全部" ? "" : type); // 設定篩選類型
     setCurrentPage(1); // 重置到第一頁
   };
 
-  // 獲取收藏狀態
   useEffect(() => {
     const fetchFavorites = async () => {
-      if (!auth.currentUser) return;
+      if (!auth.currentUser) return; // 未登入不查詢
 
       try {
         const q = query(
@@ -116,7 +109,6 @@ export default function DemandListPage() {
         const favMap: Record<string, boolean> = {};
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
-          // 同時支持 postId 和 articleId 字段
           if (data.postId) {
             favMap[data.postId] = true;
           } else if (data.articleId) {
@@ -124,7 +116,7 @@ export default function DemandListPage() {
           }
         });
 
-        setFavorites(favMap);
+        setFavorites(favMap); // 設定收藏狀態
       } catch (err) {
         console.error("Error fetching favorites:", err);
       }
@@ -135,9 +127,8 @@ export default function DemandListPage() {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      setLoading(true);
+      setLoading(true); // 開始載入
       try {
-        // First try - Using compound index
         try {
           const indexedQuery = query(
             collection(db, "posts"),
@@ -151,7 +142,6 @@ export default function DemandListPage() {
             `使用索引查詢成功獲取 ${indexedSnapshot.docs.length} 篇文章`
           );
 
-          // Convert document data to Post objects
           const results: DemandPost[] = indexedSnapshot.docs
             .filter((doc) => !doc.data().deleted)
             .map((doc) => {
@@ -164,18 +154,15 @@ export default function DemandListPage() {
               } as DemandPost;
             });
 
-          // Apply filters
           const filteredResults = applyFilters(results);
 
-          setPosts(filteredResults);
-          setLoading(false);
+          setPosts(filteredResults); // 設定文章
+          setLoading(false); // 結束載入
           return;
         } catch (indexError) {
           console.warn("索引查詢失敗，將使用備用查詢方法:", indexError);
         }
 
-        // Backup query method
-        console.log("使用備用查詢方法...");
         const backupQuery = query(
           collection(db, "posts"),
           where("postType", "==", "demand")
@@ -184,7 +171,6 @@ export default function DemandListPage() {
         const snapshot = await getDocs(backupQuery);
         console.log(`備用查詢獲取到 ${snapshot.docs.length} 篇需求文章`);
 
-        // Convert to Post objects
         const results: DemandPost[] = snapshot.docs
           .filter((doc) => !doc.data().isDraft && !doc.data().deleted)
           .map((doc) => {
@@ -196,7 +182,6 @@ export default function DemandListPage() {
             } as DemandPost;
           });
 
-        // Sort by creation time (newest first)
         results.sort((a, b) => {
           if (!a.createdAt) return 1;
           if (!b.createdAt) return -1;
@@ -215,12 +200,10 @@ export default function DemandListPage() {
           }
         });
 
-        // Apply filters
         const filteredResults = applyFilters(results);
 
-        setPosts(filteredResults);
+        setPosts(filteredResults); // 設定文章
 
-        // Reset page number if needed
         if (
           filteredResults.length > 0 &&
           Math.ceil(filteredResults.length / itemsPerPage) < currentPage
@@ -246,50 +229,40 @@ export default function DemandListPage() {
     setCurrentPage(1); // 重置到第一頁
   };
 
-  // 當搜尋詞變化時也重置頁碼
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, demandType]);
 
-  // Filter posts
   const filteredPosts = posts.filter((post) => {
-    // Must have title or content
     if (!post?.title && !post?.content) return false;
 
-    // Filter by search term - more accurate string matching
     const matchSearch =
       !searchTerm ||
       post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.organizationName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Filter by tag
     const matchTag =
       selectedTag === "全部" ? true : post.purposeType === selectedTag;
 
     return matchSearch && matchTag;
   });
 
-  // Calculate pagination
-  const totalItems = filteredPosts.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalItems = filteredPosts.length; // 總筆數
+  const totalPages = Math.ceil(totalItems / itemsPerPage); // 總頁數
 
-  // Handle page change
   const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
-    setCurrentPage(value);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setCurrentPage(value); // 設定當前頁碼
+    window.scrollTo({ top: 0, behavior: "smooth" }); // 捲動到頂部
   };
 
-  // Get current page data
   const currentPosts = filteredPosts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // Toggle favorite
   const toggleFavorite = async (post: DemandPost) => {
     if (!auth.currentUser) {
-      // 使用 Snackbar 通知替代 alert
       setSnackbar({
         open: true,
         message: "請先登入後再收藏文章",
@@ -302,7 +275,6 @@ export default function DemandListPage() {
       const postId = post.id;
       const userId = auth.currentUser.uid;
 
-      // 同時檢查 articleId 和 postId 字段
       const q = query(
         collection(db, "favorites"),
         where("userId", "==", userId),
@@ -311,7 +283,6 @@ export default function DemandListPage() {
 
       const snapshot = await getDocs(q);
 
-      // 如果沒找到，再檢查舊版的 articleId 欄位
       if (snapshot.empty) {
         const oldQuery = query(
           collection(db, "favorites"),
@@ -322,11 +293,10 @@ export default function DemandListPage() {
         const oldSnapshot = await getDocs(oldQuery);
 
         if (oldSnapshot.empty) {
-          // 不在收藏中 -> 添加到收藏
           const favoriteData = {
             userId,
-            postId: postId, // 使用新字段
-            articleId: postId, // 保留舊字段以兼容
+            postId: postId,
+            articleId: postId,
             createdAt: new Date().toISOString(),
             postType: "demand",
             title: post.title,
@@ -336,14 +306,12 @@ export default function DemandListPage() {
 
           await addDoc(collection(db, "favorites"), favoriteData);
           setFavorites((prev) => ({ ...prev, [postId]: true }));
-          // 顯示已加入收藏的通知
           setSnackbar({
             open: true,
             message: "已加入收藏",
             severity: "success",
           });
         } else {
-          // 已在收藏中 (舊格式) -> 移除
           const favoriteDoc = oldSnapshot.docs[0];
           await deleteDoc(doc(db, "favorites", favoriteDoc.id));
           setFavorites((prev) => {
@@ -358,7 +326,6 @@ export default function DemandListPage() {
           });
         }
       } else {
-        // 已在收藏中 -> 移除
         const favoriteDoc = snapshot.docs[0];
         await deleteDoc(doc(db, "favorites", favoriteDoc.id));
         setFavorites((prev) => {
@@ -382,42 +349,34 @@ export default function DemandListPage() {
     }
   };
 
-  // 在组件顶部添加一个更可靠的格式化函數
   const formatCreatedAt = (data: any): string => {
     try {
       if (data.createdAt) {
         if (data.createdAt.toDate) {
-          // Firestore Timestamp
           return data.createdAt.toDate().toISOString();
         } else if (typeof data.createdAt === "string") {
-          // 已經是字符串格式
           return data.createdAt;
         } else {
-          // 其他日期對象
           return new Date(data.createdAt).toISOString();
         }
       }
 
-      // 默認日期 - 使用固定日期而不是當前時間避免hydration不匹配
       return "2023-01-01T00:00:00.000Z";
     } catch (error) {
       console.error("日期格式化錯誤:", error);
-      return "2023-01-01T00:00:00.000Z"; // 錯誤時使用固定日期
+      return "2023-01-01T00:00:00.000Z";
     }
   };
 
-  // Helper function to apply filters to posts
   const applyFilters = (posts: DemandPost[]): DemandPost[] => {
     let filteredResults = [...posts];
 
-    // ✅ 篩選：贊助類型（物資／金錢／講師）
     if (demandType) {
       filteredResults = filteredResults.filter(
         (post) => post.demandType === demandType
       );
     }
 
-    // 篩選：selectedDemand
     if (filters.selectedDemand) {
       filteredResults = filteredResults.filter((post) => {
         return (
@@ -427,21 +386,18 @@ export default function DemandListPage() {
       });
     }
 
-    // 篩選：eventType
     if (filters.selectedEventType) {
       filteredResults = filteredResults.filter(
         (post) => post.eventType === filters.selectedEventType
       );
     }
 
-    // 篩選：eventNature
     if (filters.selectedEventNature) {
       filteredResults = filteredResults.filter(
         (post) => post.eventNature === filters.selectedEventNature
       );
     }
 
-    // 篩選：活動日期範圍
     if (filters.startDate || filters.endDate) {
       filteredResults = filteredResults.filter((post) => {
         if (!post.eventDate) return false;
@@ -471,7 +427,6 @@ export default function DemandListPage() {
       });
     }
 
-    // 篩選：參與人數
     if (filters.minParticipants && filters.minParticipants !== "0") {
       filteredResults = filteredResults.filter((post) => {
         try {
@@ -485,7 +440,6 @@ export default function DemandListPage() {
       });
     }
 
-    // 篩選：關鍵字
     if (searchTerm) {
       filteredResults = filteredResults.filter(
         (post) =>
@@ -500,9 +454,7 @@ export default function DemandListPage() {
     return filteredResults;
   };
 
-  // 檢查用戶角色
   useEffect(() => {
-    // 首先檢查 sessionStorage 中是否有保存的狀態
     if (typeof window !== "undefined") {
       const savedClubStatus = sessionStorage.getItem("isClub");
       if (savedClubStatus) {
@@ -518,14 +470,12 @@ export default function DemandListPage() {
       }
 
       try {
-        // 使用 getClubByUserId 方法代替不存在的 checkIfUserHasClub 方法
         const clubData = await clubServices.getClubByUserId(
           auth.currentUser.uid
         );
-        const isUserClub = !!clubData; // 轉換為布爾值
+        const isUserClub = !!clubData;
         setIsClub(isUserClub);
 
-        // 保存到 sessionStorage 以避免重複檢查
         if (typeof window !== "undefined") {
           sessionStorage.setItem("isClub", isUserClub ? "true" : "false");
         }
@@ -538,7 +488,6 @@ export default function DemandListPage() {
     checkClubRole();
   }, []);
 
-  // 清除所有篩選器
   const clearAllFilters = () => {
     setSearchTerm("");
     setDemandType("");
@@ -570,7 +519,6 @@ export default function DemandListPage() {
     <ClientOnly>
       <HydratedNavbar />
       {!isMounted ? (
-        // 靜態加載骨架，避免 Material UI 組件在掛載前渲染
         <Box
           sx={{
             backgroundColor: "#f5f7fa",
@@ -596,7 +544,6 @@ export default function DemandListPage() {
           }}
         >
           <Container maxWidth="lg">
-            {/* 頁首區塊 */}
             <Box sx={{ textAlign: "center", mb: 3 }}>
               <Typography variant="h4" fontWeight="bold" color="primary.main">
                 需求列表
@@ -605,7 +552,6 @@ export default function DemandListPage() {
                 瀏覽所有合作需求，找到適合您的合作機會
               </Typography>
             </Box>
-            {/* 篩選條件區塊 */}
             <Paper
               elevation={1}
               sx={{
@@ -614,7 +560,6 @@ export default function DemandListPage() {
                 borderRadius: "12px",
               }}
             >
-              {/* 🔍 搜尋需求欄位在最上方 */}
               <TextField
                 fullWidth
                 placeholder="搜尋文章…"
@@ -630,7 +575,6 @@ export default function DemandListPage() {
                 }}
               />
 
-              {/* 🔘 類型篩選按鈕 */}
               <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                 {["全部", "物資", "金錢", "講師"].map((type) => (
                   <Button
@@ -655,10 +599,8 @@ export default function DemandListPage() {
                 ))}
               </Box>
 
-              {/* ⛔ 尚未選擇任何類型時不顯示表單 */}
               {selectedFilterType && (
                 <>
-                  {/* ✅ 以下根據 selectedFilterType 顯示對應篩選表單 */}
                   {selectedFilterType === "物資" && (
                     <Box sx={{ mb: 2 }}>
                       <TextField
@@ -668,7 +610,7 @@ export default function DemandListPage() {
                         value={materialCategory}
                         onChange={(e) => {
                           setMaterialCategory(e.target.value);
-                          setCurrentPage(1); // 重置到第一頁
+                          setCurrentPage(1);
                         }}
                         SelectProps={{ native: true }}
                       >
@@ -693,7 +635,7 @@ export default function DemandListPage() {
                         value={minAmount}
                         onChange={(e) => {
                           setMinAmount(e.target.value);
-                          setCurrentPage(1); // 重置到第一頁
+                          setCurrentPage(1);
                         }}
                       />
                       <TextField
@@ -703,7 +645,7 @@ export default function DemandListPage() {
                         value={maxAmount}
                         onChange={(e) => {
                           setMaxAmount(e.target.value);
-                          setCurrentPage(1); // 重置到第一頁
+                          setCurrentPage(1);
                         }}
                       />
                     </Box>
@@ -718,7 +660,7 @@ export default function DemandListPage() {
                         value={speakerType}
                         onChange={(e) => {
                           setSpeakerType(e.target.value);
-                          setCurrentPage(1); // 重置到第一頁
+                          setCurrentPage(1);
                         }}
                         SelectProps={{ native: true }}
                       >
@@ -739,20 +681,18 @@ export default function DemandListPage() {
                 </>
               )}
 
-              {/* 📅 進階篩選 - 活動時間 */}
               <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
                 進階篩選
               </Typography>
 
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
-                {/* 篩選：活動性質 */}
                 <TextField
                   select
                   label="活動性質"
                   value={eventNature}
                   onChange={(e) => {
                     setEventNature(e.target.value);
-                    setCurrentPage(1); // 重置到第一頁
+                    setCurrentPage(1);
                   }}
                   sx={{ flexGrow: 1, minWidth: "200px" }}
                   SelectProps={{ native: true }}
@@ -771,11 +711,10 @@ export default function DemandListPage() {
                   value={eventStartDate}
                   onChange={(e) => {
                     setEventStartDate(e.target.value);
-                    // 如果結束日期已經設定，且新的開始日期晚於結束日期，則自動更新結束日期
                     if (eventEndDate && e.target.value > eventEndDate) {
                       setEventEndDate(e.target.value);
                     }
-                    setCurrentPage(1); // 重置到第一頁
+                    setCurrentPage(1);
                   }}
                   InputLabelProps={{ shrink: true }}
                   inputProps={{
@@ -802,7 +741,7 @@ export default function DemandListPage() {
                   value={eventEndDate}
                   onChange={(e) => {
                     setEventEndDate(e.target.value);
-                    setCurrentPage(1); // 重置到第一頁
+                    setCurrentPage(1);
                   }}
                   InputLabelProps={{ shrink: true }}
                   inputProps={{
@@ -827,7 +766,6 @@ export default function DemandListPage() {
                 />
               </Box>
 
-              {/* 清除篩選按鈕 */}
               {(searchTerm ||
                 filters.selectedDemand ||
                 filters.selectedEventType ||
@@ -845,7 +783,6 @@ export default function DemandListPage() {
                 </Button>
               )}
             </Paper>
-            {/* 文章列表 */}
             <Stack spacing={3}>
               {loading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
@@ -924,7 +861,6 @@ export default function DemandListPage() {
                           justifyContent: "space-between",
                         }}
                       >
-                        {/* 主資訊區 */}
                         <Box sx={{ flex: 1 }}>
                           <Typography
                             variant="h6"
@@ -944,7 +880,6 @@ export default function DemandListPage() {
                               gap: 1,
                             }}
                           >
-                            {/* 活動性質標籤 */}
                             {post.eventNature && (
                               <Button
                                 size="small"
@@ -962,7 +897,6 @@ export default function DemandListPage() {
                               </Button>
                             )}
 
-                            {/* 需求類型標籤 */}
                             {post.demandType === "物資" && (
                               <Button
                                 size="small"
@@ -1012,7 +946,6 @@ export default function DemandListPage() {
                               </Button>
                             )}
                           </Box>
-                          {/* 組織名稱 */}
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Link
                               href={
@@ -1044,7 +977,6 @@ export default function DemandListPage() {
                               人
                             </Typography>
                           </Box>
-                          {/* 需求詳情 */}
                           {post.demandType === "物資" && (
                             <Typography variant="body2" color="text.secondary">
                               物資類型：
@@ -1067,7 +999,6 @@ export default function DemandListPage() {
                               講師類型：{post.speakerType || "未指定"}
                             </Typography>
                           )}{" "}
-                          {/* 活動時間 */}{" "}
                           <Box
                             sx={{
                               mt: 1,
@@ -1115,7 +1046,6 @@ export default function DemandListPage() {
                                 : "未設定"}
                             </Typography>
                           </Box>
-                          {/* 回饋方式 */}
                           <Typography
                             variant="body2"
                             color="text.secondary"
@@ -1123,7 +1053,6 @@ export default function DemandListPage() {
                           >
                             回饋方式：{post.feedbackDetails || "未指定"}
                           </Typography>
-                          {/* 截止時間 */}{" "}
                           <Typography
                             variant="caption"
                             color="text.secondary"
@@ -1138,7 +1067,6 @@ export default function DemandListPage() {
                           </Typography>
                         </Box>
 
-                        {/* 右側操作區 */}
                         <Box
                           sx={{
                             display: "flex",
@@ -1181,7 +1109,6 @@ export default function DemandListPage() {
                 ))
               )}
             </Stack>{" "}
-            {/* 分頁控制 */}
             {!loading && filteredPosts.length > 0 && (
               <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
                 {" "}
@@ -1195,7 +1122,6 @@ export default function DemandListPage() {
             )}
           </Container>
 
-          {/* 浮動發布需求按鈕 - 只有社團用戶能看到 */}
           {isClub && (
             <Box
               sx={{
@@ -1203,7 +1129,7 @@ export default function DemandListPage() {
                 bottom: 30,
                 right: 30,
                 zIndex: 999,
-                display: "block", // 確保按鈕一定顯示
+                display: "block",
               }}
             >
               <Button
@@ -1230,7 +1156,6 @@ export default function DemandListPage() {
             </Box>
           )}
 
-          {/* Snackbar for notifications */}
           <Snackbar
             open={snackbar.open}
             autoHideDuration={3000}

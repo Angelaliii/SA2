@@ -74,7 +74,7 @@ export default function ArticleUserPage() {
   const fetchPosts = async () => {
     if (!user) return;
 
-    setLoading(true);
+    setLoading(true); // 設定 loading 狀態為 true，表示開始載入資料
     try {
       const collectionName = tabValue === 0 ? "posts" : "enterprisePosts";
       const q = query(

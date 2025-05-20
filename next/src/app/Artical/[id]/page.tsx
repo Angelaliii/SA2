@@ -1,56 +1,56 @@
-"use client";
+"use client"; // 指定為前端元件
 
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import HandshakeIcon from "@mui/icons-material/Handshake";
+import FavoriteIcon from "@mui/icons-material/Favorite"; // 收藏圖示
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder"; // 未收藏圖示
+import HandshakeIcon from "@mui/icons-material/Handshake"; // 合作圖示
 import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Divider,
-  Grid,
-  Link as MuiLink,
-  Paper,
-  Snackbar,
-  Typography,
-} from "@mui/material";
+  Alert, 
+  Box, 
+  Button, 
+  Container, // 容器元件
+  Divider, // 分隔線元件
+  Grid, // 格線系統元件
+  Link as MuiLink, // 連結元件
+  Paper, // 紙張樣式元件
+  Snackbar, // 提示條元件
+  Typography, // 文字元件
+} from "@mui/material"; // MUI 元件庫
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  setDoc,
-  where,
-} from "firebase/firestore";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Navbar from "../../../components/Navbar";
-import { auth, db } from "../../../firebase/config";
-import { clubServices } from "../../../firebase/services/club-service";
-import { collaborationService } from "../../../firebase/services/collaboration-service";
-import * as postService from "../../../firebase/services/post-service";
+  collection, // 取得集合
+  deleteDoc, // 刪除文件
+  doc, // 取得文件
+  getDocs, // 取得多個文件
+  query, // 查詢
+  setDoc, // 設定文件
+  where, // 條件查詢
+} from "firebase/firestore"; // Firebase Firestore 函式
+import { useParams, useRouter } from "next/navigation"; // Next.js 路由與參數
+import { useEffect, useState } from "react"; // React hooks
+import Navbar from "../../../components/Navbar"; // 導覽列元件
+import { auth, db } from "../../../firebase/config"; // Firebase 認證與資料庫
+import { clubServices } from "../../../firebase/services/club-service"; // 社團服務
+import { collaborationService } from "../../../firebase/services/collaboration-service"; // 合作服務
+import * as postService from "../../../firebase/services/post-service"; // 文章服務
 
-export default function DemandPostDetailPage() {
-  const { id } = useParams();
-  const router = useRouter();
-  const [post, setPost] = useState<any>({
-    title: "載入中...",
-    organizationName: "未知社團",
-    createdAt: "",
-    email: "未提供",
+export default function DemandPostDetailPage() { // 需求文章詳情頁元件
+  const { id } = useParams(); // 取得路由參數 id
+  const router = useRouter(); // 取得路由物件
+  const [post, setPost] = useState<any>({ // 文章狀態
+    title: "載入中...", // 預設標題
+    organizationName: "未知社團", // 預設社團名稱
+    createdAt: "", // 預設建立時間
+    email: "未提供", // 預設電子郵件
   });
-  const [clubInfo, setClubInfo] = useState<any>(null);
-  const [messageSent, setMessageSent] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [clubInfo, setClubInfo] = useState<any>(null); // 社團資訊狀態
+  const [messageSent, setMessageSent] = useState(false); // 訊息是否已發送
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null); // 用戶登入狀態
+  const [isFavorite, setIsFavorite] = useState(false); // 是否已收藏
 
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false); // Snackbar 開啟狀態
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // Snackbar 訊息
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success"
-  );
+  ); // Snackbar 類型
   // 更新頁面標題
   useEffect(() => {
     if (post && post.title && post.title !== "載入中...") {
@@ -80,24 +80,24 @@ export default function DemandPostDetailPage() {
   }, []);
 
   // 收藏相關狀態
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false); // 收藏按鈕載入狀態
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      setIsLoggedIn(!!user);
+      setIsLoggedIn(!!user); // 監聽登入狀態
     });
 
     const fetchPost = async () => {
       try {
-        const data = await postService.getPostById(id as string);
-        setPost((prev: any) => ({ ...prev, ...data }));
+        const data = await postService.getPostById(id as string); // 取得文章資料
+        setPost((prev: any) => ({ ...prev, ...data })); // 設定文章狀態
 
         if (data?.authorId) {
-          const club = await clubServices.getClubById(data.authorId);
+          const club = await clubServices.getClubById(data.authorId); // 取得社團資訊
           setClubInfo(club);
 
           if (club?.email) {
-            setPost((prev: any) => ({ ...prev, authorEmail: club.email }));
+            setPost((prev: any) => ({ ...prev, authorEmail: club.email })); // 設定作者信箱
           }
         }
 
@@ -109,7 +109,7 @@ export default function DemandPostDetailPage() {
             where("articleId", "==", id)
           );
           const snapshot = await getDocs(q);
-          setIsFavorite(!snapshot.empty);
+          setIsFavorite(!snapshot.empty); // 設定是否已收藏
         }
       } catch (error) {
         console.error("Error fetching post:", error);
@@ -130,7 +130,7 @@ export default function DemandPostDetailPage() {
         );
 
         const snapshot = await getDocs(q);
-        setIsFavorite(!snapshot.empty);
+        setIsFavorite(!snapshot.empty); // 設定是否已收藏
       } catch (error) {
         console.error("Error checking favorite status:", error);
       }
@@ -138,28 +138,28 @@ export default function DemandPostDetailPage() {
 
     checkFavoriteStatus();
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // 清理監聽
   }, [id]);
-  if (!post) return null;
+  if (!post) return null; // 若無文章則不渲染
 
   // 使用一種固定格式，避免水合錯誤
   const formatDate = (dateString: string | Date) => {
     try {
       const date =
-        dateString instanceof Date ? dateString : new Date(dateString);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
+        dateString instanceof Date ? dateString : new Date(dateString); // 轉換日期
+      const year = date.getFullYear(); // 年
+      const month = String(date.getMonth() + 1).padStart(2, "0"); // 月
+      const day = String(date.getDate()).padStart(2, "0"); // 日
+      return `${year}-${month}-${day}`; // 格式化
     } catch (error) {
       console.error("日期格式化錯誤:", error);
       return "無效日期";
     }
   };
 
-  const formattedDate = formatDate(post.createdAt);
+  const formattedDate = formatDate(post.createdAt); // 格式化建立日期
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async () => { // 發送合作訊息
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
@@ -187,9 +187,9 @@ export default function DemandPostDetailPage() {
         );
       }
 
-      setMessageSent(true);
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      setMessageSent(true); // 設定訊息已發送
+      setSnackbarSeverity("success"); // 設定提示為成功
+      setOpenSnackbar(true); // 開啟提示條
     } catch (error) {
       console.error("發送訊息失敗:", error);
       setSnackbarMessage("發送訊息失敗，請稍後再試");
@@ -222,7 +222,7 @@ export default function DemandPostDetailPage() {
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-          await deleteDoc(doc(db, "favorites", snapshot.docs[0].id));
+          await deleteDoc(doc(db, "favorites", snapshot.docs[0].id)); // 刪除收藏
         }
         setSnackbarMessage("已取消收藏");
       } else {
@@ -239,7 +239,7 @@ export default function DemandPostDetailPage() {
         setSnackbarMessage("已加入收藏");
       }
 
-      setIsFavorite(!isFavorite);
+      setIsFavorite(!isFavorite); // 切換收藏狀態
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
     } catch (error) {
@@ -252,23 +252,23 @@ export default function DemandPostDetailPage() {
 
   return (
     <div>
-      <Navbar />
+      <Navbar /> {/* 導覽列 */}
       <Box
         sx={{
-          pt: 10,
-          pb: 8,
-          minHeight: "100vh",
-          backgroundColor: "#f5f7fa",
+          pt: 10, // 上邊距
+          pb: 8, // 下邊距
+          minHeight: "100vh", // 最小高度
+          backgroundColor: "#f5f7fa", // 背景色
         }}
       >
-        <Container maxWidth="md">
+        <Container maxWidth="md"> {/* 主要內容容器 */}
           <Paper
             elevation={3}
             sx={{
-              p: 4,
-              borderRadius: 2,
-              backgroundColor: "white",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+              p: 4, // 內距
+              borderRadius: 2, // 圓角
+              backgroundColor: "white", // 背景色
+              boxShadow: "0 8px 24px rgba(0,0,0,0.05)", // 陰影
             }}
           >
             {/* 標題與社團資訊 */}
